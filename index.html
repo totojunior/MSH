@@ -1,0 +1,2541 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>영어 단어 어근 가족 찾기 · 마석고 2학년</title>
+<style>
+  @property --float-y {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0px;
+  }
+  @property --rot {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    background:
+      radial-gradient(ellipse at top left, rgba(120,140,255,0.08), transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(255,140,180,0.08), transparent 60%),
+      #f0f3f9;
+    color: #1f2333;
+    overflow: hidden;
+  }
+
+  body { display: flex; flex-direction: column; }
+
+  header {
+    background: linear-gradient(135deg, #2c3e6b 0%, #4a5d99 100%);
+    color: white;
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(44,62,107,0.25);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  h1 {
+    font-size: 17px;
+    color: white;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  h1 .emoji {
+    font-size: 20px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  }
+
+  h1 .sub {
+    color: rgba(255,255,255,0.75);
+    font-weight: 400;
+    font-size: 12px;
+    margin-left: 6px;
+    padding-left: 10px;
+    border-left: 1px solid rgba(255,255,255,0.25);
+  }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .legend {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    margin-right: 8px;
+    padding-right: 12px;
+    border-right: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .legend-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    color: white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+
+  #counter {
+    font-size: 14px;
+    color: white;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    background: rgba(255,255,255,0.15);
+    padding: 4px 10px;
+    border-radius: 6px;
+    backdrop-filter: blur(4px);
+  }
+  #timer {
+    font-size: 13px;
+    color: rgba(255,255,255,0.95);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    background: rgba(255,255,255,0.12);
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-right: 8px;
+    backdrop-filter: blur(4px);
+  }
+  #timer.running { background: rgba(116,192,252,0.35); }
+  #timer.beat { animation: timer-beat 0.4s ease; }
+  @keyframes timer-beat {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+
+  /* Tutorial overlay (first-time) */
+  .tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,30,60,0.45);
+    backdrop-filter: blur(3px);
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .tutorial-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .tutorial-card {
+    background: white;
+    padding: 28px 36px 22px;
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.35);
+    max-width: 480px;
+    transform: scale(0.92);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .tutorial-overlay.show .tutorial-card { transform: scale(1); }
+  .tutorial-card h2 {
+    font-size: 22px;
+    margin-bottom: 14px;
+    color: #2c3e6b;
+    text-align: center;
+  }
+  .tutorial-card ol {
+    padding-left: 22px;
+    line-height: 1.7;
+    color: #2a2a2a;
+    font-size: 15px;
+  }
+  .tutorial-card ol li b { color: #c8345a; }
+  .tutorial-card .tut-icons {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #f7f9ff;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #5a6890;
+    line-height: 1.5;
+  }
+  .tutorial-card .tut-actions {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .tutorial-card #tutorial-close {
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+    color: white;
+    padding: 9px 22px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(74,144,226,0.35);
+  }
+  .tutorial-card #tutorial-close:hover { transform: translateY(-1px); }
+  .tutorial-card label {
+    font-size: 12px;
+    color: #888;
+    user-select: none;
+    cursor: pointer;
+  }
+  .tutorial-card label input { margin-right: 4px; }
+
+  /* Best record badge in setup-bar */
+  .best-record {
+    margin-left: 6px;
+    font-size: 11px;
+    color: #c8345a;
+    font-weight: 700;
+  }
+  .progress-shell {
+    width: 110px;
+    height: 7px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-right: 8px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #74c0fc 0%, #ffd66e 100%);
+    width: 0%;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    border-radius: 99px;
+  }
+  #score {
+    font-size: 12px;
+    color: rgba(255,255,255,0.95);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  #score .ok { color: #b6f5b6; }
+  #score .ng { color: #ffb6b6; }
+
+  button {
+    padding: 7px 14px;
+    background: rgba(255,255,255,0.18);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s ease;
+    backdrop-filter: blur(4px);
+  }
+  button:hover {
+    background: rgba(255,255,255,0.28);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  button:active { transform: translateY(0); }
+  button.primary { background: rgba(116,192,252,0.4); border-color: rgba(116,192,252,0.6); }
+  button.primary:hover { background: rgba(116,192,252,0.55); }
+  button.danger { background: rgba(220,80,90,0.4); border-color: rgba(220,80,90,0.6); }
+  button.danger:hover { background: rgba(220,80,90,0.55); }
+
+  /* Cloud area */
+  .cloud-area {
+    flex: 0 0 42%;
+    position: relative;
+    background:
+      radial-gradient(ellipse at center, #ffffff 0%, #f7f9fd 100%);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    overflow: hidden;
+    box-shadow: inset 0 -8px 16px -8px rgba(44,62,107,0.08);
+  }
+
+  .cloud-word {
+    position: absolute;
+    cursor: grab;
+    user-select: none;
+    transition: opacity 0.3s ease, text-shadow 0.18s ease;
+    font-weight: 700;
+    white-space: nowrap;
+    transform-origin: center;
+    line-height: 1;
+    touch-action: none;
+    letter-spacing: -0.3px;
+    --float-y: 0px;
+    --rot: 0deg;
+    transform: rotate(var(--rot)) translateY(var(--float-y));
+    animation: float-y var(--float-dur, 4s) ease-in-out infinite;
+    animation-delay: var(--float-delay, 0s);
+  }
+  @keyframes float-y {
+    0%, 100% { --float-y: 0px; }
+    50%      { --float-y: -6px; }
+  }
+
+  .cloud-word:hover {
+    transform: scale(1.22) rotate(0deg) !important;
+    z-index: 100;
+    text-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    filter: brightness(1.05);
+    animation-play-state: paused;
+  }
+
+  .cloud-word.dragging {
+    cursor: grabbing;
+    z-index: 3000;
+    transition: none;
+    text-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    filter: brightness(1.1);
+    animation: none;
+  }
+
+  .cloud-word.family-glow {
+    z-index: 50;
+    animation: float-y var(--float-dur, 4s) ease-in-out infinite,
+               family-glow-pulse 1.4s ease-in-out;
+    animation-delay: var(--float-delay, 0s), 0s;
+  }
+  @keyframes family-glow-pulse {
+    0%, 100% { text-shadow: none; filter: brightness(1); }
+    30%, 70% { text-shadow: 0 0 16px currentColor, 0 0 8px currentColor; filter: brightness(1.25); }
+  }
+
+  .cloud-word.snapping-back {
+    transition: left 0.4s cubic-bezier(0.5, 0, 0.2, 1), top 0.4s cubic-bezier(0.5, 0, 0.2, 1);
+    z-index: 2500;
+    animation-play-state: paused;
+  }
+
+  .cloud-word.flying {
+    position: fixed !important;
+    z-index: 1000;
+    transition: transform 0.6s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.6s ease;
+    pointer-events: none;
+    animation: none;
+  }
+
+  .setup-bar {
+    background: linear-gradient(90deg, #e8f0ff 0%, #f0e8ff 100%);
+    border-bottom: 1px solid #c9d4ec;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: #2c3e6b;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.5);
+  }
+  .setup-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+  }
+  .setup-bar select {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    border: 1px solid #b9c5dd;
+    background: white;
+    color: #2c3e6b;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .setup-bar button {
+    padding: 5px 12px;
+    background: #4a90e2;
+    color: white;
+    border: none;
+    font-weight: 700;
+    font-size: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(74,144,226,0.3);
+  }
+  .setup-bar button:hover { background: #357abd; transform: translateY(-1px); }
+  #active-set-info {
+    margin-left: auto;
+    font-size: 11px;
+    color: #6c7a96;
+    font-weight: 600;
+  }
+
+  .instruction-bar {
+    background: linear-gradient(90deg, #fff8d6 0%, #fff1ba 50%, #fff8d6 100%);
+    border-bottom: 1px solid #ead990;
+    padding: 6px 16px;
+    font-size: 12px;
+    color: #5d4a00;
+    text-align: center;
+    flex-shrink: 0;
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.5);
+  }
+  .instruction-bar b { color: #2c5fb5; padding: 0 2px; }
+  .instruction-bar b.drag { color: #c8345a; }
+
+  /* Families area */
+  .families-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    background:
+      linear-gradient(180deg, rgba(231,236,247,0.8) 0%, rgba(218,225,242,0.8) 100%);
+    touch-action: pan-y;
+  }
+  .families-area::-webkit-scrollbar { width: 10px; }
+  .families-area::-webkit-scrollbar-thumb { background: rgba(44,62,107,0.2); border-radius: 5px; }
+  .families-area::-webkit-scrollbar-track { background: transparent; }
+
+  .families-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+  }
+
+  .family-card {
+    background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
+    border-radius: 10px;
+    padding: 10px 12px 12px;
+    box-shadow:
+      0 1px 2px rgba(20,30,60,0.06),
+      0 4px 12px rgba(20,30,60,0.04);
+    border-top: 4px solid #c9d0dc;
+    transition: box-shadow 0.25s ease, transform 0.25s ease, background 0.25s ease, border-top-color 0.4s ease;
+    min-height: 135px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .family-card.claimed {
+    background: linear-gradient(180deg, #ffffff 0%, #f5f7fc 100%);
+    box-shadow:
+      0 2px 4px rgba(20,30,60,0.08),
+      0 8px 18px rgba(20,30,60,0.06);
+  }
+  .family-slots {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .family-slots:empty::before {
+    content: '✦';
+    display: block;
+    text-align: center;
+    color: #cfd6e3;
+    font-size: 22px;
+    margin: auto 0;
+    padding: 26px 0;
+    opacity: 0.7;
+  }
+
+  .family-card.complete {
+    background: linear-gradient(180deg, #fffdf2 0%, #fff7d6 100%);
+    box-shadow:
+      0 0 0 2px #ffc845,
+      0 6px 18px rgba(255,193,7,0.3);
+  }
+  .family-card.complete::after {
+    content: '✓';
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    background: #ffc845;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    box-shadow: 0 2px 4px rgba(255,193,7,0.4);
+  }
+
+  .family-card.flash {
+    transform: scale(1.03);
+  }
+
+  .family-card.drop-hover {
+    background: linear-gradient(180deg, #e8f3ff 0%, #d4e9ff 100%);
+    box-shadow: 0 0 0 3px #4a90e2, 0 8px 20px rgba(74,144,226,0.35);
+    transform: translateY(-3px) scale(1.02);
+  }
+
+  .family-card.drop-correct {
+    animation: pulse-green 0.55s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .family-card.drop-wrong {
+    animation: shake-red 0.5s ease;
+  }
+
+  @keyframes pulse-green {
+    0%   { box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    35%  { box-shadow: 0 0 0 5px #5cb85c, 0 8px 22px rgba(92,184,92,0.5); background: linear-gradient(180deg,#f0fff0 0%, #d8f3d8 100%); transform: scale(1.04); }
+    100% { box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+  }
+
+  @keyframes shake-red {
+    0%, 100% { transform: translateX(0); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    15%      { transform: translateX(-8px); box-shadow: 0 0 0 4px #d9534f, 0 6px 20px rgba(217,83,79,0.4); background: linear-gradient(180deg,#fff0f0 0%, #ffd8d8 100%); }
+    30%      { transform: translateX(8px); }
+    45%      { transform: translateX(-5px); }
+    60%      { transform: translateX(5px); }
+    75%      { transform: translateX(-2px); }
+  }
+
+  .family-slot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    min-height: 22px;
+    border-bottom: 1px dotted #f0f0f0;
+    opacity: 0;
+    transform: scale(0.7) translateY(8px);
+    transition: opacity 0.3s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .family-slot:last-child { border-bottom: none; }
+  .family-slot.filled {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+  .family-slot.filled:active { cursor: grabbing; }
+  .family-slot.lifted { visibility: hidden; }
+
+  .slot-word {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2333;
+    letter-spacing: -0.2px;
+  }
+  .slot-word .stem { color: #1f2333; }
+  .slot-word .aff {
+    color: #c8345a;
+    font-weight: 800;
+    text-decoration: underline;
+    text-decoration-color: rgba(200,52,90,0.4);
+    text-underline-offset: 2px;
+  }
+  .slot-word.is-base { font-weight: 800; }
+
+  .slot-pos {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 4px;
+    color: white;
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  .slot-pos-group {
+    display: inline-flex;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .hint-pos-group {
+    display: inline-flex;
+    gap: 4px;
+  }
+  .hint-pos-group .slot-pos {
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 5px;
+  }
+
+  .pos-n   { background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); }
+  .pos-v   { background: linear-gradient(135deg, #e25d5d 0%, #c8345a 100%); }
+  .pos-adj { background: linear-gradient(135deg, #5cb85c 0%, #449d44 100%); }
+  .pos-adv { background: linear-gradient(135deg, #f0ad4e 0%, #d68f2a 100%); }
+
+  /* Hint card */
+  .hint-card {
+    position: fixed;
+    top: 70px;
+    right: 18px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+    padding: 16px 22px 14px;
+    border-radius: 14px;
+    box-shadow:
+      0 4px 12px rgba(20,30,60,0.08),
+      0 16px 48px rgba(20,30,60,0.18);
+    z-index: 2000;
+    min-width: 250px;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.5,0,0.2,1);
+    border-top: 6px solid #4a90e2;
+    transform: translateY(-15px) scale(0.95);
+  }
+  .hint-card.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+  .hint-card .hint-row.hidden { display: none; }
+  .hint-close {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 2px 6px;
+    line-height: 1;
+    transition: color 0.15s, transform 0.15s;
+  }
+  .hint-close:hover { color: #c8345a; background: none; transform: scale(1.2); box-shadow: none; }
+
+  /* Drag particle trail */
+  .drag-particle {
+    position: fixed;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 2999;
+    opacity: 0.85;
+    box-shadow: 0 0 6px currentColor;
+    animation: particle-fade 0.75s ease-out forwards;
+  }
+  @keyframes particle-fade {
+    0%   { opacity: 0.85; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.2) translateY(20px); }
+  }
+
+  /* Confetti */
+  #confetti-area {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4000;
+    overflow: hidden;
+  }
+  .confetti {
+    position: fixed;
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    pointer-events: none;
+    animation: confetti-burst 1.6s cubic-bezier(0.2,0.8,0.4,1) forwards;
+  }
+  @keyframes confetti-burst {
+    0%   { transform: translate(0, 0) rotate(0deg) scale(0.5); opacity: 1; }
+    20%  { transform: translate(calc(var(--dx)*0.3), calc(var(--dy)*0.3 - 60px)) rotate(180deg) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), calc(var(--dy) + 600px)) rotate(720deg) scale(0.7); opacity: 0; }
+  }
+
+  /* Toast notifications */
+  .toast-area {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    pointer-events: none;
+  }
+  .toast {
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateY(-20px) scale(0.9);
+    transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.5,0,0.2,1);
+    letter-spacing: 0.2px;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  .toast.success {
+    background: linear-gradient(135deg, #5cb85c 0%, #449d44 100%);
+  }
+  .toast.celebrate {
+    background: linear-gradient(135deg, #ffc845 0%, #ff9a44 100%);
+    color: #5a3a00;
+    font-size: 17px;
+    padding: 12px 26px;
+  }
+  .toast.warn {
+    background: linear-gradient(135deg, #e25d5d 0%, #c8345a 100%);
+  }
+  .toast.info {
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  }
+
+  /* Quiz mode: blur English words until clicked, except the base word */
+  body.quiz-mode .family-slot .slot-word {
+    filter: blur(7px);
+    cursor: pointer;
+    transition: filter 0.25s ease;
+  }
+  body.quiz-mode .family-slot .slot-word:hover { filter: blur(3px); }
+  body.quiz-mode .family-slot.revealed .slot-word { filter: none; cursor: default; }
+  body.quiz-mode .family-slot .slot-word.is-base,
+  body.quiz-mode .family-slot .slot-word.is-base:hover {
+    filter: none;
+    cursor: default;
+  }
+  body.quiz-mode .family-slot:has(.slot-word.is-base) {
+    background: rgba(74,144,226,0.06);
+    border-radius: 4px;
+  }
+  body.quiz-mode .cloud-area { display: none; }
+  body.quiz-mode .families-area { flex: 1 1 100%; }
+
+  /* Print stylesheet — only families area, in clean grid */
+  @media print {
+    @page { size: A4 landscape; margin: 1cm; }
+    html, body { overflow: visible !important; height: auto !important; background: white !important; }
+    header, .instruction-bar, .cloud-area, .toast-area, .hint-card, #confetti-area { display: none !important; }
+    .families-area {
+      background: white !important;
+      overflow: visible !important;
+      padding: 0 !important;
+      flex: none !important;
+      height: auto !important;
+    }
+    .families-grid {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 6px !important;
+    }
+    .family-card {
+      box-shadow: none !important;
+      border: 1px solid #999 !important;
+      background: white !important;
+      break-inside: avoid;
+      min-height: auto !important;
+      padding: 4px 8px 6px !important;
+    }
+    .family-card.complete::after { display: none; }
+    .family-slots:empty::before { content: ''; }
+    .family-slot { opacity: 1 !important; padding: 1px 0 !important; min-height: 18px !important; }
+    .slot-pos { box-shadow: none !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }
+
+  .hint-card.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .hint-word-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .hint-word {
+    font-size: 30px;
+    font-weight: 800;
+    color: #222;
+    letter-spacing: -0.5px;
+  }
+  .hint-tts {
+    background: rgba(74,144,226,0.12);
+    border: 1px solid rgba(74,144,226,0.25);
+    color: #4a90e2;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: all 0.15s;
+  }
+  .hint-tts:hover {
+    background: rgba(74,144,226,0.22);
+    transform: scale(1.1);
+    box-shadow: none;
+  }
+  .hint-tts.speaking { background: #4a90e2; color: white; }
+
+  .hint-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 14px;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .hint-row strong {
+    color: #888;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+
+  .hint-row .val {
+    color: #222;
+    font-weight: 600;
+  }
+
+  .hint-pos {
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    color: white;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1><span class="emoji">🌳</span>영어 단어 어근 가족 찾기 <span class="sub">마석고 2학년</span></h1>
+    <div class="controls">
+      <span id="timer" title="이번 활동 경과 시간 (정답 처음 들어가면 시작)">⏱ 0:00</span>
+      <span id="score" title="첫 시도 정답 / 오답"><span class="ok">✓ 0</span> <span class="ng">✗ 0</span></span>
+      <span id="counter">0 / 0</span>
+      <div class="progress-shell"><div class="progress-fill" id="progress-fill"></div></div>
+      <span class="legend">
+        <span class="legend-tag pos-n">n.</span>
+        <span class="legend-tag pos-v">v.</span>
+        <span class="legend-tag pos-adj">adj.</span>
+        <span class="legend-tag pos-adv">adv.</span>
+      </span>
+      <button id="toggle-hint" title="힌트 단계 변경">힌트: 전체</button>
+      <button id="sound-toggle" title="사운드 켜기/끄기">🔇</button>
+      <button id="quiz-mode" title="플래시카드 복습 모드">📚 퀴즈</button>
+      <button id="print-btn" title="활동 결과 인쇄">🖨️</button>
+      <button id="sort-all" class="primary">정답 보기</button>
+      <button id="reset" class="danger">리셋</button>
+    </div>
+  </header>
+
+  <div class="toast-area" id="toast-area"></div>
+
+  <div class="setup-bar">
+    <label class="setup-label">📚 덱
+      <select id="deck-select">
+        <option value="0-48" selected>Set 1 (1–48)</option>
+        <option value="48-96">Set 2 (49–96)</option>
+        <option value="96-144">Set 3 (97–144)</option>
+        <option value="144-192">Set 4 (145–192)</option>
+        <option value="192-241">Set 5 (193–241)</option>
+        <option value="all">전체 (241)</option>
+      </select>
+    </label>
+    <label class="setup-label">🎲 가족 수
+      <select id="count-select">
+        <option value="all" selected>전체</option>
+        <option value="10">10개</option>
+        <option value="20">20개</option>
+        <option value="30">30개</option>
+        <option value="50">50개</option>
+        <option value="100">100개</option>
+      </select>
+    </label>
+    <button id="apply-set" class="primary">🎯 새로 시작</button>
+    <span id="active-set-info"></span>
+  </div>
+
+  <div class="instruction-bar">
+    💡 <b>클릭</b>=정보 보기 · <b class="drag">드래그</b>=빈 카드에 놓으면 그 단어가 카드를 차지 (같은 기본 단어 가족만 추가 가능) · 카드 안 단어를 다시 클라우드로 <b class="drag">드래그</b>해서 뺄 수 있어요
+  </div>
+
+  <section id="cloud" class="cloud-area"></section>
+
+  <section id="families" class="families-area">
+    <div class="families-grid" id="families-grid"></div>
+  </section>
+
+  <div id="hint-card" class="hint-card">
+    <button class="hint-close" id="hint-close" aria-label="닫기">×</button>
+    <div class="hint-word-row">
+      <span class="hint-word" id="hint-word"></span>
+      <button class="hint-tts" id="hint-tts" aria-label="발음 듣기">🔊</button>
+    </div>
+    <div class="hint-row" id="hint-row-root"><strong>기본 단어</strong> <span class="val" id="hint-root"></span></div>
+    <div class="hint-row" id="hint-row-pos"><strong>품사</strong> <span class="hint-pos-group" id="hint-pos"></span></div>
+    <div class="hint-row" id="hint-row-meaning"><strong>뜻</strong> <span class="val" id="hint-meaning"></span></div>
+  </div>
+
+  <div id="confetti-area"></div>
+
+  <div class="tutorial-overlay" id="tutorial-overlay">
+    <div class="tutorial-card">
+      <h2>🌳 영어 단어 어근 가족 찾기</h2>
+      <ol>
+        <li>위쪽 단어 구름에서 단어를 <b>클릭</b>하면 정보가 떠요 (기본 단어, 품사, 뜻).</li>
+        <li>같은 어근이라고 생각하는 카드로 단어를 <b>드래그</b>해서 놓으면 그 카드를 차지해요.</li>
+        <li>같은 가족 단어들만 그 카드에 들어갈 수 있고, 다른 가족이면 빨갛게 흔들려요.</li>
+        <li>카드에 잘못 넣은 단어는 다시 <b>드래그</b>해서 클라우드로 빼낼 수 있어요.</li>
+      </ol>
+      <div class="tut-icons">
+        🎯 새로 시작 / 📚 퀴즈 모드 / 🔇🔊 사운드 / 🖨️ 인쇄 / 힌트 단계 — 모두 위쪽 헤더에서.
+      </div>
+      <div class="tut-actions">
+        <label><input type="checkbox" id="tutorial-dont-show"> 다음에 다시 안 보기</label>
+        <button id="tutorial-close">시작! 🚀</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Master data: 241 families × 746 words from "활동지 단어(최종).xlsx" (Sheet1, "문제 없음" only)
+const ALL_FAMILIES = [
+  {"root": "urge", "meaning": "v.촉구하다, 재촉하다", "words": [{"word": "urge", "pos": ["v.", "n."]}, {"word": "urgency", "pos": ["n."], "meaning": "긴급, 시급함"}, {"word": "urgent", "pos": ["adj."], "meaning": "긴급한, 시급한"}, {"word": "urgently", "pos": ["adv."], "meaning": "긴급히, 시급히"}]},
+  {"root": "major", "meaning": "a. 주요한", "words": [{"word": "major", "pos": ["v.", "n.", "adj."]}, {"word": "majority", "pos": ["n."], "meaning": "대다수, 과반수"}]},
+  {"root": "mature", "meaning": "a.성숙한", "words": [{"word": "mature", "pos": ["v.", "adj."]}, {"word": "maturity", "pos": ["n."], "meaning": "성숙, 성숙함"}, {"word": "maturely", "pos": ["adv."], "meaning": "성숙하게"}]},
+  {"root": "analyst", "meaning": "n.분석가", "words": [{"word": "analyze", "pos": ["v."], "meaning": "분석하다"}, {"word": "analysis", "pos": ["n."], "meaning": "분석"}, {"word": "analyst", "pos": ["n."]}, {"word": "analytical", "pos": ["adj."], "meaning": "분석적인"}, {"word": "analytically", "pos": ["adv."], "meaning": "분석적으로"}]},
+  {"root": "profit", "meaning": "n.이윤, 수익", "words": [{"word": "profit", "pos": ["v.", "n."]}, {"word": "profitable", "pos": ["adj."], "meaning": "수익성 있는"}, {"word": "profitably", "pos": ["adv."], "meaning": "수익성 있게"}]},
+  {"root": "essential", "meaning": "a.필수적인", "words": [{"word": "essence", "pos": ["n."], "meaning": "본질, 정수"}, {"word": "essential", "pos": ["n.", "adj."]}, {"word": "essentially", "pos": ["adv."], "meaning": "본질적으로"}]},
+  {"root": "criterion", "meaning": "n.기준, 척도", "words": [{"word": "criterion", "pos": ["n."]}, {"word": "criteria", "pos": ["n."], "meaning": "기준들 (복수형)"}]},
+  {"root": "insecure", "meaning": "a.불안한", "words": [{"word": "insecurity", "pos": ["n."], "meaning": "불안감, 불안정"}, {"word": "insecure", "pos": ["adj."]}, {"word": "insecurely", "pos": ["adv."], "meaning": "불안하게"}]},
+  {"root": "estimate", "meaning": "v.추정하다", "words": [{"word": "estimate", "pos": ["v.", "n."]}, {"word": "estimation", "pos": ["n."], "meaning": "추정, 평가"}, {"word": "estimated", "pos": ["adj."], "meaning": "추정된"}]},
+  {"root": "temporary", "meaning": "a.일시적인", "words": [{"word": "temporariness", "pos": ["n."], "meaning": "일시성"}, {"word": "temporary", "pos": ["adj."]}, {"word": "temporarily", "pos": ["adv."], "meaning": "일시적으로"}]},
+  {"root": "regain", "meaning": "v.되찾다", "words": [{"word": "regain", "pos": ["v."]}, {"word": "regained", "pos": ["adj."], "meaning": "되찾은"}]},
+  {"root": "expose", "meaning": "v. 노출하다", "words": [{"word": "expose", "pos": ["v."]}, {"word": "exposure", "pos": ["n."], "meaning": "노출"}, {"word": "exposed", "pos": ["adj."], "meaning": "노출된"}]},
+  {"root": "anxious", "meaning": "a.불안한", "words": [{"word": "anxiety", "pos": ["n."], "meaning": "불안, 걱정"}, {"word": "anxious", "pos": ["adj."]}, {"word": "anxiously", "pos": ["adv."], "meaning": "불안하게"}]},
+  {"root": "promote", "meaning": "v.촉진하다", "words": [{"word": "promote", "pos": ["v."]}, {"word": "promotion", "pos": ["n."], "meaning": "촉진, 홍보, 승진"}, {"word": "promoter", "pos": ["n."], "meaning": "추진자, 후원자"}, {"word": "promotional", "pos": ["adj."], "meaning": "홍보의"}]},
+  {"root": "reinforce", "meaning": "v.강화하다", "words": [{"word": "reinforce", "pos": ["v."]}, {"word": "reinforcement", "pos": ["n."], "meaning": "강화"}, {"word": "reinforced", "pos": ["adj."], "meaning": "강화된"}]},
+  {"root": "negative", "meaning": "a.부정적인", "words": [{"word": "negate", "pos": ["v."], "meaning": "부정하다, 무효화하다"}, {"word": "negation", "pos": ["n."], "meaning": "부정"}, {"word": "negativity", "pos": ["n."], "meaning": "부정성, 부정적임"}, {"word": "negative", "pos": ["adj."]}, {"word": "negatively", "pos": ["adv."], "meaning": "부정적으로"}]},
+  {"root": "convince", "meaning": "v. 확신시키다", "words": [{"word": "convince", "pos": ["v."]}, {"word": "conviction", "pos": ["n."], "meaning": "확신, 신념"}, {"word": "convincing", "pos": ["adj."], "meaning": "설득력 있는"}, {"word": "convinced", "pos": ["adj."], "meaning": "확신하는"}, {"word": "convincingly", "pos": ["adv."], "meaning": "설득력 있게"}]},
+  {"root": "stereotype", "meaning": "n.고정관념", "words": [{"word": "stereotype", "pos": ["v.", "n."]}, {"word": "stereotypical", "pos": ["adj."], "meaning": "전형적인, 판에 박힌"}, {"word": "stereotypically", "pos": ["adv."], "meaning": "전형적으로"}]},
+  {"root": "compete", "meaning": "v.경쟁하다", "words": [{"word": "compete", "pos": ["v."]}, {"word": "competition", "pos": ["n."], "meaning": "경쟁"}, {"word": "competitor", "pos": ["n."], "meaning": "경쟁자"}, {"word": "competitive", "pos": ["adj."], "meaning": "경쟁적인"}, {"word": "competitively", "pos": ["adv."], "meaning": "경쟁적으로"}]},
+  {"root": "overwhelm", "meaning": "v. 압도하다", "words": [{"word": "overwhelm", "pos": ["v.", "n."]}, {"word": "overwhelming", "pos": ["adj."], "meaning": "압도적인"}, {"word": "overwhelmed", "pos": ["adj."], "meaning": "압도된"}, {"word": "overwhelmingly", "pos": ["adv."], "meaning": "압도적으로"}]},
+  {"root": "source", "meaning": "v.원산지를 추적하다", "words": [{"word": "source", "pos": ["v.", "n."]}, {"word": "sourced", "pos": ["adj."], "meaning": "출처가 ~인, 조달된"}]},
+  {"root": "investigate", "meaning": "v. 조사하다", "words": [{"word": "investigate", "pos": ["v."]}, {"word": "investigation", "pos": ["n."], "meaning": "조사"}, {"word": "investigator", "pos": ["n."], "meaning": "조사자, 수사관"}, {"word": "investigative", "pos": ["adj."], "meaning": "조사의, 탐구하는"}]},
+  {"root": "annual", "meaning": "a. 연간의", "words": [{"word": "annual", "pos": ["adj."]}, {"word": "annually", "pos": ["adv."], "meaning": "매년, 연간"}]},
+  {"root": "collapse", "meaning": "n.붕괴", "words": [{"word": "collapse", "pos": ["v.", "n."]}, {"word": "collapsed", "pos": ["adj."], "meaning": "붕괴된, 무너진"}]},
+  {"root": "poverty", "meaning": "n.빈곤", "words": [{"word": "poverty", "pos": ["n."]}, {"word": "poor", "pos": ["adj."], "meaning": "가난한"}, {"word": "impoverished", "pos": ["adj."], "meaning": "빈곤해진"}, {"word": "poorly", "pos": ["adv."], "meaning": "형편없이, 가난하게"}]},
+  {"root": "reveal", "meaning": "v.드러내다", "words": [{"word": "reveal", "pos": ["v."]}, {"word": "revelation", "pos": ["n."], "meaning": "폭로, 계시"}, {"word": "revealing", "pos": ["adj."], "meaning": "드러내는, 시사적인"}, {"word": "revealed", "pos": ["adj."], "meaning": "드러난"}, {"word": "revealingly", "pos": ["adv."], "meaning": "드러내듯이"}]},
+  {"root": "trace", "meaning": "v.추적하다", "words": [{"word": "trace", "pos": ["v.", "n."]}, {"word": "traceable", "pos": ["adj."], "meaning": "추적 가능한"}]},
+  {"root": "monitor", "meaning": "v.감시하다", "words": [{"word": "monitor", "pos": ["v.", "n."]}, {"word": "monitoring", "pos": ["n."], "meaning": "감시, 관찰"}, {"word": "monitored", "pos": ["adj."], "meaning": "감시된"}]},
+  {"root": "slavery", "meaning": "n.노예 제도", "words": [{"word": "enslave", "pos": ["v."], "meaning": "노예로 만들다"}, {"word": "slavery", "pos": ["n."]}, {"word": "slave", "pos": ["n."], "meaning": "노예"}]},
+  {"root": "examine", "meaning": "v.조사하다", "words": [{"word": "examine", "pos": ["v."]}, {"word": "examination", "pos": ["n."], "meaning": "조사, 시험"}, {"word": "examiner", "pos": ["n."], "meaning": "시험관, 조사자"}, {"word": "examined", "pos": ["adj."], "meaning": "조사된"}]},
+  {"root": "collective", "meaning": "a.집단적인", "words": [{"word": "collect", "pos": ["v."], "meaning": "모으다, 수집하다"}, {"word": "collection", "pos": ["n."], "meaning": "수집, 모음"}, {"word": "collective", "pos": ["n.", "adj."]}, {"word": "collectively", "pos": ["adv."], "meaning": "집단적으로"}]},
+  {"root": "transparency", "meaning": "n.투명성", "words": [{"word": "transparency", "pos": ["n."]}, {"word": "transparent", "pos": ["adj."], "meaning": "투명한"}, {"word": "transparently", "pos": ["adv."], "meaning": "투명하게"}]},
+  {"root": "complain", "meaning": "v. 불평하다", "words": [{"word": "complain", "pos": ["v."]}, {"word": "complaint", "pos": ["n."], "meaning": "불평, 불만"}, {"word": "complainant", "pos": ["n."], "meaning": "고소인"}, {"word": "complaining", "pos": ["adj."], "meaning": "불평하는"}]},
+  {"root": "wage", "meaning": "n.임금", "words": [{"word": "wage", "pos": ["v.", "n."]}, {"word": "waged", "pos": ["adj."], "meaning": "(전쟁 등을) 벌이는, 유급의"}]},
+  {"root": "produce", "meaning": "v. 생산하다", "words": [{"word": "produce", "pos": ["v."]}, {"word": "product", "pos": ["n."], "meaning": "제품, 상품"}, {"word": "production", "pos": ["n."], "meaning": "생산"}, {"word": "producer", "pos": ["n."], "meaning": "생산자, 제작자"}, {"word": "productive", "pos": ["adj."], "meaning": "생산적인"}, {"word": "productively", "pos": ["adv."], "meaning": "생산적으로"}]},
+  {"root": "minimum", "meaning": "n./a.최저, 최소의", "words": [{"word": "minimize", "pos": ["v."], "meaning": "최소화하다"}, {"word": "minimum", "pos": ["n.", "adj."]}, {"word": "minimal", "pos": ["adj."], "meaning": "최소의"}, {"word": "minimally", "pos": ["adv."], "meaning": "최소한으로"}]},
+  {"root": "consume", "meaning": "v. 소비하다", "words": [{"word": "consume", "pos": ["v."]}, {"word": "consumption", "pos": ["n."], "meaning": "소비"}, {"word": "consumer", "pos": ["n."], "meaning": "소비자"}, {"word": "consumable", "pos": ["adj."], "meaning": "소비할 수 있는"}]},
+  {"root": "coerce", "meaning": "v.강요하다", "words": [{"word": "coerce", "pos": ["v."]}, {"word": "coercion", "pos": ["n."], "meaning": "강요"}, {"word": "coercive", "pos": ["adj."], "meaning": "강압적인"}, {"word": "coercively", "pos": ["adv."], "meaning": "강압적으로"}]},
+  {"root": "appalling", "meaning": "a.끔찍한", "words": [{"word": "appall", "pos": ["v."], "meaning": "오싹하게 하다, 질리게 하다"}, {"word": "appalling", "pos": ["adj."]}, {"word": "appalled", "pos": ["adj."], "meaning": "질겁한, 충격받은"}, {"word": "appallingly", "pos": ["adv."], "meaning": "끔찍하게"}]},
+  {"root": "equip", "meaning": "v. 갖추다, 장비하다", "words": [{"word": "equip", "pos": ["v."]}, {"word": "equipment", "pos": ["n."], "meaning": "장비"}, {"word": "equipped", "pos": ["adj."], "meaning": "갖춰진"}]},
+  {"root": "productive", "meaning": "a.생산적인", "words": [{"word": "produce", "pos": ["v."], "meaning": "생산하다"}, {"word": "product", "pos": ["n."], "meaning": "제품"}, {"word": "production", "pos": ["n."], "meaning": "생산"}, {"word": "productivity", "pos": ["n."], "meaning": "생산성"}, {"word": "productive", "pos": ["adj."]}, {"word": "productively", "pos": ["adv."], "meaning": "생산적으로"}]},
+  {"root": "pledge", "meaning": "v.서약하다", "words": [{"word": "pledge", "pos": ["v.", "n."]}, {"word": "pledged", "pos": ["adj."], "meaning": "서약한"}]},
+  {"root": "exploit", "meaning": "v.착취하다", "words": [{"word": "exploit", "pos": ["v."]}, {"word": "exploitation", "pos": ["n."], "meaning": "착취"}, {"word": "exploiter", "pos": ["n."], "meaning": "착취자"}, {"word": "exploitative", "pos": ["adj."], "meaning": "착취적인"}]},
+  {"root": "agriculture", "meaning": "n.농업", "words": [{"word": "agriculture", "pos": ["n."]}, {"word": "agricultural", "pos": ["adj."], "meaning": "농업의"}, {"word": "agriculturally", "pos": ["adv."], "meaning": "농업적으로"}]},
+  {"root": "nutrition", "meaning": "n.영양", "words": [{"word": "nourish", "pos": ["v."], "meaning": "영양분을 공급하다"}, {"word": "nutrition", "pos": ["n."]}, {"word": "nutrient", "pos": ["n."], "meaning": "영양소"}, {"word": "nutritional", "pos": ["adj."], "meaning": "영양상의"}, {"word": "nutritious", "pos": ["adj."], "meaning": "영양가 있는"}, {"word": "nutritionally", "pos": ["adv."], "meaning": "영양상으로"}]},
+  {"root": "toxic", "meaning": "a.유독한", "words": [{"word": "toxin", "pos": ["n."], "meaning": "독소"}, {"word": "toxicity", "pos": ["n."], "meaning": "독성"}, {"word": "toxic", "pos": ["adj."]}, {"word": "toxically", "pos": ["adv."], "meaning": "유독하게"}]},
+  {"root": "hazardous", "meaning": "a.위험한", "words": [{"word": "hazard", "pos": ["v.", "n."], "meaning": "위험, 위태롭게 하다"}, {"word": "hazardous", "pos": ["adj."]}, {"word": "hazardously", "pos": ["adv."], "meaning": "위험하게"}]},
+  {"root": "renewable", "meaning": "a.재생 가능한", "words": [{"word": "renew", "pos": ["v."], "meaning": "갱신하다, 재개하다"}, {"word": "renewal", "pos": ["n."], "meaning": "갱신, 재생"}, {"word": "renewable", "pos": ["adj."]}, {"word": "renewed", "pos": ["adj."], "meaning": "갱신된, 새로워진"}]},
+  {"root": "greenhouse", "meaning": "n.온실", "words": [{"word": "greenhouse", "pos": ["n.", "adj."]}]},
+  {"root": "proportion", "meaning": "n.비율", "words": [{"word": "proportion", "pos": ["v.", "n."]}, {"word": "proportional", "pos": ["adj."], "meaning": "비례하는"}, {"word": "proportionally", "pos": ["adv."], "meaning": "비례하여"}]},
+  {"root": "constant", "meaning": "a.끊임없는", "words": [{"word": "constancy", "pos": ["n."], "meaning": "변함없음, 항상성"}, {"word": "constant", "pos": ["n.", "adj."]}, {"word": "constantly", "pos": ["adv."], "meaning": "끊임없이"}]},
+  {"root": "recuperate", "meaning": "v.회복하다", "words": [{"word": "recuperate", "pos": ["v."]}, {"word": "recuperation", "pos": ["n."], "meaning": "회복"}, {"word": "recuperative", "pos": ["adj."], "meaning": "회복시키는"}]},
+  {"root": "toll", "meaning": "n.피해, 대가", "words": [{"word": "toll", "pos": ["v.", "n."]}]},
+  {"root": "recognize", "meaning": "v.인식하다", "words": [{"word": "recognize", "pos": ["v."]}, {"word": "recognition", "pos": ["n."], "meaning": "인식, 인정"}, {"word": "recognizable", "pos": ["adj."], "meaning": "알아볼 수 있는"}, {"word": "recognized", "pos": ["adj."], "meaning": "인정받은"}, {"word": "recognizably", "pos": ["adv."], "meaning": "알아볼 수 있게"}]},
+  {"root": "powerless", "meaning": "a.무력한", "words": [{"word": "powerlessness", "pos": ["n."], "meaning": "무력함"}, {"word": "powerless", "pos": ["adj."]}, {"word": "powerlessly", "pos": ["adv."], "meaning": "무력하게"}]},
+  {"root": "competition", "meaning": "n.경쟁", "words": [{"word": "compete", "pos": ["v."], "meaning": "경쟁하다"}, {"word": "competition", "pos": ["n."]}, {"word": "competitor", "pos": ["n."], "meaning": "경쟁자"}, {"word": "competitive", "pos": ["adj."], "meaning": "경쟁적인"}, {"word": "competitively", "pos": ["adv."], "meaning": "경쟁적으로"}]},
+  {"root": "excessive", "meaning": "a.과도한", "words": [{"word": "exceed", "pos": ["v."], "meaning": "초과하다"}, {"word": "excess", "pos": ["n."], "meaning": "과다, 초과"}, {"word": "excessive", "pos": ["adj."]}, {"word": "excessively", "pos": ["adv."], "meaning": "과도하게"}]},
+  {"root": "recuperate", "meaning": "v.회복하다", "words": [{"word": "recuperate", "pos": ["v."]}, {"word": "recuperation", "pos": ["n."], "meaning": "회복"}, {"word": "recuperative", "pos": ["adj."], "meaning": "회복시키는"}]},
+  {"root": "symptom", "meaning": "n.증상", "words": [{"word": "symptom", "pos": ["n."]}, {"word": "symptomatic", "pos": ["adj."], "meaning": "증상의, 증후를 보이는"}, {"word": "symptomatically", "pos": ["adv."], "meaning": "증상으로"}]},
+  {"root": "infect", "meaning": "v.감염시키다", "words": [{"word": "infect", "pos": ["v."]}, {"word": "infection", "pos": ["n."], "meaning": "감염"}, {"word": "infectious", "pos": ["adj."], "meaning": "전염성의"}, {"word": "infected", "pos": ["adj."], "meaning": "감염된"}, {"word": "infectiously", "pos": ["adv."], "meaning": "전염성으로"}]},
+  {"root": "withdraw", "meaning": "v.물러나다", "words": [{"word": "withdraw", "pos": ["v."]}, {"word": "withdrawal", "pos": ["n."], "meaning": "물러남, 인출"}, {"word": "withdrawn", "pos": ["adj."], "meaning": "위축된, 은둔한"}]},
+  {"root": "restlessness", "meaning": "n.불안, 초조", "words": [{"word": "restlessness", "pos": ["n."]}, {"word": "restless", "pos": ["adj."], "meaning": "가만히 못 있는, 불안한"}, {"word": "restlessly", "pos": ["adv."], "meaning": "불안하게"}]},
+  {"root": "irritability", "meaning": "n.과민성", "words": [{"word": "irritability", "pos": ["n."]}, {"word": "irritation", "pos": ["n."], "meaning": "짜증, 자극"}, {"word": "irritable", "pos": ["adj."], "meaning": "짜증을 잘 내는"}, {"word": "irritating", "pos": ["adj."], "meaning": "짜증나게 하는"}, {"word": "irritably", "pos": ["adv."], "meaning": "짜증스럽게"}]},
+  {"root": "modify", "meaning": "v.수정하다", "words": [{"word": "modify", "pos": ["v."]}, {"word": "modification", "pos": ["n."], "meaning": "수정"}, {"word": "modified", "pos": ["adj."], "meaning": "수정된"}]},
+  {"root": "reflect", "meaning": "v.반영하다", "words": [{"word": "reflect", "pos": ["v."]}, {"word": "reflection", "pos": ["n."], "meaning": "반영, 숙고"}, {"word": "reflective", "pos": ["adj."], "meaning": "사색적인, 반사하는"}, {"word": "reflectively", "pos": ["adv."], "meaning": "사색적으로"}]},
+  {"root": "shift", "meaning": "v./n.변화하다, 변화", "words": [{"word": "shift", "pos": ["v.", "n."]}, {"word": "shifting", "pos": ["adj."], "meaning": "변하는, 이동하는"}]},
+  {"root": "urbanization", "meaning": "n.도시화", "words": [{"word": "urbanize", "pos": ["v."], "meaning": "도시화하다"}, {"word": "urbanization", "pos": ["n."]}, {"word": "urban", "pos": ["adj."], "meaning": "도시의"}]},
+  {"root": "psychology", "meaning": "n.심리학", "words": [{"word": "psychology", "pos": ["n."]}, {"word": "psychologist", "pos": ["n."], "meaning": "심리학자"}, {"word": "psychological", "pos": ["adj."], "meaning": "심리적인"}, {"word": "psychologically", "pos": ["adv."], "meaning": "심리적으로"}]},
+  {"root": "evolve", "meaning": "v.진화하다", "words": [{"word": "evolve", "pos": ["v."]}, {"word": "evolution", "pos": ["n."], "meaning": "진화"}, {"word": "evolutionary", "pos": ["adj."], "meaning": "진화의"}, {"word": "evolved", "pos": ["adj."], "meaning": "진화된"}]},
+  {"root": "adaptive", "meaning": "a.적응하는", "words": [{"word": "adapt", "pos": ["v."], "meaning": "적응하다"}, {"word": "adaptation", "pos": ["n."], "meaning": "적응"}, {"word": "adaptive", "pos": ["adj."]}, {"word": "adaptable", "pos": ["adj."], "meaning": "적응할 수 있는"}, {"word": "adaptively", "pos": ["adv."], "meaning": "적응적으로"}]},
+  {"root": "decline", "meaning": "v./n.감소하다", "words": [{"word": "decline", "pos": ["v.", "n."]}, {"word": "declining", "pos": ["adj."], "meaning": "감소하는"}]},
+  {"root": "gradual", "meaning": "a.점진적인", "words": [{"word": "gradual", "pos": ["adj."]}, {"word": "gradually", "pos": ["adv."], "meaning": "점진적으로"}]},
+  {"root": "obedience", "meaning": "n.복종", "words": [{"word": "obey", "pos": ["v."], "meaning": "복종하다"}, {"word": "obedience", "pos": ["n."]}, {"word": "obedient", "pos": ["adj."], "meaning": "순종적인"}, {"word": "obediently", "pos": ["adv."], "meaning": "순종적으로"}]},
+  {"root": "wane", "meaning": "v.약해지다", "words": [{"word": "wane", "pos": ["v.", "n."]}, {"word": "waning", "pos": ["adj."], "meaning": "약해지는, 줄어드는"}]},
+  {"root": "predominant", "meaning": "a.지배적인", "words": [{"word": "predominate", "pos": ["v."], "meaning": "지배하다, 우세하다"}, {"word": "predominance", "pos": ["n."], "meaning": "지배, 우세"}, {"word": "predominant", "pos": ["adj."]}, {"word": "predominantly", "pos": ["adv."], "meaning": "주로, 우세하게"}]},
+  {"root": "function", "meaning": "v.기능하다", "words": [{"word": "function", "pos": ["v.", "n."]}, {"word": "functional", "pos": ["adj."], "meaning": "기능적인"}, {"word": "functionally", "pos": ["adv."], "meaning": "기능적으로"}]},
+  {"root": "sustainable", "meaning": "a.지속 가능한", "words": [{"word": "sustain", "pos": ["v."], "meaning": "지속시키다, 견디다"}, {"word": "sustainability", "pos": ["n."], "meaning": "지속 가능성"}, {"word": "sustainable", "pos": ["adj."]}, {"word": "sustainably", "pos": ["adv."], "meaning": "지속 가능하게"}]},
+  {"root": "scarcity", "meaning": "n.부족", "words": [{"word": "scarcity", "pos": ["n."]}, {"word": "scarce", "pos": ["adj."], "meaning": "부족한, 드문"}]},
+  {"root": "pollute", "meaning": "v.오염시키다", "words": [{"word": "pollute", "pos": ["v."]}, {"word": "pollution", "pos": ["n."], "meaning": "오염"}, {"word": "pollutant", "pos": ["n."], "meaning": "오염 물질"}, {"word": "polluted", "pos": ["adj."], "meaning": "오염된"}, {"word": "polluting", "pos": ["adj."], "meaning": "오염시키는"}]},
+  {"root": "marine", "meaning": "a.해양의", "words": [{"word": "marine", "pos": ["n.", "adj."]}]},
+  {"root": "deforestation", "meaning": "n.삼림 벌채", "words": [{"word": "deforest", "pos": ["v."], "meaning": "산림을 벌채하다"}, {"word": "deforestation", "pos": ["n."]}, {"word": "deforested", "pos": ["adj."], "meaning": "벌채된"}]},
+  {"root": "emit", "meaning": "v.배출하다", "words": [{"word": "emit", "pos": ["v."]}, {"word": "emission", "pos": ["n."], "meaning": "배출"}, {"word": "emitted", "pos": ["adj."], "meaning": "배출된"}]},
+  {"root": "misconceive", "meaning": "v. 오해하다", "words": [{"word": "misconceive", "pos": ["v."]}, {"word": "misconception", "pos": ["n."], "meaning": "오해"}, {"word": "misconceived", "pos": ["adj."], "meaning": "잘못 생각된"}]},
+  {"root": "expert", "meaning": "n.전문가", "words": [{"word": "expert", "pos": ["n.", "adj."]}, {"word": "expertise", "pos": ["n."], "meaning": "전문 지식"}, {"word": "expertly", "pos": ["adv."], "meaning": "전문적으로"}]},
+  {"root": "vast", "meaning": "a.(양이) 방대한", "words": [{"word": "vastness", "pos": ["n."], "meaning": "광대함"}, {"word": "vast", "pos": ["adj."]}, {"word": "vastly", "pos": ["adv."], "meaning": "광대하게, 엄청나게"}]},
+  {"root": "classify", "meaning": "v.분류하다", "words": [{"word": "classify", "pos": ["v."]}, {"word": "classification", "pos": ["n."], "meaning": "분류"}, {"word": "classified", "pos": ["adj."], "meaning": "분류된, 기밀의"}]},
+  {"root": "analyze", "meaning": "v.분석하다, 검토하다", "words": [{"word": "analyze", "pos": ["v."]}, {"word": "analysis", "pos": ["n."], "meaning": "분석"}, {"word": "analyst", "pos": ["n."], "meaning": "분석가"}, {"word": "analytical", "pos": ["adj."], "meaning": "분석적인"}, {"word": "analytically", "pos": ["adv."], "meaning": "분석적으로"}]},
+  {"root": "bloom", "meaning": "v.꽃을 피우다, 꽃이 피다", "words": [{"word": "bloom", "pos": ["v.", "n."]}, {"word": "blooming", "pos": ["adj."], "meaning": "꽃이 피는"}]},
+  {"root": "access", "meaning": "v.접근하다, 이용하다", "words": [{"word": "access", "pos": ["v.", "n."]}, {"word": "accessible", "pos": ["adj."], "meaning": "접근 가능한"}, {"word": "accessibly", "pos": ["adv."], "meaning": "접근 가능하게"}]},
+  {"root": "involve", "meaning": "v.참여시키다; 포함하다", "words": [{"word": "involve", "pos": ["v."]}, {"word": "involvement", "pos": ["n."], "meaning": "관여, 참여"}, {"word": "involved", "pos": ["adj."], "meaning": "관련된, 복잡한"}]},
+  {"root": "tutorial", "meaning": "n.사용 지침(서)", "words": [{"word": "tutor", "pos": ["v.", "n."], "meaning": "가르치다, 가정 교사"}, {"word": "tutorial", "pos": ["n.", "adj."]}]},
+  {"root": "submit", "meaning": "v.제출하다", "words": [{"word": "submit", "pos": ["v."]}, {"word": "submission", "pos": ["n."], "meaning": "제출, 항복"}, {"word": "submitted", "pos": ["adj."], "meaning": "제출된"}]},
+  {"root": "benefit", "meaning": "n.혜택, 이득", "words": [{"word": "benefit", "pos": ["v.", "n."]}, {"word": "beneficial", "pos": ["adj."], "meaning": "유익한"}, {"word": "beneficially", "pos": ["adv."], "meaning": "유익하게"}]},
+  {"root": "outcome", "meaning": "n.결과", "words": [{"word": "outcome", "pos": ["n."]}]},
+  {"root": "respond", "meaning": "v.반응하다, 대응하다; 대답하다", "words": [{"word": "respond", "pos": ["v."]}, {"word": "response", "pos": ["n."], "meaning": "반응, 응답"}, {"word": "respondent", "pos": ["n."], "meaning": "응답자"}, {"word": "responsive", "pos": ["adj."], "meaning": "반응이 빠른"}, {"word": "responsively", "pos": ["adv."], "meaning": "반응적으로"}]},
+  {"root": "forecast", "meaning": "v.예측하다, 예보하다", "words": [{"word": "forecast", "pos": ["v.", "n."]}, {"word": "forecasted", "pos": ["adj."], "meaning": "예측된"}]},
+  {"root": "participate", "meaning": "v.참여하다", "words": [{"word": "participate", "pos": ["v."]}, {"word": "participation", "pos": ["n."], "meaning": "참여"}, {"word": "participant", "pos": ["n."], "meaning": "참가자"}, {"word": "participatory", "pos": ["adj."], "meaning": "참여적인"}]},
+  {"root": "literacy", "meaning": "n.(특정 분야에 관한) 지식, 능력", "words": [{"word": "literacy", "pos": ["n."]}, {"word": "literate", "pos": ["adj."], "meaning": "글을 읽고 쓸 줄 아는"}]},
+  {"root": "tackle", "meaning": "v.(힘든 문제와) 씨름하다", "words": [{"word": "tackle", "pos": ["v.", "n."]}]},
+  {"root": "rewarding", "meaning": "a.보람 있는", "words": [{"word": "reward", "pos": ["v.", "n."], "meaning": "보상, 보상하다"}, {"word": "rewarding", "pos": ["adj."]}, {"word": "rewarded", "pos": ["adj."], "meaning": "보상받은"}]},
+  {"root": "fascinate", "meaning": "v.마음을 사로잡다", "words": [{"word": "fascinate", "pos": ["v."]}, {"word": "fascination", "pos": ["n."], "meaning": "매혹"}, {"word": "fascinating", "pos": ["adj."], "meaning": "매혹적인"}, {"word": "fascinated", "pos": ["adj."], "meaning": "매혹된"}, {"word": "fascinatingly", "pos": ["adv."], "meaning": "매혹적으로"}]},
+  {"root": "range", "meaning": "n.(변화의) 범위, 폭", "words": [{"word": "range", "pos": ["v.", "n."]}, {"word": "ranged", "pos": ["adj."], "meaning": "범위에 걸친"}, {"word": "ranging", "pos": ["adj."], "meaning": "범위가 ~인"}]},
+  {"root": "feature", "meaning": "n.지형; 특징", "words": [{"word": "feature", "pos": ["v.", "n."]}, {"word": "featured", "pos": ["adj."], "meaning": "특집의, 주요한"}]},
+  {"root": "geology", "meaning": "n.지질학", "words": [{"word": "geology", "pos": ["n."]}, {"word": "geologist", "pos": ["n."], "meaning": "지질학자"}, {"word": "geological", "pos": ["adj."], "meaning": "지질학의"}, {"word": "geologically", "pos": ["adv."], "meaning": "지질학적으로"}]},
+  {"root": "urban", "meaning": "a.도시의", "words": [{"word": "urbanize", "pos": ["v."], "meaning": "도시화하다"}, {"word": "urbanization", "pos": ["n."], "meaning": "도시화"}, {"word": "urban", "pos": ["adj."]}]},
+  {"root": "label", "meaning": "n.라벨, 꼬리표", "words": [{"word": "label", "pos": ["v.", "n."]}, {"word": "labeled", "pos": ["adj."], "meaning": "라벨이 붙은"}]},
+  {"root": "glacier", "meaning": "n.빙하", "words": [{"word": "glacier", "pos": ["n."]}, {"word": "glacial", "pos": ["adj."], "meaning": "빙하의"}, {"word": "glacially", "pos": ["adv."], "meaning": "빙하처럼"}]},
+  {"root": "examine", "meaning": "v.검토하다, 조사하다", "words": [{"word": "examine", "pos": ["v."]}, {"word": "examination", "pos": ["n."], "meaning": "조사, 시험"}, {"word": "examiner", "pos": ["n."], "meaning": "시험관, 조사자"}, {"word": "examined", "pos": ["adj."], "meaning": "조사된"}]},
+  {"root": "specific", "meaning": "a.특정한", "words": [{"word": "specify", "pos": ["v."], "meaning": "명시하다"}, {"word": "specification", "pos": ["n."], "meaning": "명세, 설명서"}, {"word": "specific", "pos": ["adj."]}, {"word": "specifically", "pos": ["adv."], "meaning": "구체적으로, 특히"}]},
+  {"root": "display", "meaning": "v.보여 주다", "words": [{"word": "display", "pos": ["v.", "n."]}, {"word": "displayed", "pos": ["adj."], "meaning": "표시된"}]},
+  {"root": "visible", "meaning": "a.(눈에) 보이는", "words": [{"word": "visibility", "pos": ["n."], "meaning": "가시성, 시야"}, {"word": "visible", "pos": ["adj."]}, {"word": "visibly", "pos": ["adv."], "meaning": "눈에 띄게"}]},
+  {"root": "resize", "meaning": "v.크기를 조절하다", "words": [{"word": "resize", "pos": ["v."]}, {"word": "size", "pos": ["n."], "meaning": "크기"}, {"word": "resizable", "pos": ["adj."], "meaning": "크기 조절 가능한"}]},
+  {"root": "crucial", "meaning": "a.중대한", "words": [{"word": "crucial", "pos": ["adj."]}, {"word": "crucially", "pos": ["adv."], "meaning": "결정적으로"}]},
+  {"root": "automatic", "meaning": "a.자동의", "words": [{"word": "automate", "pos": ["v."], "meaning": "자동화하다"}, {"word": "automation", "pos": ["n."], "meaning": "자동화"}, {"word": "automatic", "pos": ["adj."]}, {"word": "automated", "pos": ["adj."], "meaning": "자동화된"}, {"word": "automatically", "pos": ["adv."], "meaning": "자동으로"}]},
+  {"root": "raw", "meaning": "a.날것의, 가공되지 않은", "words": [{"word": "rawness", "pos": ["n."], "meaning": "날것임, 가공되지 않음"}, {"word": "raw", "pos": ["adj."]}]},
+  {"root": "geographical", "meaning": "a.지리적인", "words": [{"word": "geography", "pos": ["n."], "meaning": "지리학"}, {"word": "geographer", "pos": ["n."], "meaning": "지리학자"}, {"word": "geographical", "pos": ["adj."]}, {"word": "geographically", "pos": ["adv."], "meaning": "지리적으로"}]},
+  {"root": "accurate", "meaning": "a.정확한", "words": [{"word": "accuracy", "pos": ["n."], "meaning": "정확성"}, {"word": "accurate", "pos": ["adj."]}, {"word": "accurately", "pos": ["adv."], "meaning": "정확하게"}]},
+  {"root": "ultimate", "meaning": "a.궁극적인", "words": [{"word": "ultimate", "pos": ["adj."]}, {"word": "ultimately", "pos": ["adv."], "meaning": "궁극적으로, 결국"}]},
+  {"root": "enhance", "meaning": "v.높이다, 향상시키다", "words": [{"word": "enhance", "pos": ["v."]}, {"word": "enhancement", "pos": ["n."], "meaning": "향상, 개선"}, {"word": "enhanced", "pos": ["adj."], "meaning": "향상된"}]},
+  {"root": "addiction", "meaning": "n. 중독", "words": [{"word": "addict", "pos": ["v.", "n."], "meaning": "중독시키다 / 중독자"}, {"word": "addiction", "pos": ["n."]}, {"word": "addictive", "pos": ["adj."], "meaning": "중독성의"}, {"word": "addicted", "pos": ["adj."], "meaning": "중독된"}, {"word": "addictively", "pos": ["adv."], "meaning": "중독적으로"}]},
+  {"root": "principle", "meaning": "n. 원칙", "words": [{"word": "principle", "pos": ["n."]}, {"word": "principled", "pos": ["adj."], "meaning": "원칙을 따르는"}]},
+  {"root": "abbreviate", "meaning": "v.줄여 쓰다", "words": [{"word": "abbreviate", "pos": ["v."]}, {"word": "abbreviation", "pos": ["n."], "meaning": "줄임말, 약어"}, {"word": "abbreviated", "pos": ["adj."], "meaning": "줄여 쓴"}]},
+  {"root": "coin", "meaning": "v. (신조어를) 만들다", "words": [{"word": "coin", "pos": ["v.", "n."]}, {"word": "coinage", "pos": ["n."], "meaning": "신조어, 주조"}, {"word": "coined", "pos": ["adj."], "meaning": "(신조어가) 만들어진"}]},
+  {"root": "phobia", "meaning": "n. 공포증", "words": [{"word": "phobia", "pos": ["n."]}, {"word": "phobic", "pos": ["adj."], "meaning": "공포증의"}]},
+  {"root": "additional", "meaning": "a. 추가적인", "words": [{"word": "add", "pos": ["v."], "meaning": "더하다"}, {"word": "addition", "pos": ["n."], "meaning": "추가, 덧셈"}, {"word": "additional", "pos": ["adj."]}, {"word": "additionally", "pos": ["adv."], "meaning": "추가적으로"}]},
+  {"root": "jitters", "meaning": "n. 초조감, 안절부절", "words": [{"word": "jitter", "pos": ["v."], "meaning": "초조하게 만들다"}, {"word": "jitters", "pos": ["n."]}, {"word": "jittery", "pos": ["adj."], "meaning": "초조한, 불안한"}]},
+  {"root": "solitude", "meaning": "n. 고독", "words": [{"word": "solitude", "pos": ["n."]}, {"word": "solitary", "pos": ["adj."], "meaning": "고독한, 외로운"}]},
+  {"root": "invest", "meaning": "v. 투자하다", "words": [{"word": "invest", "pos": ["v."]}, {"word": "investment", "pos": ["n."], "meaning": "투자"}, {"word": "investor", "pos": ["n."], "meaning": "투자자"}, {"word": "invested", "pos": ["adj."], "meaning": "투자된"}]},
+  {"root": "argue", "meaning": "v. 주장하다", "words": [{"word": "argue", "pos": ["v."]}, {"word": "argument", "pos": ["n."], "meaning": "논쟁, 주장"}, {"word": "argumentative", "pos": ["adj."], "meaning": "논쟁적인"}, {"word": "argumentatively", "pos": ["adv."], "meaning": "논쟁적으로"}]},
+  {"root": "revive", "meaning": "v. 되살리다, 부활시키다", "words": [{"word": "revive", "pos": ["v."]}, {"word": "revival", "pos": ["n."], "meaning": "부활, 재생"}, {"word": "revived", "pos": ["adj."], "meaning": "부활한"}]},
+  {"root": "acquire", "meaning": "v. 습득하다, 얻다", "words": [{"word": "acquire", "pos": ["v."]}, {"word": "acquisition", "pos": ["n."], "meaning": "습득, 인수"}, {"word": "acquired", "pos": ["adj."], "meaning": "습득한, 후천적인"}]},
+  {"root": "academic", "meaning": "a. 학업의", "words": [{"word": "academy", "pos": ["n."], "meaning": "학원, 학교"}, {"word": "academic", "pos": ["n.", "adj."]}, {"word": "academically", "pos": ["adv."], "meaning": "학업적으로"}]},
+  {"root": "awareness", "meaning": "n. 인식", "words": [{"word": "awareness", "pos": ["n."]}, {"word": "aware", "pos": ["adj."], "meaning": "인식하고 있는"}]},
+  {"root": "interact", "meaning": "v. 교류하다, 소통하다", "words": [{"word": "interact", "pos": ["v."]}, {"word": "interaction", "pos": ["n."], "meaning": "상호작용"}, {"word": "interactive", "pos": ["adj."], "meaning": "상호적인"}, {"word": "interactively", "pos": ["adv."], "meaning": "상호적으로"}]},
+  {"root": "renowned", "meaning": "a. 유명한, 명성 있는", "words": [{"word": "renowned", "pos": ["adj."]}]},
+  {"root": "state", "meaning": "v. 진술하다", "words": [{"word": "state", "pos": ["v.", "n."]}, {"word": "statement", "pos": ["n."], "meaning": "진술, 성명"}, {"word": "stated", "pos": ["adj."], "meaning": "진술된, 명시된"}]},
+  {"root": "place", "meaning": "v. 부여하다, 두다", "words": [{"word": "place", "pos": ["v.", "n."]}, {"word": "placement", "pos": ["n."], "meaning": "배치"}, {"word": "placed", "pos": ["adj."], "meaning": "놓인, 배치된"}]},
+  {"root": "achievement", "meaning": "n. 성취, 업적", "words": [{"word": "achieve", "pos": ["v."], "meaning": "성취하다"}, {"word": "achievement", "pos": ["n."]}, {"word": "achiever", "pos": ["n."], "meaning": "성취자"}, {"word": "achievable", "pos": ["adj."], "meaning": "달성 가능한"}]},
+  {"root": "bond", "meaning": "v. 유대감을 형성하다", "words": [{"word": "bond", "pos": ["v.", "n."]}, {"word": "bonded", "pos": ["adj."], "meaning": "결속된, 유대를 맺은"}]},
+  {"root": "identity", "meaning": "n. 정체성", "words": [{"word": "identify", "pos": ["v."], "meaning": "확인하다, 동일시하다"}, {"word": "identity", "pos": ["n."]}, {"word": "identification", "pos": ["n."], "meaning": "식별, 신원 확인"}]},
+  {"root": "entirely", "meaning": "ad. 완전히, 전적으로", "words": [{"word": "entirety", "pos": ["n."], "meaning": "전체, 전부"}, {"word": "entire", "pos": ["adj."], "meaning": "전체의"}, {"word": "entirely", "pos": ["adv."]}]},
+  {"root": "prove", "meaning": "v. 증명하다", "words": [{"word": "prove", "pos": ["v."]}, {"word": "proof", "pos": ["n."], "meaning": "증거, 증명"}, {"word": "proven", "pos": ["adj."], "meaning": "증명된"}]},
+  {"root": "retrieve", "meaning": "v. 되찾다, 복구하다", "words": [{"word": "retrieve", "pos": ["v."]}, {"word": "retrieval", "pos": ["n."], "meaning": "회수, 복구"}, {"word": "retrievable", "pos": ["adj."], "meaning": "되찾을 수 있는"}]},
+  {"root": "ensure", "meaning": "v. 보장하다, 확실히 하다", "words": [{"word": "ensure", "pos": ["v."]}, {"word": "ensured", "pos": ["adj."], "meaning": "보장된"}]},
+  {"root": "researcher", "meaning": "n. 연구원", "words": [{"word": "research", "pos": ["v.", "n."], "meaning": "연구 / 연구하다"}, {"word": "researcher", "pos": ["n."]}, {"word": "research-based", "pos": ["adj."], "meaning": "연구 기반의"}]},
+  {"root": "frequently", "meaning": "ad. 자주", "words": [{"word": "frequent", "pos": ["v.", "adj."], "meaning": "빈번한 / 자주 다니다"}, {"word": "frequency", "pos": ["n."], "meaning": "빈도"}, {"word": "frequently", "pos": ["adv."]}]},
+  {"root": "inappropriate", "meaning": "a. 부적절한", "words": [{"word": "inappropriateness", "pos": ["n."], "meaning": "부적절함"}, {"word": "inappropriate", "pos": ["adj."]}, {"word": "inappropriately", "pos": ["adv."], "meaning": "부적절하게"}]},
+  {"root": "harass", "meaning": "v. 괴롭히다", "words": [{"word": "harass", "pos": ["v."]}, {"word": "harassment", "pos": ["n."], "meaning": "괴롭힘"}, {"word": "harassing", "pos": ["adj."], "meaning": "괴롭히는"}, {"word": "harassed", "pos": ["adj."], "meaning": "괴롭힘 당한"}]},
+  {"root": "admission", "meaning": "n. 입학,허가", "words": [{"word": "admit", "pos": ["v."], "meaning": "인정하다, 입학을 허가하다"}, {"word": "admission", "pos": ["n."]}]},
+  {"root": "reputation", "meaning": "n. 평판, 명성", "words": [{"word": "reputation", "pos": ["n."]}, {"word": "reputable", "pos": ["adj."], "meaning": "평판이 좋은"}, {"word": "reputably", "pos": ["adv."], "meaning": "평판 좋게"}]},
+  {"root": "stimulate", "meaning": "v. 자극하다", "words": [{"word": "stimulate", "pos": ["v."]}, {"word": "stimulation", "pos": ["n."], "meaning": "자극"}, {"word": "stimulus", "pos": ["n."], "meaning": "자극(물)"}, {"word": "stimulating", "pos": ["adj."], "meaning": "자극적인"}]},
+  {"root": "inclined", "meaning": "a. ~하려는 경향이 있는", "words": [{"word": "incline", "pos": ["v."], "meaning": "기울이다, 기울다"}, {"word": "inclination", "pos": ["n."], "meaning": "경향, 성향"}, {"word": "inclined", "pos": ["adj."]}]},
+  {"root": "infinite", "meaning": "a. 무한한", "words": [{"word": "infinity", "pos": ["n."], "meaning": "무한"}, {"word": "infinite", "pos": ["adj."]}, {"word": "infinitely", "pos": ["adv."], "meaning": "무한히"}]},
+  {"root": "unstructured", "meaning": "a.비구조적인", "words": [{"word": "structure", "pos": ["v.", "n."], "meaning": "구조 / 구조화하다"}, {"word": "structured", "pos": ["adj."], "meaning": "구조화된"}, {"word": "unstructured", "pos": ["adj."]}]},
+  {"root": "improvise", "meaning": "v.즉흥적으로 하다", "words": [{"word": "improvise", "pos": ["v."]}, {"word": "improvisation", "pos": ["n."], "meaning": "즉흥 (연주, 행동)"}, {"word": "improvised", "pos": ["adj."], "meaning": "즉흥적인"}]},
+  {"root": "mistreat", "meaning": "v. 학대하다, 함부로 다루다", "words": [{"word": "mistreat", "pos": ["v."]}, {"word": "mistreatment", "pos": ["n."], "meaning": "학대"}, {"word": "mistreated", "pos": ["adj."], "meaning": "학대받은"}]},
+  {"root": "entrust", "meaning": "v. 맡기다, 위임하다", "words": [{"word": "entrust", "pos": ["v."]}, {"word": "entrusted", "pos": ["adj."], "meaning": "맡겨진"}]},
+  {"root": "inspiring", "meaning": "a.영감을주는", "words": [{"word": "inspire", "pos": ["v."], "meaning": "영감을 주다"}, {"word": "inspiration", "pos": ["n."], "meaning": "영감"}, {"word": "inspiring", "pos": ["adj."]}, {"word": "inspired", "pos": ["adj."], "meaning": "영감을 받은"}]},
+  {"root": "indifference", "meaning": "n. 무관심", "words": [{"word": "indifference", "pos": ["n."]}, {"word": "indifferent", "pos": ["adj."], "meaning": "무관심한"}, {"word": "indifferently", "pos": ["adv."], "meaning": "무관심하게"}]},
+  {"root": "effortless", "meaning": "a.힘들이지 않는", "words": [{"word": "effort", "pos": ["n."], "meaning": "노력"}, {"word": "effortless", "pos": ["adj."]}, {"word": "effortlessly", "pos": ["adv."], "meaning": "힘들이지 않고"}]},
+  {"root": "bilingual", "meaning": "n. 2개 국어를 구사하는 사람", "words": [{"word": "bilingual", "pos": ["n.", "adj."]}, {"word": "bilingualism", "pos": ["n."], "meaning": "2개 국어 사용"}, {"word": "bilingually", "pos": ["adv."], "meaning": "2개 국어로"}]},
+  {"root": "adept", "meaning": "a. 능숙한, 숙련된", "words": [{"word": "adeptness", "pos": ["n."], "meaning": "능숙함"}, {"word": "adept", "pos": ["adj."]}, {"word": "adeptly", "pos": ["adv."], "meaning": "능숙하게"}]},
+  {"root": "function", "meaning": "n. 기능", "words": [{"word": "function", "pos": ["v.", "n."]}, {"word": "functional", "pos": ["adj."], "meaning": "기능적인"}, {"word": "functionally", "pos": ["adv."], "meaning": "기능적으로"}]},
+  {"root": "demand", "meaning": "v. 요구하다 n. 요구, 수요", "words": [{"word": "demand", "pos": ["v.", "n."]}, {"word": "demanding", "pos": ["adj."], "meaning": "요구가 많은, 부담이 큰"}]},
+  {"root": "deliberate", "meaning": "a. 의도적인, 신중한", "words": [{"word": "deliberate", "pos": ["v.", "adj."]}, {"word": "deliberation", "pos": ["n."], "meaning": "숙고, 심의"}, {"word": "deliberately", "pos": ["adv."], "meaning": "의도적으로, 신중하게"}]},
+  {"root": "heighten", "meaning": "v. 높이다, 강화하다", "words": [{"word": "heighten", "pos": ["v."]}, {"word": "height", "pos": ["n."], "meaning": "높이"}, {"word": "heightened", "pos": ["adj."], "meaning": "고조된, 높아진"}]},
+  {"root": "extend", "meaning": "v. 연장하다, 확장하다", "words": [{"word": "extend", "pos": ["v."]}, {"word": "extension", "pos": ["n."], "meaning": "연장, 확장"}, {"word": "extent", "pos": ["n."], "meaning": "정도, 범위"}, {"word": "extensive", "pos": ["adj."], "meaning": "광범위한"}, {"word": "extended", "pos": ["adj."], "meaning": "연장된"}, {"word": "extensively", "pos": ["adv."], "meaning": "광범위하게"}]},
+  {"root": "resist", "meaning": "v. 저항, 반대하다", "words": [{"word": "resist", "pos": ["v."]}, {"word": "resistance", "pos": ["n."], "meaning": "저항"}, {"word": "resistant", "pos": ["adj."], "meaning": "저항하는, 내성이 있는"}]},
+  {"root": "imprint", "meaning": "n. 각인, 자국", "words": [{"word": "imprint", "pos": ["v.", "n."]}, {"word": "imprinted", "pos": ["adj."], "meaning": "각인된"}]},
+  {"root": "consolidate", "meaning": "v. 굳히다, 강화하다", "words": [{"word": "consolidate", "pos": ["v."]}, {"word": "consolidation", "pos": ["n."], "meaning": "강화, 통합"}, {"word": "consolidated", "pos": ["adj."], "meaning": "통합된"}]},
+  {"root": "modulate", "meaning": "v. 조절하다, 맞추다", "words": [{"word": "modulate", "pos": ["v."]}, {"word": "modulation", "pos": ["n."], "meaning": "조절"}, {"word": "modulated", "pos": ["adj."], "meaning": "조절된"}]},
+  {"root": "toddle", "meaning": "v. 아장아장 걷다", "words": [{"word": "toddle", "pos": ["v."]}, {"word": "toddler", "pos": ["n."], "meaning": "아장아장 걷는 아이"}, {"word": "toddling", "pos": ["adj."], "meaning": "아장아장 걷는"}]},
+  {"root": "typical", "meaning": "a. 전형, 일반적인", "words": [{"word": "typify", "pos": ["v."], "meaning": "전형이 되다"}, {"word": "type", "pos": ["n."], "meaning": "유형, 종류"}, {"word": "typicality", "pos": ["n."], "meaning": "전형성"}, {"word": "typical", "pos": ["adj."]}, {"word": "typically", "pos": ["adv."], "meaning": "전형적으로"}]},
+  {"root": "activate", "meaning": "v. 활성화하다, 작동시키다", "words": [{"word": "activate", "pos": ["v."]}, {"word": "activation", "pos": ["n."], "meaning": "활성화"}, {"word": "active", "pos": ["adj."], "meaning": "활동적인"}, {"word": "actively", "pos": ["adv."], "meaning": "활발하게"}]},
+  {"root": "mutter", "meaning": "v. 중얼거리다", "words": [{"word": "mutter", "pos": ["v.", "n."]}, {"word": "muttering", "pos": ["adj."], "meaning": "중얼거리는"}]},
+  {"root": "circumstance", "meaning": "n. 상황, 환경", "words": [{"word": "circumstance", "pos": ["n."]}, {"word": "circumstantial", "pos": ["adj."], "meaning": "상황의, 정황의"}, {"word": "circumstantially", "pos": ["adv."], "meaning": "상황적으로"}]},
+  {"root": "elegant", "meaning": "a. 우아한, 고상한, 명쾌한", "words": [{"word": "elegance", "pos": ["n."], "meaning": "우아함"}, {"word": "elegant", "pos": ["adj."]}, {"word": "elegantly", "pos": ["adv."], "meaning": "우아하게"}]},
+  {"root": "mislead", "meaning": "v. 오도하다, 잘못 이끌다", "words": [{"word": "mislead", "pos": ["v."]}, {"word": "misleading", "pos": ["adj."], "meaning": "오해를 일으키는"}, {"word": "misleadingly", "pos": ["adv."], "meaning": "오해의 소지가 있게"}]},
+  {"root": "potential", "meaning": "a. 잠재적인", "words": [{"word": "potential", "pos": ["n.", "adj."]}, {"word": "potentially", "pos": ["adv."], "meaning": "잠재적으로"}]},
+  {"root": "scent", "meaning": "n. 향기, 냄새", "words": [{"word": "scent", "pos": ["v.", "n."]}, {"word": "scented", "pos": ["adj."], "meaning": "향이 나는"}]},
+  {"root": "fragrance", "meaning": "n. 향기, 향수", "words": [{"word": "fragrance", "pos": ["n."]}, {"word": "fragrant", "pos": ["adj."], "meaning": "향기로운"}, {"word": "fragrantly", "pos": ["adv."], "meaning": "향기롭게"}]},
+  {"root": "disclose", "meaning": "v. 밝히다, 폭로하다", "words": [{"word": "disclose", "pos": ["v."]}, {"word": "disclosure", "pos": ["n."], "meaning": "폭로, 공개"}, {"word": "disclosed", "pos": ["adj."], "meaning": "공개된"}]},
+  {"root": "claim", "meaning": "n. 권리, 주장 v. 주장하다", "words": [{"word": "claim", "pos": ["v.", "n."]}, {"word": "claimed", "pos": ["adj."], "meaning": "주장된"}]},
+  {"root": "certify", "meaning": "v. 증명하다", "words": [{"word": "certify", "pos": ["v."]}, {"word": "certificate", "pos": ["n."], "meaning": "증명서"}, {"word": "certification", "pos": ["n."], "meaning": "증명, 인증"}, {"word": "certified", "pos": ["adj."], "meaning": "인증된"}]},
+  {"root": "raw", "meaning": "a. 가공하지 않은, 날것의", "words": [{"word": "rawness", "pos": ["n."], "meaning": "날것임, 가공되지 않음"}, {"word": "raw", "pos": ["adj."]}]},
+  {"root": "complicate", "meaning": "v. 복잡하게 만들다", "words": [{"word": "complicate", "pos": ["v."]}, {"word": "complication", "pos": ["n."], "meaning": "복잡함, 합병증"}, {"word": "complicated", "pos": ["adj."], "meaning": "복잡한"}]},
+  {"root": "hazard", "meaning": "n. 위험( 요소)", "words": [{"word": "hazard", "pos": ["v.", "n."]}, {"word": "hazardous", "pos": ["adj."], "meaning": "위험한"}, {"word": "hazardously", "pos": ["adv."], "meaning": "위험하게"}]},
+  {"root": "stump", "meaning": "v. 당황하게 하다", "words": [{"word": "stump", "pos": ["v.", "n."]}, {"word": "stumped", "pos": ["adj."], "meaning": "당황한, 곤혹스러운"}]},
+  {"root": "transparent", "meaning": "a. 투명한", "words": [{"word": "transparency", "pos": ["n."], "meaning": "투명성"}, {"word": "transparent", "pos": ["adj."]}, {"word": "transparently", "pos": ["adv."], "meaning": "투명하게"}]},
+  {"root": "obese", "meaning": "a. 비만인", "words": [{"word": "obesity", "pos": ["n."], "meaning": "비만"}, {"word": "obese", "pos": ["adj."]}]},
+  {"root": "conduct", "meaning": "v. 수행하다, 실시하다", "words": [{"word": "conduct", "pos": ["v.", "n."]}, {"word": "conducted", "pos": ["adj."], "meaning": "수행된, 실시된"}]},
+  {"root": "suffer", "meaning": "v. 고통받다, 겪다", "words": [{"word": "suffer", "pos": ["v."]}, {"word": "suffering", "pos": ["n.", "adj."], "meaning": "고통 / 고통받는"}, {"word": "sufferer", "pos": ["n."], "meaning": "고통받는 사람"}]},
+  {"root": "discriminate", "meaning": "v. 차별, 구별하다", "words": [{"word": "discriminate", "pos": ["v."]}, {"word": "discrimination", "pos": ["n."], "meaning": "차별, 구별"}, {"word": "discriminatory", "pos": ["adj."], "meaning": "차별적인"}]},
+  {"root": "bully", "meaning": "v. 괴롭히다", "words": [{"word": "bully", "pos": ["v.", "n."]}, {"word": "bullying", "pos": ["n.", "adj."], "meaning": "괴롭힘 / 괴롭히는"}]},
+  {"root": "tease", "meaning": "v. 놀리다, 장난하다", "words": [{"word": "tease", "pos": ["v.", "n."]}, {"word": "teasing", "pos": ["n.", "adj."], "meaning": "놀림 / 놀리는"}, {"word": "teasingly", "pos": ["adv."], "meaning": "놀리듯이"}]},
+  {"root": "perceive", "meaning": "v. 인식하다, 감지하다", "words": [{"word": "perceive", "pos": ["v."]}, {"word": "perception", "pos": ["n."], "meaning": "인식, 지각"}, {"word": "perceptive", "pos": ["adj."], "meaning": "통찰력 있는"}, {"word": "perceived", "pos": ["adj."], "meaning": "인식된"}, {"word": "perceptively", "pos": ["adv."], "meaning": "통찰력 있게"}]},
+  {"root": "represent", "meaning": "v. 나타내다, 대표하다", "words": [{"word": "represent", "pos": ["v."]}, {"word": "representation", "pos": ["n."], "meaning": "표현, 대표"}, {"word": "representative", "pos": ["n.", "adj."], "meaning": "대표 / 대표적인"}, {"word": "representatively", "pos": ["adv."], "meaning": "대표적으로"}]},
+  {"root": "portray", "meaning": "v. 묘사하다, 그리다", "words": [{"word": "portray", "pos": ["v."]}, {"word": "portrayal", "pos": ["n."], "meaning": "묘사"}, {"word": "portrayed", "pos": ["adj."], "meaning": "묘사된"}]},
+  {"root": "greed", "meaning": "n. 탐욕", "words": [{"word": "greed", "pos": ["n."]}, {"word": "greedy", "pos": ["adj."], "meaning": "탐욕스러운"}, {"word": "greedily", "pos": ["adv."], "meaning": "탐욕스럽게"}]},
+  {"root": "indicate", "meaning": "v. 나타내다, 가리키다", "words": [{"word": "indicate", "pos": ["v."]}, {"word": "indication", "pos": ["n."], "meaning": "표시, 징후"}, {"word": "indicator", "pos": ["n."], "meaning": "지표, 지시기"}, {"word": "indicative", "pos": ["adj."], "meaning": "나타내는, 시사하는"}]},
+  {"root": "generate", "meaning": "발생시키다", "words": [{"word": "generate", "pos": ["v."]}, {"word": "generation", "pos": ["n."], "meaning": "세대, 생성"}, {"word": "generator", "pos": ["n."], "meaning": "발전기, 생성자"}, {"word": "generative", "pos": ["adj."], "meaning": "생성적인"}]},
+  {"root": "encounter", "meaning": "마주치다", "words": [{"word": "encounter", "pos": ["v.", "n."]}, {"word": "encountered", "pos": ["adj."], "meaning": "마주친"}]},
+  {"root": "excessive", "meaning": "과도한", "words": [{"word": "exceed", "pos": ["v."], "meaning": "초과하다"}, {"word": "excess", "pos": ["n."], "meaning": "과다, 초과"}, {"word": "excessive", "pos": ["adj."]}, {"word": "excessively", "pos": ["adv."], "meaning": "과도하게"}]},
+  {"root": "atmosphere", "meaning": "대기", "words": [{"word": "atmosphere", "pos": ["n."]}, {"word": "atmospheric", "pos": ["adj."], "meaning": "대기의, 분위기의"}, {"word": "atmospherically", "pos": ["adv."], "meaning": "대기 면에서"}]},
+  {"root": "result", "meaning": "결과", "words": [{"word": "result", "pos": ["v.", "n."]}, {"word": "resulting", "pos": ["adj."], "meaning": "결과적인, 그 결과의"}]},
+  {"root": "gradual", "meaning": "점진적인", "words": [{"word": "gradual", "pos": ["adj."]}, {"word": "gradually", "pos": ["adv."], "meaning": "점진적으로"}]},
+  {"root": "threaten", "meaning": "위협하다", "words": [{"word": "threaten", "pos": ["v."]}, {"word": "threat", "pos": ["n."], "meaning": "위협"}, {"word": "threatening", "pos": ["adj."], "meaning": "위협적인"}, {"word": "threatened", "pos": ["adj."], "meaning": "위협받은"}, {"word": "threateningly", "pos": ["adv."], "meaning": "위협적으로"}]},
+  {"root": "creature", "meaning": "생물", "words": [{"word": "creature", "pos": ["n."]}]},
+  {"root": "enormous", "meaning": "거대한", "words": [{"word": "enormousness", "pos": ["n."], "meaning": "거대함"}, {"word": "enormous", "pos": ["adj."]}, {"word": "enormously", "pos": ["adv."], "meaning": "엄청나게"}]},
+  {"root": "extremely", "meaning": "극도로", "words": [{"word": "extreme", "pos": ["n.", "adj."], "meaning": "극단 / 극단적인"}, {"word": "extremely", "pos": ["adv."]}]},
+  {"root": "beneficial", "meaning": "유익한", "words": [{"word": "benefit", "pos": ["v.", "n."], "meaning": "혜택 / 이로움을 주다"}, {"word": "beneficial", "pos": ["adj."]}, {"word": "beneficially", "pos": ["adv."], "meaning": "유익하게"}]},
+  {"root": "absorb", "meaning": "흡수하다", "words": [{"word": "absorb", "pos": ["v."]}, {"word": "absorption", "pos": ["n."], "meaning": "흡수"}, {"word": "absorbent", "pos": ["adj."], "meaning": "흡수성의"}, {"word": "absorbed", "pos": ["adj."], "meaning": "몰두한, 흡수된"}]},
+  {"root": "sink", "meaning": "가라앉다", "words": [{"word": "sink", "pos": ["v.", "n."]}, {"word": "sinking", "pos": ["adj."], "meaning": "가라앉는"}]},
+  {"root": "permanently", "meaning": "영구적으로", "words": [{"word": "permanence", "pos": ["n."], "meaning": "영구성"}, {"word": "permanent", "pos": ["adj."], "meaning": "영구적인"}, {"word": "permanently", "pos": ["adv."]}]},
+  {"root": "bury", "meaning": "묻다", "words": [{"word": "bury", "pos": ["v."]}, {"word": "burial", "pos": ["n."], "meaning": "매장"}, {"word": "buried", "pos": ["adj."], "meaning": "묻힌"}]},
+  {"root": "vertical", "meaning": "수직의", "words": [{"word": "vertical", "pos": ["n.", "adj."]}, {"word": "vertically", "pos": ["adv."], "meaning": "수직으로"}]},
+  {"root": "circulate", "meaning": "순환하다", "words": [{"word": "circulate", "pos": ["v."]}, {"word": "circulation", "pos": ["n."], "meaning": "순환, 유통"}, {"word": "circulating", "pos": ["adj."], "meaning": "순환하는"}]},
+  {"root": "prey", "meaning": "먹이", "words": [{"word": "prey", "pos": ["v.", "n."]}]},
+  {"root": "greenhouse", "meaning": "온실", "words": [{"word": "greenhouse", "pos": ["n.", "adj."]}]},
+  {"root": "occasionally", "meaning": "가끔", "words": [{"word": "occasion", "pos": ["v.", "n."], "meaning": "경우, 행사 / 야기하다"}, {"word": "occasional", "pos": ["adj."], "meaning": "가끔의"}, {"word": "occasionally", "pos": ["adv."]}]},
+  {"root": "release", "meaning": "방출하다", "words": [{"word": "release", "pos": ["v.", "n."]}, {"word": "released", "pos": ["adj."], "meaning": "방출된, 공개된"}]},
+  {"root": "microscopic", "meaning": "미세한", "words": [{"word": "microscope", "pos": ["n."], "meaning": "현미경"}, {"word": "microscopic", "pos": ["adj."]}, {"word": "microscopically", "pos": ["adv."], "meaning": "미세하게, 현미경적으로"}]},
+  {"root": "oxygen", "meaning": "산소", "words": [{"word": "oxygenate", "pos": ["v."], "meaning": "산소를 공급하다"}, {"word": "oxygen", "pos": ["n."]}, {"word": "oxygenated", "pos": ["adj."], "meaning": "산소가 공급된"}]},
+  {"root": "photosynthesis", "meaning": "광합성", "words": [{"word": "photosynthesize", "pos": ["v."], "meaning": "광합성하다"}, {"word": "photosynthesis", "pos": ["n."]}, {"word": "photosynthetic", "pos": ["adj."], "meaning": "광합성의"}, {"word": "photosynthetically", "pos": ["adv."], "meaning": "광합성으로"}]},
+  {"root": "estimate", "meaning": "추정하다", "words": [{"word": "estimate", "pos": ["v.", "n."]}, {"word": "estimation", "pos": ["n."], "meaning": "추정, 평가"}, {"word": "estimated", "pos": ["adj."], "meaning": "추정된"}]},
+  {"root": "equivalent", "meaning": "동등한", "words": [{"word": "equivalence", "pos": ["n."], "meaning": "동등성"}, {"word": "equivalent", "pos": ["n.", "adj."]}, {"word": "equivalently", "pos": ["adv."], "meaning": "동등하게"}]},
+  {"root": "stir", "meaning": "젓다", "words": [{"word": "stir", "pos": ["v.", "n."]}, {"word": "stirring", "pos": ["adj."], "meaning": "감동적인 / 휘젓는"}]},
+  {"root": "promote", "meaning": "촉진하다", "words": [{"word": "promote", "pos": ["v."]}, {"word": "promotion", "pos": ["n."], "meaning": "촉진, 홍보, 승진"}, {"word": "promoter", "pos": ["n."], "meaning": "추진자, 후원자"}, {"word": "promotional", "pos": ["adj."], "meaning": "홍보의"}]},
+  {"root": "mammal", "meaning": "포유동물", "words": [{"word": "mammal", "pos": ["n."]}, {"word": "mammalian", "pos": ["adj."], "meaning": "포유류의"}]},
+  {"root": "migrate", "meaning": "이주하다", "words": [{"word": "migrate", "pos": ["v."]}, {"word": "migration", "pos": ["n."], "meaning": "이주"}, {"word": "migrant", "pos": ["n."], "meaning": "이주자"}, {"word": "migratory", "pos": ["adj."], "meaning": "이주하는"}]},
+  {"root": "approach", "meaning": "다가가다", "words": [{"word": "approach", "pos": ["v.", "n."]}, {"word": "approachable", "pos": ["adj."], "meaning": "접근하기 쉬운"}]},
+  {"root": "breed", "meaning": "번식하다", "words": [{"word": "breed", "pos": ["v.", "n."]}, {"word": "breeding", "pos": ["n.", "adj."], "meaning": "번식, 사육 / 번식하는"}]},
+  {"root": "relative", "meaning": "상대적인", "words": [{"word": "relate", "pos": ["v."], "meaning": "관련시키다"}, {"word": "relation", "pos": ["n."], "meaning": "관계"}, {"word": "relative", "pos": ["n.", "adj."]}, {"word": "relatively", "pos": ["adv."], "meaning": "상대적으로"}]},
+  {"root": "scarce", "meaning": "부족한", "words": [{"word": "scarcity", "pos": ["n."], "meaning": "부족"}, {"word": "scarce", "pos": ["adj."]}]},
+  {"root": "fill", "meaning": "채우다", "words": [{"word": "fill", "pos": ["v.", "n."]}, {"word": "filler", "pos": ["n."], "meaning": "채우는 것, 충전재"}, {"word": "filled", "pos": ["adj."], "meaning": "채워진"}]},
+  {"root": "combat", "meaning": "싸우다", "words": [{"word": "combat", "pos": ["v.", "n."]}, {"word": "combative", "pos": ["adj."], "meaning": "호전적인"}, {"word": "combatively", "pos": ["adv."], "meaning": "호전적으로"}]},
+  {"root": "commercial", "meaning": "상업적인", "words": [{"word": "commercialize", "pos": ["v."], "meaning": "상업화하다"}, {"word": "commerce", "pos": ["n."], "meaning": "상업"}, {"word": "commercial", "pos": ["n.", "adj."]}, {"word": "commercially", "pos": ["adv."], "meaning": "상업적으로"}]},
+  {"root": "ban", "meaning": "금지하다", "words": [{"word": "ban", "pos": ["v.", "n."]}, {"word": "banned", "pos": ["adj."], "meaning": "금지된"}]},
+  {"root": "population", "meaning": "인구", "words": [{"word": "populate", "pos": ["v."], "meaning": "거주시키다"}, {"word": "population", "pos": ["n."]}, {"word": "populous", "pos": ["adj."], "meaning": "인구가 많은"}, {"word": "populated", "pos": ["adj."], "meaning": "사람이 사는"}]},
+  {"root": "efficient", "meaning": "효율적인", "words": [{"word": "efficiency", "pos": ["n."], "meaning": "효율성"}, {"word": "efficient", "pos": ["adj."]}, {"word": "efficiently", "pos": ["adv."], "meaning": "효율적으로"}]},
+  {"root": "address", "meaning": "다루다", "words": [{"word": "address", "pos": ["v.", "n."]}, {"word": "addressed", "pos": ["adj."], "meaning": "다뤄진"}]}
+];
+// Active subset (modified by deck/count selection); default = Set 1 (first 48)
+let WORD_FAMILIES = ALL_FAMILIES.slice(0, 48);
+
+// ───── Color generation per family (HSL spread) ─────
+function familyColor(index) {
+  const total = WORD_FAMILIES.length;
+  const hue = Math.round((index * 360 / total)) % 360;
+  return `hsl(${hue}, 62%, 42%)`;
+}
+
+// ───── English feedback messages ─────
+const MSG = {
+  correctFirst: [
+    "Great start! 🌟",
+    "Nice catch!",
+    "You found a family! 🌱",
+    "Good thinking!",
+    "Off to a great start!",
+  ],
+  correctMore: [
+    "Excellent! 👍",
+    "Perfect match!",
+    "Well done!",
+    "You got it!",
+    "Brilliant!",
+    "Awesome! ✨",
+    "Keep it up!",
+    "Sharp eye!",
+  ],
+  wrongCard: [
+    "Not quite — different family. 🤔",
+    "Look at the root again!",
+    "Think about the root word.",
+    "Try another card!",
+    "Wrong family — keep thinking!",
+    "Almost! Check the root.",
+  ],
+  wrongEmpty: [
+    "Hmm, that family is already in another card.",
+    "This family belongs in another card!",
+  ],
+  removed: [
+    "Word back to the cloud!",
+    "Back to the cloud — try again.",
+  ],
+  cardComplete: [
+    "Family complete! 🎉",
+    "All members found! 🎊",
+    "Perfect family! ✨",
+    "You nailed it! 🏆",
+  ],
+  allComplete: [
+    "🎉 Outstanding! All families complete! 🎉",
+    "🏆 Perfect score! You're a word-family master!",
+    "✨ Magnificent! Every family found a home!",
+  ],
+};
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function showToast(text, kind = 'info', duration = 1600) {
+  const area = document.getElementById('toast-area');
+  const t = document.createElement('div');
+  t.className = `toast ${kind}`;
+  t.textContent = text;
+  area.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 350);
+  }, duration);
+}
+
+// ───── Helpers ─────
+function posClass(pos) {
+  if (pos === 'n.')   return 'pos-n';
+  if (pos === 'v.')   return 'pos-v';
+  if (pos === 'adj.') return 'pos-adj';
+  if (pos === 'adv.') return 'pos-adv';
+  return '';
+}
+
+function renderPosBadges(parent, posArray) {
+  parent.innerHTML = '';
+  posArray.forEach(p => {
+    const span = document.createElement('span');
+    span.className = 'slot-pos ' + posClass(p);
+    span.textContent = p;
+    parent.appendChild(span);
+  });
+}
+
+// ───── Affix detection: split word into prefix / stem / suffix vs root ─────
+const COMMON_PREFIXES = ['inter','dis','un','im','in','en','re'];
+function splitAffix(word, root) {
+  // Prefix check first
+  for (const p of COMMON_PREFIXES) {
+    if (word.startsWith(p) && word.length > p.length) {
+      const rest = word.slice(p.length);
+      // Loose match: rest shares decent prefix with root
+      const minMatch = Math.min(3, root.length);
+      if (rest.startsWith(root.slice(0, minMatch))) {
+        return { prefix: p, stem: rest, suffix: '' };
+      }
+    }
+  }
+  // Suffix: longest common starting substring with root
+  let i = 0;
+  while (i < word.length && i < root.length && word[i] === root[i]) i++;
+  // Allow y→i replacement: if root ends in 'y' and word has 'i' at that position
+  if (i < root.length && root[i] === 'y' && word[i] === 'i') {
+    let j = i + 1;
+    while (j < word.length && j - 1 < root.length - 1) j++;  // accept 'i' as match
+    if (j > i) i++;  // count the 'i' as part of stem
+  }
+  if (i >= 3 && i < word.length) {
+    return { prefix: '', stem: word.slice(0, i), suffix: word.slice(i) };
+  }
+  return { prefix: '', stem: word, suffix: '' };
+}
+
+function buildSlotWordEl(word, root) {
+  const span = document.createElement('span');
+  span.className = 'slot-word';
+  // Auto-shrink for long words to fit narrow cards
+  if (word.length >= 16)      span.style.fontSize = '10.5px';
+  else if (word.length >= 13) span.style.fontSize = '12px';
+  else if (word.length >= 11) span.style.fontSize = '13px';
+  if (word === root) {
+    span.textContent = word;
+    span.classList.add('is-base');
+    return span;
+  }
+  const parts = splitAffix(word, root);
+  if (parts.prefix) {
+    const pre = document.createElement('span');
+    pre.className = 'aff prefix';
+    pre.textContent = parts.prefix;
+    span.appendChild(pre);
+  }
+  const stem = document.createElement('span');
+  stem.className = 'stem';
+  stem.textContent = parts.stem;
+  span.appendChild(stem);
+  if (parts.suffix) {
+    const suf = document.createElement('span');
+    suf.className = 'aff suffix';
+    suf.textContent = parts.suffix;
+    span.appendChild(suf);
+  }
+  return span;
+}
+
+// ───── Hint levels ─────
+const HINT_LEVELS = [
+  { label: '힌트: 전체',         showRoot: true,  showPos: true,  showMeaning: true  },
+  { label: '힌트: 기본단어 숨김', showRoot: false, showPos: true,  showMeaning: true  },
+  { label: '힌트: 품사도 숨김',   showRoot: false, showPos: false, showMeaning: true  },
+];
+
+// ───── State ─────
+const state = {
+  hintLevel: 0,
+  totalWords: 0,
+  placedWords: new Set(),
+  wordIndex: new Map(),
+  bulkSorting: false,
+  activeDrag: null,
+  score: { correct: 0, wrong: 0 },
+  quizMode: false,
+  soundOn: false,
+  timer: { startTime: null, intervalId: null },
+};
+const STORAGE_KEY = 'wordcloud_marsuk_v1';
+const RECORDS_KEY = 'wordcloud_marsuk_records';
+const CLEARED_KEY = 'wordcloud_marsuk_cleared';
+const TUTORIAL_KEY = 'wordcloud_marsuk_tutorial_seen';
+
+// ───── Timer ─────
+function startTimer() {
+  if (state.timer.startTime) return;
+  state.timer.startTime = Date.now();
+  state.timer.intervalId = setInterval(updateTimerDisplay, 1000);
+  document.getElementById('timer').classList.add('running');
+  updateTimerDisplay();
+}
+function stopTimer() {
+  if (!state.timer.startTime) return null;
+  const elapsed = Date.now() - state.timer.startTime;
+  clearInterval(state.timer.intervalId);
+  state.timer.intervalId = null;
+  document.getElementById('timer').classList.remove('running');
+  return elapsed;
+}
+function resetTimer() {
+  if (state.timer.intervalId) clearInterval(state.timer.intervalId);
+  state.timer = { startTime: null, intervalId: null };
+  const t = document.getElementById('timer');
+  t.classList.remove('running');
+  t.textContent = '⏱ 0:00';
+}
+function formatElapsed(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, '0')}`;
+}
+function updateTimerDisplay() {
+  if (!state.timer.startTime) return;
+  const elapsed = Date.now() - state.timer.startTime;
+  document.getElementById('timer').textContent = '⏱ ' + formatElapsed(elapsed);
+}
+
+// ───── Best record per fingerprint ─────
+function getRecords() {
+  try { return JSON.parse(localStorage.getItem(RECORDS_KEY)) || {}; } catch (_) { return {}; }
+}
+function saveBestIfBetter(elapsed) {
+  const fp = currentFingerprint();
+  const records = getRecords();
+  const prev = records[fp];
+  if (!prev || elapsed < prev) {
+    records[fp] = elapsed;
+    try { localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); } catch (_) {}
+    return true;
+  }
+  return false;
+}
+
+// ───── Cleared decks tracking ─────
+function getClearedDecks() {
+  try { return new Set(JSON.parse(localStorage.getItem(CLEARED_KEY)) || []); } catch (_) { return new Set(); }
+}
+function markDeckCleared() {
+  // Only count if user picked count = 'all' (deck fully completed, not random subset)
+  const countVal = document.getElementById('count-select').value;
+  if (countVal !== 'all') return;
+  const deckVal = document.getElementById('deck-select').value;
+  const cleared = getClearedDecks();
+  cleared.add(deckVal);
+  try { localStorage.setItem(CLEARED_KEY, JSON.stringify([...cleared])); } catch (_) {}
+  refreshDeckIndicators();
+}
+function refreshDeckIndicators() {
+  const cleared = getClearedDecks();
+  const sel = document.getElementById('deck-select');
+  Array.from(sel.options).forEach(opt => {
+    const baseLabel = opt.dataset.base ?? opt.textContent.replace(/\s*✓$/, '');
+    if (!opt.dataset.base) opt.dataset.base = baseLabel;
+    opt.textContent = cleared.has(opt.value) ? `${baseLabel} ✓` : baseLabel;
+  });
+}
+
+// ───── Tutorial ─────
+function showTutorial() {
+  document.getElementById('tutorial-overlay').classList.add('show');
+}
+function hideTutorial() {
+  document.getElementById('tutorial-overlay').classList.remove('show');
+  if (document.getElementById('tutorial-dont-show').checked) {
+    try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch (_) {}
+  }
+}
+
+// ───── Web Audio: synthesized SFX (no external files) ─────
+let _audioCtx = null;
+function audioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+function playTone(freq, dur, when = 0, type = 'sine', vol = 0.12) {
+  if (!state.soundOn) return;
+  try {
+    const ctx = audioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    osc.connect(gain); gain.connect(ctx.destination);
+    const t = ctx.currentTime + when;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.linearRampToValueAtTime(vol, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
+  } catch (e) { /* no audio */ }
+}
+function soundCorrect() {  // C-E-G ascending arpeggio
+  playTone(523.25, 0.18, 0.00);
+  playTone(659.25, 0.18, 0.07);
+  playTone(783.99, 0.22, 0.14);
+}
+function soundWrong() {    // descending buzz
+  playTone(196.00, 0.16, 0.00, 'sawtooth', 0.08);
+  playTone(155.56, 0.22, 0.10, 'sawtooth', 0.07);
+}
+function soundComplete() { // triumphant fanfare
+  playTone(523.25, 0.10, 0.00);
+  playTone(659.25, 0.10, 0.08);
+  playTone(783.99, 0.10, 0.16);
+  playTone(1046.50, 0.32, 0.24);
+}
+
+// ───── Build state.wordIndex from current WORD_FAMILIES ─────
+function rebuildWordIndex() {
+  state.wordIndex = new Map();
+  state.totalWords = 0;
+  WORD_FAMILIES.forEach((fam, fi) => {
+    fam.color = familyColor(fi);
+    fam.words.forEach((w, si) => {
+      state.wordIndex.set(w.word, {
+        ...w,
+        familyIndex: fi,
+        slotIndex: si,
+        root: fam.root,
+        color: fam.color,
+        meaning: w.meaning || fam.meaning || '',  // fallback to family meaning
+      });
+      state.totalWords++;
+    });
+  });
+}
+
+// ───── Init ─────
+function init() {
+  rebuildWordIndex();
+
+  renderFamilies();
+  renderCloud();
+  updateCounter();
+
+  document.getElementById('reset').addEventListener('click', reset);
+  document.getElementById('sort-all').addEventListener('click', sortAll);
+  document.getElementById('toggle-hint').addEventListener('click', cycleHintLevel);
+  document.getElementById('hint-close').addEventListener('click', hideHint);
+  document.getElementById('hint-tts').addEventListener('click', () => {
+    const w = document.getElementById('hint-word').textContent;
+    if (w) speak(w);
+  });
+  document.getElementById('print-btn').addEventListener('click', () => window.print());
+  document.getElementById('quiz-mode').addEventListener('click', toggleQuizMode);
+  document.getElementById('sound-toggle').addEventListener('click', toggleSound);
+  document.getElementById('apply-set').addEventListener('click', applySelection);
+  document.getElementById('deck-select').addEventListener('change', applySelection);
+  document.getElementById('count-select').addEventListener('change', applySelection);
+  document.getElementById('tutorial-close').addEventListener('click', hideTutorial);
+  updateActiveSetInfo();
+  refreshDeckIndicators();
+
+  // First-time tutorial
+  if (!localStorage.getItem(TUTORIAL_KEY)) {
+    setTimeout(showTutorial, 400);
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (document.getElementById('tutorial-overlay').classList.contains('show')) {
+        hideTutorial();
+      } else {
+        hideHint();
+      }
+    } else if (e.key === 'Enter') {
+      const focused = document.activeElement;
+      if (focused?.classList?.contains('cloud-word')) {
+        const w = focused.dataset.word;
+        const d = state.wordIndex.get(w);
+        if (d) showHint(d);
+        e.preventDefault();
+      }
+    }
+  });
+
+  // Click in empty cloud area (not on a word) → hide hint
+  document.getElementById('cloud').addEventListener('pointerdown', (e) => {
+    if (state.activeDrag) return;
+    if (e.target.closest('.cloud-word')) return;
+    hideHint();
+  });
+
+  loadState();
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(renderCloud, 200);
+  });
+}
+
+// ───── Text-to-Speech ─────
+function speak(word) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.rate = 0.9;
+  u.lang = 'en-US';
+  const btn = document.getElementById('hint-tts');
+  btn.classList.add('speaking');
+  u.onend = () => btn.classList.remove('speaking');
+  speechSynthesis.speak(u);
+}
+
+// ───── Render family cards (static once) ─────
+function renderFamilies() {
+  const grid = document.getElementById('families-grid');
+  grid.innerHTML = '';
+
+  WORD_FAMILIES.forEach((_, fi) => {
+    const card = document.createElement('div');
+    card.className = 'family-card';
+    card.dataset.cardId = fi;  // permanent card ID for ordering only
+
+    const slots = document.createElement('div');
+    slots.className = 'family-slots';
+    card.appendChild(slots);
+
+    grid.appendChild(card);
+  });
+}
+
+// ───── Render the cloud (only unplaced words) ─────
+function renderCloud() {
+  const cloud = document.getElementById('cloud');
+  cloud.innerHTML = '';
+
+  const cloudRect = cloud.getBoundingClientRect();
+  const cloudW = cloudRect.width;
+  const cloudH = cloudRect.height;
+  if (cloudW === 0 || cloudH === 0) return;
+
+  // Collect unplaced words; auto-scale font sizes based on total count
+  const items = [];
+  // First pass: count unplaced
+  let unplacedCount = 0;
+  state.wordIndex.forEach((data, word) => {
+    if (!state.placedWords.has(word)) unplacedCount++;
+  });
+  // Tier sizes: small set = generous fonts, large set = compact fonts
+  let baseRoot, varRoot, baseOther, varOther;
+  if (unplacedCount <= 80) {
+    baseRoot = 32; varRoot = 16; baseOther = 16; varOther = 14;
+  } else if (unplacedCount <= 200) {
+    baseRoot = 26; varRoot = 12; baseOther = 14; varOther = 10;
+  } else if (unplacedCount <= 400) {
+    baseRoot = 22; varRoot = 10; baseOther = 12; varOther = 7;
+  } else {
+    baseRoot = 18; varRoot = 6;  baseOther = 10; varOther = 4;
+  }
+  state.wordIndex.forEach((data, word) => {
+    if (state.placedWords.has(word)) return;
+    const isRoot = data.word === data.root;
+    const baseSize = isRoot ? baseRoot : baseOther;
+    const variance = isRoot ? varRoot  : varOther;
+    const fontSize = Math.round(baseSize + Math.random() * variance);
+    items.push({ word, data, fontSize });
+  });
+
+  // Sort big-first for placement priority
+  items.sort((a, b) => b.fontSize - a.fontSize);
+
+  // Grid-based occupancy for collision avoidance
+  const cellW = 6, cellH = 12;
+  const cols = Math.floor(cloudW / cellW);
+  const rows = Math.floor(cloudH / cellH);
+  const occupied = new Uint8Array(cols * rows);
+
+  function tryPlace(wordW, wordH) {
+    const cw = Math.ceil(wordW / cellW) + 1;
+    const ch = Math.ceil(wordH / cellH) + 1;
+    if (cw >= cols || ch >= rows) return null;
+
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const startCol = Math.floor(Math.random() * (cols - cw));
+      const startRow = Math.floor(Math.random() * (rows - ch));
+      let canPlace = true;
+      for (let r = 0; r < ch && canPlace; r++) {
+        const rowOff = (startRow + r) * cols;
+        for (let c = 0; c < cw; c++) {
+          if (occupied[rowOff + startCol + c]) { canPlace = false; break; }
+        }
+      }
+      if (canPlace) {
+        for (let r = 0; r < ch; r++) {
+          const rowOff = (startRow + r) * cols;
+          for (let c = 0; c < cw; c++) {
+            occupied[rowOff + startCol + c] = 1;
+          }
+        }
+        return { x: startCol * cellW, y: startRow * cellH };
+      }
+    }
+    return null;
+  }
+
+  // Measurer
+  const measurer = document.createElement('span');
+  measurer.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font-weight:700;line-height:1;left:-9999px;';
+  document.body.appendChild(measurer);
+
+  items.forEach(({ word, data, fontSize }) => {
+    measurer.style.fontSize = fontSize + 'px';
+    measurer.textContent = word;
+    const wordW = measurer.offsetWidth;
+    const wordH = measurer.offsetHeight;
+
+    let pos = tryPlace(wordW, wordH);
+    if (!pos) {
+      // Smaller fallback
+      const smaller = Math.max(14, fontSize - 6);
+      measurer.style.fontSize = smaller + 'px';
+      const sw = measurer.offsetWidth;
+      const sh = measurer.offsetHeight;
+      pos = tryPlace(sw, sh);
+      if (pos) fontSize = smaller;
+    }
+    if (!pos) {
+      // Last resort: random with overflow risk
+      pos = {
+        x: Math.max(0, Math.random() * (cloudW - wordW)),
+        y: Math.max(0, Math.random() * (cloudH - wordH)),
+      };
+    }
+
+    const el = document.createElement('span');
+    el.className = 'cloud-word';
+    el.tabIndex = 0;
+    el.dataset.word = word;
+    el.textContent = word;
+    el.style.left = pos.x + 'px';
+    el.style.top = pos.y + 'px';
+    el.style.fontSize = fontSize + 'px';
+    el.style.color = data.color;
+    // Subtle rotation + floating bobbing (random duration/delay so they're not in sync)
+    const isBase = data.word === data.root;
+    const rot = isBase ? 0 : (Math.random() * 24 - 12);
+    el.style.setProperty('--rot', rot + 'deg');
+    el.style.setProperty('--float-dur', (3.5 + Math.random() * 2.5).toFixed(2) + 's');
+    el.style.setProperty('--float-delay', (-Math.random() * 4).toFixed(2) + 's');
+    el.dataset.rotation = rot;
+    el.dataset.cloudX = pos.x;
+    el.dataset.cloudY = pos.y;
+    setupDrag(el, word, data);
+    cloud.appendChild(el);
+  });
+
+  measurer.remove();
+}
+
+// ───── Drag-and-drop setup per word ─────
+// Uses document-level pointer listeners + position:fixed in place (no re-parenting).
+function setupDrag(el, word, data) {
+  let activePointerId = null;
+  let startClientX = 0, startClientY = 0;
+  let startElLeft = 0, startElTop = 0;  // viewport coords at drag start
+  let dragging = false;
+  let lastHoverCard = null;
+  let lastParticle = 0;
+
+  function onMove(e) {
+    if (e.pointerId !== activePointerId) return;
+    const dx = e.clientX - startClientX;
+    const dy = e.clientY - startClientY;
+
+    if (!dragging) {
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+      // Begin drag: switch to fixed position in place (no re-parenting)
+      dragging = true;
+      state.activeDrag = el;
+      hideHint();
+      el.style.position = 'fixed';
+      el.style.left = startElLeft + 'px';
+      el.style.top  = startElTop + 'px';
+      el.style.transform = 'scale(1.1)';  // upright + slightly larger
+      el.classList.add('dragging');
+    }
+
+    el.style.left = (startElLeft + dx) + 'px';
+    el.style.top  = (startElTop + dy) + 'px';
+
+    // Throttled particle trail
+    const now = performance.now();
+    if (now - lastParticle > 45) {
+      spawnParticle(e.clientX, e.clientY, data.color);
+      lastParticle = now;
+    }
+
+    el.style.pointerEvents = 'none';
+    const below = document.elementFromPoint(e.clientX, e.clientY);
+    el.style.pointerEvents = '';
+    const card = below ? below.closest('.family-card') : null;
+
+    if (card !== lastHoverCard) {
+      if (lastHoverCard) lastHoverCard.classList.remove('drop-hover');
+      if (card) card.classList.add('drop-hover');
+      lastHoverCard = card;
+    }
+  }
+
+  function onEnd(e) {
+    if (e.pointerId !== activePointerId) return;
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onEnd);
+    document.removeEventListener('pointercancel', onEnd);
+    activePointerId = null;
+
+    if (!dragging) {
+      // Click → show hint
+      showHint(data);
+      return;
+    }
+
+    dragging = false;
+    state.activeDrag = null;
+    el.classList.remove('dragging');
+    if (lastHoverCard) { lastHoverCard.classList.remove('drop-hover'); lastHoverCard = null; }
+
+    el.style.pointerEvents = 'none';
+    const below = document.elementFromPoint(e.clientX, e.clientY);
+    el.style.pointerEvents = '';
+    const card = below ? below.closest('.family-card') : null;
+
+    handleDropOnCard(el, card, data);
+  }
+
+  el.addEventListener('pointerdown', (e) => {
+    if (state.placedWords.has(word)) return;
+    if (state.bulkSorting) return;
+    if (e.button !== undefined && e.button !== 0) return;
+
+    activePointerId = e.pointerId;
+    startClientX = e.clientX;
+    startClientY = e.clientY;
+    dragging = false;
+
+    const rect = el.getBoundingClientRect();
+    startElLeft = rect.left;
+    startElTop  = rect.top;
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onEnd);
+    document.addEventListener('pointercancel', onEnd);
+
+    e.preventDefault();
+  });
+}
+
+// ───── Drop validation: claim empty card OR match claimed family ─────
+function handleDropOnCard(el, card, data) {
+  if (!card) {
+    snapBack(el);
+    return;
+  }
+  const claimed = card.dataset.claimedFamily;
+  if (claimed === undefined || claimed === '') {
+    // Empty card — but block if this family already lives in another card
+    const existing = document.querySelector(
+      `.family-card[data-claimed-family="${data.familyIndex}"]`
+    );
+    if (existing) {
+      card.classList.add('drop-wrong');
+      setTimeout(() => card.classList.remove('drop-wrong'), 450);
+      showToast(pick(MSG.wrongEmpty), 'warn');
+      bumpScore('wrong');
+      soundWrong();
+      snapBack(el);
+      return;
+    }
+    claimCard(card, data);
+    if (!state.bulkSorting) showToast(pick(MSG.correctFirst), 'success');
+    bumpScore('correct');
+    soundCorrect();
+    acceptDrop(el, card, data);
+  } else if (+claimed === data.familyIndex) {
+    if (!state.bulkSorting) showToast(pick(MSG.correctMore), 'success');
+    bumpScore('correct');
+    soundCorrect();
+    acceptDrop(el, card, data);
+  } else {
+    card.classList.add('drop-wrong');
+    setTimeout(() => card.classList.remove('drop-wrong'), 450);
+    showToast(pick(MSG.wrongCard), 'warn');
+    bumpScore('wrong');
+    soundWrong();
+    snapBack(el);
+  }
+}
+
+function claimCard(card, data) {
+  card.dataset.claimedFamily = data.familyIndex;
+  card.classList.add('claimed');
+  card.style.borderTopColor = data.color;
+}
+
+function snapBack(el) {
+  const cloud = document.getElementById('cloud');
+  const cloudRect = cloud.getBoundingClientRect();
+  const origX = parseFloat(el.dataset.cloudX);
+  const origY = parseFloat(el.dataset.cloudY);
+  const targetLeft = cloudRect.left + origX;
+  const targetTop  = cloudRect.top  + origY;
+
+  el.classList.remove('dragging');
+  el.classList.add('snapping-back');
+  el.style.left = targetLeft + 'px';
+  el.style.top  = targetTop  + 'px';
+  el.style.transform = '';  // let CSS rule (rotate var + float) take over
+
+  setTimeout(() => {
+    el.classList.remove('snapping-back');
+    el.style.position = 'absolute';
+    el.style.left = origX + 'px';
+    el.style.top  = origY + 'px';
+    el.style.transform = '';
+  }, 410);
+}
+
+function acceptDrop(el, card, data) {
+  state.placedWords.add(data.word);
+  card.classList.add('drop-correct');
+  setTimeout(() => card.classList.remove('drop-correct'), 500);
+
+  // Create slot dynamically and insert sorted by canonical slotIndex
+  const slot = document.createElement('div');
+  slot.className = 'family-slot';
+  slot.dataset.slotIndex = data.slotIndex;
+  const wordSpan = buildSlotWordEl(data.word, data.root);
+  const posGroup = document.createElement('span');
+  posGroup.className = 'slot-pos-group';
+  data.pos.forEach(p => {
+    const b = document.createElement('span');
+    b.className = 'slot-pos ' + posClass(p);
+    b.textContent = p;
+    posGroup.appendChild(b);
+  });
+  slot.appendChild(wordSpan);
+  slot.appendChild(posGroup);
+
+  const container = card.querySelector('.family-slots');
+  const existing = container.querySelectorAll('.family-slot');
+  let inserted = false;
+  for (const ex of existing) {
+    if (+ex.dataset.slotIndex > data.slotIndex) {
+      container.insertBefore(slot, ex);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted) container.appendChild(slot);
+
+  setupSlotDrag(slot, data.word, data, card);
+
+  flyToSlot(el, slot, data, card);
+  saveState();
+}
+
+// ───── Particle trail spawner ─────
+function spawnParticle(x, y, color) {
+  const p = document.createElement('div');
+  p.className = 'drag-particle';
+  p.style.left = (x - 4) + 'px';
+  p.style.top  = (y - 4) + 'px';
+  p.style.background = color;
+  p.style.color = color;  // for box-shadow currentColor
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 800);
+}
+
+// ───── Slot drag: pull a placed word back out to the cloud ─────
+function setupSlotDrag(slotEl, word, data, sourceCard) {
+  let activePointerId = null;
+  let startClientX = 0, startClientY = 0;
+  let startElLeft = 0, startElTop = 0;
+  let dragging = false;
+  let floatEl = null;
+  let lastParticle = 0;
+
+  function onMove(e) {
+    if (e.pointerId !== activePointerId) return;
+    const dx = e.clientX - startClientX;
+    const dy = e.clientY - startClientY;
+
+    if (!dragging) {
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+      dragging = true;
+      state.activeDrag = floatEl;
+      hideHint();
+      // Hide original slot but keep its space
+      slotEl.classList.add('lifted');
+      // Build floating element styled like a small cloud word
+      floatEl = document.createElement('span');
+      floatEl.className = 'cloud-word dragging';
+      floatEl.textContent = word;
+      floatEl.style.fontSize = '20px';
+      floatEl.style.color = data.color;
+      floatEl.style.position = 'fixed';
+      floatEl.style.left = startElLeft + 'px';
+      floatEl.style.top  = startElTop + 'px';
+      document.body.appendChild(floatEl);
+    }
+
+    if (floatEl) {
+      floatEl.style.left = (startElLeft + dx) + 'px';
+      floatEl.style.top  = (startElTop + dy) + 'px';
+      const now = performance.now();
+      if (now - lastParticle > 45) {
+        spawnParticle(e.clientX, e.clientY, data.color);
+        lastParticle = now;
+      }
+    }
+  }
+
+  function onEnd(e) {
+    if (e.pointerId !== activePointerId) return;
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onEnd);
+    document.removeEventListener('pointercancel', onEnd);
+    activePointerId = null;
+
+    if (!dragging) {
+      // Pure click on slot — in quiz mode, toggle reveal
+      if (state.quizMode) slotEl.classList.toggle('revealed');
+      return;
+    }
+
+    dragging = false;
+    state.activeDrag = null;
+
+    // Determine drop target
+    floatEl.style.pointerEvents = 'none';
+    const below = document.elementFromPoint(e.clientX, e.clientY);
+    floatEl.style.pointerEvents = '';
+    const targetCard = below ? below.closest('.family-card') : null;
+
+    if (targetCard) {
+      // Drop on any card → undo (restore slot, discard floating)
+      slotEl.classList.remove('lifted');
+      floatEl.remove();
+      floatEl = null;
+    } else {
+      // Drop outside any card → release back to cloud at drop position
+      releaseToCloud(word, data, floatEl, slotEl, sourceCard);
+      floatEl = null;
+    }
+  }
+
+  slotEl.addEventListener('pointerdown', (e) => {
+    if (state.bulkSorting) return;
+    if (e.button !== undefined && e.button !== 0) return;
+
+    activePointerId = e.pointerId;
+    startClientX = e.clientX;
+    startClientY = e.clientY;
+    dragging = false;
+
+    const rect = slotEl.getBoundingClientRect();
+    startElLeft = rect.left;
+    startElTop  = rect.top;
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onEnd);
+    document.addEventListener('pointercancel', onEnd);
+
+    e.preventDefault();
+  });
+}
+
+function releaseToCloud(word, data, floatEl, slotEl, sourceCard) {
+  // Remove the slot from card and update state
+  slotEl.remove();
+  state.placedWords.delete(word);
+
+  // Compute drop position relative to cloud (clamp to bounds)
+  const cloud = document.getElementById('cloud');
+  const cloudRect = cloud.getBoundingClientRect();
+  const floatRect = floatEl.getBoundingClientRect();
+  let cloudX = floatRect.left - cloudRect.left;
+  let cloudY = floatRect.top  - cloudRect.top;
+  cloudX = Math.max(0, Math.min(cloudX, cloudRect.width  - floatRect.width));
+  cloudY = Math.max(0, Math.min(cloudY, cloudRect.height - floatRect.height));
+
+  // Convert floating element into a regular cloud-word in place
+  floatEl.classList.remove('dragging');
+  floatEl.style.position = 'absolute';
+  floatEl.style.left = cloudX + 'px';
+  floatEl.style.top  = cloudY + 'px';
+  floatEl.style.transform = '';
+  floatEl.style.opacity = '';
+  floatEl.dataset.word = word;
+  floatEl.dataset.cloudX = cloudX;
+  floatEl.dataset.cloudY = cloudY;
+  cloud.appendChild(floatEl);
+
+  // Make the new cloud-word draggable
+  setupDrag(floatEl, word, data);
+
+  // Update card state — possibly unclaim or remove "complete" badge
+  if (sourceCard) {
+    sourceCard.classList.remove('complete');
+    const remaining = sourceCard.querySelectorAll('.family-slot');
+    if (remaining.length === 0) unclaimCard(sourceCard);
+  }
+
+  updateCounter();
+  showToast(pick(MSG.removed), 'info', 1300);
+  saveState();
+}
+
+function unclaimCard(card) {
+  card.classList.remove('claimed', 'complete');
+  delete card.dataset.claimedFamily;
+  card.style.borderTopColor = '';
+}
+
+// ───── Hint card ─────
+function showHint(data) {
+  document.getElementById('hint-word').textContent = data.word;
+  document.getElementById('hint-root').textContent = data.root;
+  renderPosBadges(document.getElementById('hint-pos'), data.pos);
+  document.getElementById('hint-meaning').textContent = data.meaning;
+
+  // Apply current hint level
+  const lvl = HINT_LEVELS[state.hintLevel];
+  document.getElementById('hint-row-root').classList.toggle('hidden', !lvl.showRoot);
+  document.getElementById('hint-row-pos').classList.toggle('hidden', !lvl.showPos);
+  document.getElementById('hint-row-meaning').classList.toggle('hidden', !lvl.showMeaning);
+
+  const hint = document.getElementById('hint-card');
+  hint.style.borderTopColor = data.color;
+  hint.classList.add('show');
+
+  // Glow same-family words in cloud briefly
+  highlightFamily(data.familyIndex);
+}
+
+function highlightFamily(familyIndex) {
+  document.querySelectorAll('.cloud-word').forEach(el => {
+    const w = el.dataset.word;
+    const d = state.wordIndex.get(w);
+    if (d && d.familyIndex === familyIndex) {
+      el.classList.remove('family-glow');
+      // Force reflow to restart animation
+      void el.offsetWidth;
+      el.classList.add('family-glow');
+      setTimeout(() => el.classList.remove('family-glow'), 1500);
+    }
+  });
+}
+
+function hideHint() {
+  document.getElementById('hint-card').classList.remove('show');
+}
+
+// ───── Animation: word flies from current pos to slot ─────
+function flyToSlot(el, slot, data, card) {
+  // Ensure slot visible (scroll families area if needed)
+  const familiesArea = document.getElementById('families');
+  const slotRect0 = slot.getBoundingClientRect();
+  const areaRect  = familiesArea.getBoundingClientRect();
+  if ((slotRect0.top < areaRect.top + 20 || slotRect0.bottom > areaRect.bottom - 20) && !state.bulkSorting) {
+    slot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => doFly(el, slot, data, card), 320);
+    return;
+  }
+  doFly(el, slot, data, card);
+}
+
+function doFly(el, slot, data, card) {
+  // Switch to position:fixed at current visual location (no re-parenting)
+  if (el.style.position !== 'fixed') {
+    const rect = el.getBoundingClientRect();
+    el.style.position = 'fixed';
+    el.style.left = rect.left + 'px';
+    el.style.top  = rect.top  + 'px';
+    el.style.transform = '';
+  }
+
+  const startRect = el.getBoundingClientRect();
+  const slotRect  = slot.getBoundingClientRect();
+  const dx = (slotRect.left + slotRect.width/2)  - (startRect.left + startRect.width/2);
+  const dy = (slotRect.top  + slotRect.height/2) - (startRect.top  + startRect.height/2);
+
+  el.classList.remove('snapping-back', 'dragging');
+  el.classList.add('flying');
+
+  requestAnimationFrame(() => {
+    const fontSize = parseFloat(el.style.fontSize);
+    const scale = Math.min(1, 16 / fontSize);
+    el.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    el.style.opacity = '0';
+  });
+
+  setTimeout(() => {
+    fillSlot(slot);
+    el.remove();
+    updateCounter();
+    if (card) updateFamilyProgress(card, data.familyIndex);
+  }, 600);
+}
+
+function fillSlot(slot) {
+  slot.classList.add('filled');
+}
+
+function updateFamilyProgress(card, familyIndex) {
+  const fam = WORD_FAMILIES[familyIndex];
+  const filled = card.querySelectorAll('.family-slot.filled').length;
+  if (filled === fam.words.length) {
+    card.classList.add('complete', 'flash');
+    setTimeout(() => card.classList.remove('flash'), 220);
+    if (!state.bulkSorting) {
+      showToast(pick(MSG.cardComplete), 'celebrate', 2200);
+      soundComplete();
+      // Confetti from card center
+      const r = card.getBoundingClientRect();
+      confetti(r.left + r.width/2, r.top + r.height/2, 24);
+    }
+
+    // All families done?
+    if (state.placedWords.size === state.totalWords && !state.bulkSorting) {
+      const elapsed = stopTimer();
+      const isNewBest = elapsed != null && saveBestIfBetter(elapsed);
+      markDeckCleared();
+      setTimeout(() => {
+        const timeMsg = elapsed != null ? ` (${formatElapsed(elapsed)})` : '';
+        showToast(pick(MSG.allComplete) + timeMsg, 'celebrate', 4500);
+        soundComplete();
+        confetti(window.innerWidth/2, window.innerHeight/3, 80);
+        if (isNewBest) {
+          setTimeout(() => showToast('🏆 New best time!', 'celebrate', 3000), 1200);
+          document.getElementById('timer').classList.add('beat');
+          setTimeout(() => document.getElementById('timer').classList.remove('beat'), 800);
+        }
+      }, 600);
+    }
+  }
+}
+
+// ───── Buttons ─────
+function reset() {
+  // Confirm if there's meaningful progress
+  if (state.placedWords.size > 0) {
+    if (!confirm(`진행 중인 활동(${state.placedWords.size}/${state.totalWords}단어)이 모두 사라집니다. 정말 리셋하시겠어요?`)) return;
+  }
+  state.activeDrag = null;
+  state.bulkSorting = false;
+  state.placedWords.clear();
+  state.score = { correct: 0, wrong: 0 };
+  resetTimer();
+  // Clear all card claims and dynamically-inserted slots
+  document.querySelectorAll('.family-card').forEach(c => {
+    c.classList.remove('complete', 'drop-hover', 'drop-correct', 'drop-wrong', 'claimed');
+    delete c.dataset.claimedFamily;
+    c.style.borderTopColor = '';
+    const container = c.querySelector('.family-slots');
+    if (container) container.innerHTML = '';
+  });
+  hideHint();
+  document.getElementById('families').scrollTop = 0;
+  renderCloud();
+  updateCounter();
+  updateScoreDisplay();
+  updateActiveSetInfo();
+  try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+}
+
+function sortAll() {
+  if (state.bulkSorting) return;
+  state.bulkSorting = true;
+  hideHint();
+
+  // Build map of currently claimed cards
+  const familyToCard = new Map();
+  document.querySelectorAll('.family-card').forEach(card => {
+    if (card.dataset.claimedFamily !== undefined && card.dataset.claimedFamily !== '') {
+      familyToCard.set(+card.dataset.claimedFamily, card);
+    }
+  });
+  // Pool of unclaimed cards for new family assignments
+  const unclaimedCards = Array.from(document.querySelectorAll('.family-card'))
+    .filter(c => c.dataset.claimedFamily === undefined || c.dataset.claimedFamily === '');
+  let unclaimedIdx = 0;
+
+  // Process words in canonical order (family then slot)
+  let delay = 0;
+  WORD_FAMILIES.forEach((fam, fi) => {
+    fam.words.forEach((w, si) => {
+      if (state.placedWords.has(w.word)) return;
+
+      // Find target card or claim a new one
+      let card = familyToCard.get(fi);
+      if (!card) {
+        card = unclaimedCards[unclaimedIdx++];
+        if (!card) return;
+        const data = state.wordIndex.get(w.word);
+        claimCard(card, data);
+        familyToCard.set(fi, card);
+      }
+
+      const cloudEl = document.querySelector(`.cloud-word[data-word="${w.word}"]`);
+      if (!cloudEl) return;
+      const data = state.wordIndex.get(w.word);
+      const targetCard = card;
+      setTimeout(() => {
+        if (state.placedWords.has(w.word)) return;
+        acceptDrop(cloudEl, targetCard, data);
+      }, delay);
+      delay += 35;
+    });
+  });
+
+  setTimeout(() => { state.bulkSorting = false; }, delay + 700);
+}
+
+function cycleHintLevel() {
+  state.hintLevel = (state.hintLevel + 1) % HINT_LEVELS.length;
+  const lvl = HINT_LEVELS[state.hintLevel];
+  document.getElementById('toggle-hint').textContent = lvl.label;
+  // Update currently visible hint if any
+  const hint = document.getElementById('hint-card');
+  if (hint.classList.contains('show')) {
+    document.getElementById('hint-row-root').classList.toggle('hidden', !lvl.showRoot);
+    document.getElementById('hint-row-pos').classList.toggle('hidden', !lvl.showPos);
+    document.getElementById('hint-row-meaning').classList.toggle('hidden', !lvl.showMeaning);
+  }
+}
+
+// ───── Score ─────
+function bumpScore(kind) {
+  if (state.bulkSorting) return;
+  if (kind === 'correct') {
+    state.score.correct++;
+    startTimer();  // start on first correct drop
+  } else if (kind === 'wrong') state.score.wrong++;
+  updateScoreDisplay();
+}
+function updateScoreDisplay() {
+  const el = document.getElementById('score');
+  el.innerHTML = `<span class="ok">✓ ${state.score.correct}</span> <span class="ng">✗ ${state.score.wrong}</span>`;
+}
+
+// ───── Confetti ─────
+function confetti(originX, originY, count = 28) {
+  const area = document.getElementById('confetti-area');
+  const colors = ['#ffc845','#5cb85c','#4a90e2','#e25d5d','#c8345a','#9d4edd','#ff9a44'];
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti';
+    piece.style.left = (originX - 4) + 'px';
+    piece.style.top  = (originY - 4) + 'px';
+    piece.style.background = colors[i % colors.length];
+    const angle = (Math.PI * 2) * (i / count) + (Math.random() * 0.5 - 0.25);
+    const speed = 90 + Math.random() * 130;
+    piece.style.setProperty('--dx', Math.cos(angle) * speed + 'px');
+    piece.style.setProperty('--dy', Math.sin(angle) * speed * 0.6 + 'px');
+    area.appendChild(piece);
+    setTimeout(() => piece.remove(), 1700);
+  }
+}
+
+// ───── Selection (deck + count) ─────
+function applySelection() {
+  const deckVal  = document.getElementById('deck-select').value;
+  const countVal = document.getElementById('count-select').value;
+
+  // Deck range
+  let pool;
+  if (deckVal === 'all') {
+    pool = ALL_FAMILIES.slice();
+  } else {
+    const [a, b] = deckVal.split('-').map(Number);
+    pool = ALL_FAMILIES.slice(a, b);
+  }
+
+  // Random N selection
+  if (countVal !== 'all') {
+    const n = Math.min(parseInt(countVal, 10), pool.length);
+    // Fisher–Yates shuffle, take first n
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    pool = pool.slice(0, n);
+  }
+
+  WORD_FAMILIES = pool;
+  // Full reset to apply
+  state.activeDrag = null;
+  state.bulkSorting = false;
+  state.placedWords.clear();
+  state.score = { correct: 0, wrong: 0 };
+  resetTimer();
+  document.querySelectorAll('body > .cloud-word, body > .drag-particle').forEach(el => el.remove());
+  hideHint();
+  document.getElementById('families').scrollTop = 0;
+  rebuildWordIndex();
+  renderFamilies();
+  renderCloud();
+  updateCounter();
+  updateScoreDisplay();
+  updateActiveSetInfo();
+  try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+
+  showToast(`${pool.length} families ready! Let's go!`, 'info', 1800);
+}
+
+function updateActiveSetInfo() {
+  const info = document.getElementById('active-set-info');
+  if (!info) return;
+  const records = getRecords();
+  const fp = currentFingerprint();
+  const best = records[fp];
+  let text = `(현재: ${WORD_FAMILIES.length}가족 / ${state.totalWords}단어)`;
+  if (best) text += `  🏆 best: ${formatElapsed(best)}`;
+  info.textContent = text;
+}
+
+// ───── Sound toggle ─────
+function toggleSound() {
+  state.soundOn = !state.soundOn;
+  const btn = document.getElementById('sound-toggle');
+  btn.textContent = state.soundOn ? '🔊' : '🔇';
+  btn.classList.toggle('primary', state.soundOn);
+  if (state.soundOn) {
+    // Quick affirming chirp on enable
+    playTone(880, 0.1, 0);
+  }
+}
+
+// ───── Quiz mode (flashcard-style reveal) ─────
+function toggleQuizMode() {
+  state.quizMode = !state.quizMode;
+  const btn = document.getElementById('quiz-mode');
+  if (state.quizMode) {
+    document.body.classList.add('quiz-mode');
+    btn.classList.add('primary');
+    btn.textContent = '✕ 퀴즈 종료';
+    // Auto-fill all if not yet filled
+    if (state.placedWords.size < state.totalWords) {
+      autoFillCanonical();
+    }
+    showToast('Quiz mode! Click a slot to reveal the word.', 'info', 2200);
+  } else {
+    document.body.classList.remove('quiz-mode');
+    btn.classList.remove('primary');
+    btn.textContent = '📚 퀴즈';
+    document.querySelectorAll('.family-slot.revealed').forEach(s => s.classList.remove('revealed'));
+  }
+}
+
+function autoFillCanonical() {
+  const familyToCard = new Map();
+  document.querySelectorAll('.family-card').forEach(card => {
+    if (card.dataset.claimedFamily !== undefined && card.dataset.claimedFamily !== '') {
+      familyToCard.set(+card.dataset.claimedFamily, card);
+    }
+  });
+  const unclaimedCards = Array.from(document.querySelectorAll('.family-card'))
+    .filter(c => c.dataset.claimedFamily === undefined || c.dataset.claimedFamily === '');
+  let unclaimedIdx = 0;
+
+  WORD_FAMILIES.forEach((fam, fi) => {
+    fam.words.forEach((w, si) => {
+      if (state.placedWords.has(w.word)) return;
+      let card = familyToCard.get(fi);
+      if (!card) {
+        card = unclaimedCards[unclaimedIdx++];
+        if (!card) return;
+        const data = state.wordIndex.get(w.word);
+        claimCard(card, data);
+        familyToCard.set(fi, card);
+      }
+      const data = state.wordIndex.get(w.word);
+      // Just place text-only (no animation) for quiz-prefill
+      placeSlotInstant(card, data);
+    });
+  });
+  updateCounter();
+  saveState();
+}
+
+function placeSlotInstant(card, data) {
+  state.placedWords.add(data.word);
+  const slot = document.createElement('div');
+  slot.className = 'family-slot filled';
+  slot.dataset.slotIndex = data.slotIndex;
+  slot.appendChild(buildSlotWordEl(data.word, data.root));
+  const posGroup = document.createElement('span');
+  posGroup.className = 'slot-pos-group';
+  data.pos.forEach(p => {
+    const b = document.createElement('span');
+    b.className = 'slot-pos ' + posClass(p);
+    b.textContent = p;
+    posGroup.appendChild(b);
+  });
+  slot.appendChild(posGroup);
+  setupSlotDrag(slot, data.word, data, card);
+
+  const container = card.querySelector('.family-slots');
+  const existing = container.querySelectorAll('.family-slot');
+  let inserted = false;
+  for (const ex of existing) {
+    if (+ex.dataset.slotIndex > data.slotIndex) {
+      container.insertBefore(slot, ex);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted) container.appendChild(slot);
+
+  const fam = WORD_FAMILIES[data.familyIndex];
+  const filledCount = card.querySelectorAll('.family-slot.filled').length;
+  if (filledCount === fam.words.length) card.classList.add('complete');
+
+  // Remove the cloud word if exists
+  const cloudEl = document.querySelector(`.cloud-word[data-word="${data.word}"]`);
+  if (cloudEl) cloudEl.remove();
+}
+
+// ───── Persistence ─────
+function currentFingerprint() {
+  return WORD_FAMILIES.map(f => f.root).join('|');
+}
+function saveState() {
+  try {
+    const cards = Array.from(document.querySelectorAll('.family-card')).map((card) => ({
+      claimedFamily: card.dataset.claimedFamily ?? null,
+      placedWords: Array.from(card.querySelectorAll('.family-slot')).map(s => {
+        const wordEl = s.querySelector('.slot-word');
+        return wordEl ? wordEl.textContent : '';
+      }).filter(Boolean),
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      fingerprint: currentFingerprint(),
+      cards, score: state.score, hintLevel: state.hintLevel,
+    }));
+  } catch (_) {}
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (!data || !data.cards) return;
+    if (data.fingerprint !== currentFingerprint()) return;  // different set → skip
+    const allCards = document.querySelectorAll('.family-card');
+    data.cards.forEach((cardData, i) => {
+      const card = allCards[i];
+      if (!card) return;
+      if (cardData.claimedFamily !== null && cardData.claimedFamily !== undefined && cardData.claimedFamily !== '') {
+        const fi = +cardData.claimedFamily;
+        const fam = WORD_FAMILIES[fi];
+        if (!fam) return;
+        // Claim card
+        const firstWord = cardData.placedWords[0];
+        const data2 = firstWord ? state.wordIndex.get(firstWord) : null;
+        if (data2) claimCard(card, data2);
+        // Place each word
+        cardData.placedWords.forEach(w => {
+          const wd = state.wordIndex.get(w);
+          if (wd) placeSlotInstant(card, wd);
+        });
+      }
+    });
+    if (data.score) state.score = data.score;
+    if (typeof data.hintLevel === 'number') state.hintLevel = data.hintLevel;
+    document.getElementById('toggle-hint').textContent = HINT_LEVELS[state.hintLevel].label;
+    updateCounter();
+    updateScoreDisplay();
+  } catch (e) { console.warn('load failed', e); }
+}
+
+function updateCounter() {
+  const placed = state.placedWords.size;
+  const total = state.totalWords;
+  document.getElementById('counter').textContent = `${placed} / ${total}`;
+  const pct = total > 0 ? (placed / total * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
