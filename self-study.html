@@ -1,0 +1,2627 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>어휘 학습 게임 · 마석고 2학년</title>
+<style>
+  @property --glow {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(99, 102, 241, 0.25), transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(236, 72, 153, 0.18), transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(56, 189, 248, 0.08), transparent 70%),
+      #0a0e27;
+    color: #eef0f7;
+    overflow: hidden;
+  }
+  body { display: flex; flex-direction: column; }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 80% 70%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1.5px 1.5px at 50% 20%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(2px 2px at 30% 80%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1px 1px at 70% 40%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1.5px 1.5px at 10% 60%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 90% 10%, rgba(255,255,255,0.4), transparent);
+    background-size: 200% 200%;
+    animation: stars-drift 30s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes stars-drift {
+    0%, 100% { background-position: 0% 0%; opacity: 0.55; }
+    50%      { background-position: 30% 20%; opacity: 1; }
+  }
+
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 12px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(13, 17, 48, 0.6);
+    border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+    backdrop-filter: blur(12px);
+    flex-shrink: 0;
+  }
+  h1 {
+    font-size: 17px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #74c0fc, #a78bfa, #ec4899);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.3px;
+  }
+  .h-controls { display: flex; gap: 8px; align-items: center; }
+  .h-controls button, .h-controls a {
+    background: rgba(255,255,255,0.06);
+    color: #c9cce0;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .h-controls button:hover, .h-controls a:hover {
+    background: rgba(255,255,255,0.12);
+    transform: translateY(-1px);
+  }
+  .h-controls button.on { background: rgba(116,192,252,0.3); border-color: rgba(116,192,252,0.5); color: #fff; }
+
+  .progress-row {
+    position: relative;
+    z-index: 5;
+    padding: 8px 22px;
+    background: rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid rgba(99,102,241,0.1);
+    flex-shrink: 0;
+  }
+  .progress-text {
+    font-size: 12px; color: #9aa3c7; font-weight: 700;
+    font-variant-numeric: tabular-nums; min-width: 80px;
+  }
+  .progress-shell {
+    flex: 1; height: 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 99px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #74c0fc, #a78bfa, #ec4899);
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 0 16px rgba(167,139,250,0.6);
+  }
+  .progress-row.hidden { display: none; }
+
+  main { flex: 1; position: relative; overflow: hidden; z-index: 1; }
+  .screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0; pointer-events: none;
+    transform: scale(0.96);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+  .screen.active { opacity: 1; pointer-events: auto; transform: scale(1); }
+
+  /* Start screen */
+  .start-card {
+    background: rgba(26, 31, 58, 0.85);
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 24px;
+    padding: 44px 48px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+    max-width: 520px;
+    backdrop-filter: blur(8px);
+  }
+  .start-card h2 {
+    font-size: 32px; font-weight: 800; margin-bottom: 6px;
+    background: linear-gradient(135deg, #74c0fc, #a78bfa);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+  }
+  .start-card .subtitle { color: #9aa3c7; font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
+  .start-controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+  .start-row {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,0.04);
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .start-row label { flex: 0 0 80px; font-size: 13px; color: #c9cce0; font-weight: 700; text-align: left; }
+  .start-row select {
+    flex: 1;
+    background: rgba(40, 46, 80, 0.95);
+    color: #eef0f7;
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .start-row select:hover { border-color: rgba(167, 139, 250, 0.6); }
+  .start-row select:focus { outline: none; border-color: #a78bfa; box-shadow: 0 0 0 3px rgba(167,139,250,0.25); }
+  /* Make dropdown options readable in native popup */
+  .start-row select option {
+    background: #1a1f3a;
+    color: #eef0f7;
+    font-weight: 600;
+    padding: 8px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #74c0fc 0%, #a78bfa 50%, #ec4899 100%);
+    color: white;
+    border: none;
+    padding: 14px 36px;
+    border-radius: 14px;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(167,139,250,0.45);
+    transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+  }
+  .btn-primary:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 14px 30px rgba(167,139,250,0.6); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-secondary {
+    background: rgba(255,255,255,0.08);
+    color: #eef0f7;
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 11px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,0.14); transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    color: #9aa3c7;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-ghost:hover { color: #eef0f7; border-color: rgba(255,255,255,0.2); }
+
+  /* Quiz screen */
+  #screen-quiz { gap: 24px; }
+  .quiz-prompt {
+    color: #9aa3c7; font-size: 14px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    opacity: 0;
+  }
+  .screen.active .quiz-prompt { animation: fade-in-up 0.6s 0.2s forwards; }
+
+  .big-word {
+    font-size: clamp(48px, 12vw, 150px);
+    font-weight: 900;
+    line-height: 1.2;
+    text-align: center;
+    letter-spacing: -0.04em;
+    padding: 0.12em 0.08em 0.18em;
+    background: linear-gradient(135deg, #74c0fc 0%, #a78bfa 50%, #fbbf24 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 40px rgba(167,139,250,0.35));
+    opacity: 0;
+    user-select: none;
+    cursor: default;
+    max-width: 95vw;
+    overflow-wrap: break-word;
+  }
+  .screen.active .big-word { animation: word-entrance 0.9s 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+  @keyframes word-entrance {
+    0%   { opacity: 0; transform: scale(0.5) translateY(40px); filter: blur(20px); }
+    60%  { opacity: 1; transform: scale(1.08) translateY(-4px); filter: blur(0) drop-shadow(0 0 50px rgba(167,139,250,0.5)); }
+    100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0) drop-shadow(0 0 40px rgba(167,139,250,0.35)); }
+  }
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+
+  .answer-reveal {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    margin-top: 8px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease;
+    max-width: min(800px, 90vw);
+  }
+  .answer-reveal.shown { opacity: 1; pointer-events: auto; }
+  .pos-group-big { display: flex; gap: 8px; opacity: 0; transform: translateY(-30px); }
+  .answer-reveal.shown .pos-group-big { animation: drop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+  .pos-big {
+    font-size: 18px; font-weight: 800;
+    padding: 6px 16px;
+    border-radius: 8px;
+    color: white;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .pos-n   { background: linear-gradient(135deg, #4a90e2, #357abd); }
+  .pos-v   { background: linear-gradient(135deg, #e25d5d, #c8345a); }
+  .pos-adj { background: linear-gradient(135deg, #5cb85c, #449d44); }
+  .pos-adv { background: linear-gradient(135deg, #f0ad4e, #d68f2a); }
+  @keyframes drop-in {
+    0% { opacity: 0; transform: translateY(-30px) scale(0.8); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .meaning-big {
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 700;
+    color: #eef0f7;
+    text-align: center;
+    line-height: 1.4;
+    opacity: 0;
+    transform: translateY(20px);
+    max-width: 90vw;
+  }
+  .answer-reveal.shown .meaning-big { animation: fade-in-up 0.6s 0.25s forwards; }
+
+  .quiz-buttons {
+    display: flex; gap: 10px; margin-top: 12px;
+    flex-wrap: wrap; justify-content: center;
+    opacity: 0;
+  }
+  .screen.active .quiz-buttons { animation: fade-in 0.6s 0.7s forwards; }
+
+  .tts-btn {
+    background: rgba(116,192,252,0.15);
+    border: 1px solid rgba(116,192,252,0.4);
+    color: #74c0fc;
+    padding: 10px;
+    border-radius: 999px;
+    font-size: 18px;
+    cursor: pointer;
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .tts-btn:hover { background: rgba(116,192,252,0.3); transform: scale(1.1); }
+  .tts-btn.speaking {
+    background: #74c0fc; color: white;
+    animation: speaking-pulse 1s ease-in-out infinite;
+  }
+  @keyframes speaking-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(116,192,252,0.5); }
+    50%      { box-shadow: 0 0 0 14px rgba(116,192,252,0); }
+  }
+
+  /* Family screen */
+  #screen-family { gap: 16px; padding: 22px; }
+  .family-header { text-align: center; opacity: 0; }
+  .screen.active .family-header { animation: fade-in-up 0.6s 0.1s forwards; }
+  .family-header .root {
+    font-size: clamp(36px, 6vw, 56px);
+    font-weight: 900;
+    background: linear-gradient(135deg, #74c0fc 0%, #a78bfa 100%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+    line-height: 1.05;
+  }
+  .family-header .meaning { color: #9aa3c7; font-size: 14px; margin-top: 4px; }
+  .family-header .count { color: #ec4899; font-size: 13px; font-weight: 700; margin-top: 6px; }
+
+  .family-list {
+    display: flex; flex-direction: column; gap: 10px;
+    width: 100%;
+    max-width: 720px;
+    max-height: calc(100vh - 290px);
+    overflow-y: auto;
+    padding: 4px;
+  }
+  .family-list::-webkit-scrollbar { width: 8px; }
+  .family-list::-webkit-scrollbar-thumb { background: rgba(167,139,250,0.3); border-radius: 4px; }
+
+  .word-card {
+    background: rgba(26, 31, 58, 0.7);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 14px;
+    padding: 16px 20px;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+  }
+  .word-card.enter { animation: card-enter 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) forwards; }
+  @keyframes card-enter { to { opacity: 1; transform: translateY(0) scale(1); } }
+
+  .word-card:hover {
+    border-color: rgba(167,139,250,0.5);
+    background: rgba(36, 41, 78, 0.85);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .word-card.revealed {
+    background: linear-gradient(135deg, rgba(116,192,252,0.12) 0%, rgba(236,72,153,0.08) 100%);
+    border-color: rgba(167,139,250,0.5);
+  }
+
+  /* Quiz challenge cards (1-2 per family) — type the English word */
+  .word-card.quiz-card {
+    border-color: rgba(251, 191, 36, 0.5);
+    background: rgba(38, 32, 20, 0.7);
+    cursor: default;
+    padding-top: 22px;
+  }
+  .word-card.quiz-card:hover {
+    border-color: rgba(251, 191, 36, 0.75);
+    transform: none;
+  }
+  .word-card.quiz-card.correct {
+    border-color: rgba(92, 184, 92, 0.8);
+    background: linear-gradient(135deg, rgba(92,184,92,0.18) 0%, rgba(116,192,252,0.08) 100%);
+  }
+  .word-card.quiz-card::before {
+    content: '✍️ 직접 입력';
+    position: absolute;
+    top: -1px;
+    left: 16px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #fbbf24;
+    background: rgba(251,191,36,0.18);
+    padding: 2px 8px;
+    border-radius: 0 0 6px 6px;
+    border: 1px solid rgba(251,191,36,0.4);
+    border-top: none;
+    letter-spacing: 0.5px;
+  }
+  .word-card.quiz-card.correct::before {
+    content: '✓ 맞았어요';
+    color: #5cb85c;
+    background: rgba(92,184,92,0.18);
+    border-color: rgba(92,184,92,0.5);
+  }
+
+  .quiz-prompt-row {
+    display: flex; gap: 10px; align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .quiz-prompt-row .pos-badge {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 5px;
+    color: white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .quiz-prompt-meaning {
+    font-size: 19px;
+    font-weight: 700;
+    color: #eef0f7;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .quiz-input-row {
+    display: flex; gap: 8px; align-items: stretch;
+    margin-top: 6px;
+  }
+  .quiz-input {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    color: #eef0f7;
+    border: 2px solid rgba(167,139,250,0.3);
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    min-width: 0;
+  }
+  .quiz-input:focus { border-color: #a78bfa; box-shadow: 0 0 0 3px rgba(167,139,250,0.25); }
+  .quiz-input::placeholder { color: rgba(255,255,255,0.3); font-weight: 500; }
+  .quiz-input.correct {
+    border-color: #5cb85c;
+    background: rgba(92,184,92,0.12);
+    color: #b6f5b6;
+  }
+  .quiz-input.wrong {
+    border-color: #e25d5d;
+    animation: input-shake 0.45s ease;
+  }
+  @keyframes input-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-7px); }
+    40% { transform: translateX(7px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .quiz-submit {
+    background: linear-gradient(135deg, #74c0fc, #a78bfa);
+    color: white;
+    border: none;
+    padding: 0 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .quiz-submit:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(167,139,250,0.4); }
+  .quiz-submit:disabled { background: rgba(255,255,255,0.1); color: #6c7494; cursor: default; }
+
+  .quiz-result {
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #9aa3c7;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .quiz-result.correct { color: #5cb85c; font-size: 15px; }
+  .quiz-result.wrong { color: #ff9b9b; }
+  .quiz-result .correct-word {
+    color: #fbbf24;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: -0.3px;
+  }
+  .quiz-tts-small {
+    background: transparent;
+    border: 1px solid rgba(116,192,252,0.4);
+    color: #74c0fc;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .quiz-tts-small:hover { background: rgba(116,192,252,0.15); }
+  .quiz-tts-small.speaking { background: #74c0fc; color: white; animation: speaking-pulse 1s ease-in-out infinite; }
+  .wc-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .wc-word {
+    font-size: 24px;
+    font-weight: 800;
+    color: #eef0f7;
+    letter-spacing: -0.3px;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+  }
+  .wc-word .aff {
+    color: #ec4899;
+    text-decoration: underline;
+    text-decoration-color: rgba(236,72,153,0.4);
+    text-underline-offset: 3px;
+  }
+  .wc-word.is-base { color: #fbbf24; font-weight: 900; }
+  .wc-tts {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #9aa3c7;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    font-size: 15px;
+  }
+  .wc-tts:hover { background: rgba(116,192,252,0.15); color: #74c0fc; border-color: rgba(116,192,252,0.4); }
+  .wc-tts.speaking { background: #74c0fc; color: white; border-color: #74c0fc; animation: speaking-pulse 1s ease-in-out infinite; }
+  .wc-hint {
+    font-size: 11px; color: #6c7494; margin-top: 6px; letter-spacing: 0.5px;
+  }
+  .wc-reveal {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(167,139,250,0.2);
+    flex-direction: column;
+    gap: 6px;
+  }
+  .word-card.revealed .wc-reveal { display: flex; animation: fade-in-up 0.35s ease forwards; }
+  .word-card.revealed .wc-hint { display: none; }
+  .wc-pos { display: flex; gap: 6px; }
+  .wc-pos .pos-badge {
+    font-size: 11px; font-weight: 800;
+    padding: 3px 9px;
+    border-radius: 5px;
+    color: white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .wc-meaning { font-size: 16px; font-weight: 600; color: #eef0f7; }
+
+  .family-footer {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    justify-content: center;
+    opacity: 0;
+  }
+  .screen.active .family-footer { animation: fade-in-up 0.5s 0.4s forwards; }
+
+  /* Done screen */
+  .done-card {
+    text-align: center;
+    background: rgba(26, 31, 58, 0.85);
+    border: 1px solid rgba(167,139,250,0.4);
+    border-radius: 24px;
+    padding: 48px 60px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+    max-width: 520px;
+  }
+  .done-card h2 {
+    font-size: 42px;
+    font-weight: 900;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, #fbbf24, #ec4899, #a78bfa);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+  }
+  .done-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 28px 0; }
+  .done-stat {
+    background: rgba(255,255,255,0.04);
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .done-stat .label { font-size: 11px; color: #9aa3c7; text-transform: uppercase; letter-spacing: 1px; }
+  .done-stat .value { font-size: 28px; font-weight: 800; color: #74c0fc; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+  /* Particles & confetti */
+  #fx-area { position: fixed; inset: 0; pointer-events: none; z-index: 9999; overflow: hidden; }
+  .burst-particle {
+    position: fixed; width: 10px; height: 10px;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: burst 1.2s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+  }
+  @keyframes burst {
+    0%   { transform: translate(0,0) scale(0.6); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+  }
+  .confetti2 {
+    position: fixed; width: 9px; height: 9px;
+    border-radius: 2px;
+    pointer-events: none;
+    animation: confetti2-fall 2s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+  }
+  @keyframes confetti2-fall {
+    0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--dx), calc(var(--dy) + 800px)) rotate(900deg); opacity: 0; }
+  }
+
+  /* Toast */
+  .toast-area {
+    position: fixed; top: 18px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 6000;
+    display: flex; flex-direction: column; gap: 8px;
+    align-items: center;
+    pointer-events: none;
+  }
+  .toast {
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    background: linear-gradient(135deg, rgba(167,139,250,0.95), rgba(236,72,153,0.95));
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.25s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(8px);
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .hidden { display: none !important; }
+
+  /* ───── Streak counter ───── */
+  #streak {
+    display: none;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+    color: white;
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    box-shadow: 0 2px 8px rgba(247,147,30,0.4);
+    margin-right: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  #streak.show { display: inline-flex; align-items: center; gap: 4px; }
+  #streak.milestone { animation: streak-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes streak-pop {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.3) rotate(-3deg); }
+  }
+
+  /* ───── Theme toggle ───── */
+  #theme-toggle.light-on { background: rgba(251,191,36,0.3); border-color: rgba(251,191,36,0.5); }
+
+  /* ───── Family progress dots ───── */
+  .family-dots {
+    display: inline-flex;
+    gap: 6px;
+    margin-top: 8px;
+    justify-content: center;
+  }
+  .fdot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    transition: background 0.3s, transform 0.3s;
+  }
+  .fdot.done { background: #5cb85c; box-shadow: 0 0 8px rgba(92,184,92,0.5); }
+  .fdot.done-quiz { background: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.6); }
+  .fdot.flash { transform: scale(1.5); }
+
+  /* ───── Family summary screen ───── */
+  .summary-card {
+    background: rgba(26, 31, 58, 0.92);
+    border: 2px solid rgba(167,139,250,0.4);
+    border-radius: 24px;
+    padding: 36px 44px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+    max-width: 560px;
+    backdrop-filter: blur(8px);
+  }
+  .summary-card h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #74c0fc;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+  .summary-card .summary-root {
+    font-size: 38px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #74c0fc, #a78bfa, #fbbf24);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+    line-height: 1.1;
+    padding: 0.05em 0.05em 0.12em;
+    margin: 4px 0;
+  }
+  .summary-card .summary-meaning {
+    font-size: 15px;
+    color: #c9cce0;
+    margin-bottom: 18px;
+  }
+  .summary-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .summary-stats .stat-item {
+    background: rgba(255,255,255,0.04);
+    padding: 12px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .summary-stats .label {
+    font-size: 10px; color: #9aa3c7;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .summary-stats .value {
+    font-size: 24px;
+    font-weight: 900;
+    color: #74c0fc;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .summary-stats .value.good { color: #5cb85c; }
+  .summary-stats .value.mid { color: #fbbf24; }
+  .summary-stats .value.poor { color: #e25d5d; }
+  .summary-words {
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #c9cce0;
+    line-height: 1.6;
+    text-align: left;
+    background: rgba(0,0,0,0.2);
+    padding: 12px 16px;
+    border-radius: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .summary-word-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    gap: 8px;
+  }
+  .summary-word-line .w { font-weight: 700; color: #eef0f7; }
+  .summary-word-line .m { color: #9aa3c7; flex: 1; text-align: right; }
+  .summary-word-line .mark { font-size: 14px; }
+
+  /* ───── Diff visualization in quiz answer ───── */
+  .quiz-diff {
+    margin-top: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .quiz-diff .label { font-family: inherit; font-weight: 700; color: #9aa3c7; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .quiz-diff .your, .quiz-diff .ans { background: rgba(0,0,0,0.25); padding: 4px 9px; border-radius: 6px; }
+  .quiz-diff .your { color: #ff9b9b; }
+  .quiz-diff .ans { color: #b6f5b6; }
+  .quiz-diff .good { color: #5cb85c; }
+  .quiz-diff .bad { color: #ff5252; text-decoration: line-through; text-decoration-color: #ff5252; }
+  .quiz-diff .miss { color: #ffd66e; opacity: 0.95; }
+
+  /* ───── Hint progression ───── */
+  .quiz-hint-text {
+    color: #fbbf24;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    font-size: 16px;
+  }
+
+  /* ───── Letter glow on correct ───── */
+  .quiz-input.correct-glow {
+    animation: input-correct-glow 1.1s ease;
+  }
+  @keyframes input-correct-glow {
+    0%   { box-shadow: 0 0 0 0 rgba(92,184,92,0); }
+    40%  { box-shadow: 0 0 0 8px rgba(92,184,92,0.4); }
+    100% { box-shadow: 0 0 0 0 rgba(92,184,92,0); }
+  }
+  .letter-glow-stage {
+    display: inline-block;
+    color: #5cb85c;
+    font-weight: 900;
+    animation: letter-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  @keyframes letter-pop {
+    0%   { opacity: 0; transform: scale(0.4) translateY(-10px); text-shadow: none; }
+    60%  { opacity: 1; transform: scale(1.25) translateY(0); text-shadow: 0 0 14px rgba(92,184,92,0.9); }
+    100% { opacity: 1; transform: scale(1); text-shadow: 0 0 6px rgba(92,184,92,0.4); }
+  }
+
+  /* ───── Affix popup ───── */
+  .affix-popup {
+    position: fixed;
+    background: rgba(20, 25, 50, 0.97);
+    border: 1px solid rgba(251,191,36,0.5);
+    border-radius: 10px;
+    padding: 12px 14px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    z-index: 6000;
+    pointer-events: none;
+    max-width: 280px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    backdrop-filter: blur(8px);
+  }
+  .affix-popup.show { opacity: 1; transform: translateY(0); }
+  .affix-popup .affix-role {
+    font-size: 13px;
+    font-weight: 800;
+    color: #fbbf24;
+    margin-bottom: 4px;
+  }
+  .affix-popup .affix-desc {
+    font-size: 12px;
+    color: #eef0f7;
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+  .affix-popup .affix-examples {
+    font-size: 11px;
+    color: #9aa3c7;
+    line-height: 1.5;
+    border-top: 1px dashed rgba(255,255,255,0.1);
+    padding-top: 6px;
+  }
+  .affix-popup .affix-examples b { color: #c9cce0; }
+
+  /* Make .aff elements interactive */
+  .wc-word .aff {
+    cursor: help;
+    transition: text-shadow 0.18s ease;
+  }
+  .wc-word .aff:hover {
+    text-shadow: 0 0 8px rgba(251,191,36,0.7);
+  }
+
+  /* ───── Weak-family option on start screen ───── */
+  .weak-info {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.25);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #fbbf24;
+    line-height: 1.5;
+  }
+  .weak-info.hidden { display: none; }
+
+  /* ───── Light theme ───── */
+  body.light-theme {
+    color: #1a1f3a;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(99, 102, 241, 0.08), transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(236, 72, 153, 0.06), transparent 50%),
+      #f4f6fc;
+  }
+  body.light-theme::before { opacity: 0.15; filter: invert(1); }
+  body.light-theme header {
+    background: rgba(255,255,255,0.85);
+    border-bottom: 1px solid rgba(99,102,241,0.15);
+  }
+  body.light-theme .h-controls button,
+  body.light-theme .h-controls a {
+    background: rgba(0,0,0,0.04);
+    color: #2c3e6b;
+    border-color: rgba(0,0,0,0.1);
+  }
+  body.light-theme .h-controls button:hover,
+  body.light-theme .h-controls a:hover { background: rgba(0,0,0,0.08); }
+  body.light-theme .progress-row { background: rgba(255,255,255,0.6); }
+  body.light-theme .start-card,
+  body.light-theme .done-card,
+  body.light-theme .summary-card {
+    background: rgba(255,255,255,0.95);
+    border-color: rgba(99,102,241,0.25);
+    box-shadow: 0 12px 36px rgba(20,30,60,0.12);
+  }
+  body.light-theme .start-card .subtitle,
+  body.light-theme .done-card .subtitle { color: #5a6890; }
+  body.light-theme .start-row { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.06); }
+  body.light-theme .start-row label { color: #2c3e6b; }
+  body.light-theme .start-row select {
+    background: white;
+    color: #1a1f3a;
+    border-color: rgba(0,0,0,0.15);
+  }
+  body.light-theme .word-card {
+    background: rgba(255,255,255,0.95);
+    border-color: rgba(99,102,241,0.2);
+  }
+  body.light-theme .word-card:hover {
+    background: white;
+    border-color: rgba(167,139,250,0.5);
+  }
+  body.light-theme .word-card.revealed {
+    background: linear-gradient(135deg, rgba(116,192,252,0.18) 0%, rgba(236,72,153,0.10) 100%);
+  }
+  body.light-theme .wc-word { color: #1a1f3a; }
+  body.light-theme .wc-word.is-base { color: #b08200; }
+  body.light-theme .wc-meaning, body.light-theme .quiz-prompt-meaning, body.light-theme .summary-card .summary-meaning { color: #1a1f3a; }
+  body.light-theme .wc-hint { color: #8a93b8; }
+  body.light-theme .quiz-input {
+    background: rgba(0,0,0,0.04);
+    color: #1a1f3a;
+  }
+  body.light-theme .quiz-input::placeholder { color: rgba(0,0,0,0.4); }
+  body.light-theme .quiz-result { color: #5a6890; }
+  body.light-theme .summary-words { background: rgba(0,0,0,0.05); color: #1a1f3a; }
+  body.light-theme .summary-words .summary-word-line .w { color: #1a1f3a; }
+  body.light-theme .summary-words .summary-word-line .m { color: #5a6890; }
+
+  @media (max-height: 600px) {
+    .big-word { font-size: clamp(40px, 10vw, 100px); }
+    .family-list { max-height: calc(100vh - 230px); }
+    .summary-card { padding: 24px 28px; }
+    .summary-words { max-height: 120px; }
+  }
+
+  /* ───── Mobile (phone) ───── */
+  @media (max-width: 600px) {
+    /* Header — tighter padding, hide subtitle */
+    header { padding: 8px 10px; }
+    h1 { font-size: 14px; gap: 6px; }
+    h1 span[style*="9aa3c7"] { display: none !important; }
+    .h-controls { gap: 4px; }
+    .h-controls button, .h-controls a {
+      padding: 6px 9px;
+      font-size: 11px;
+      min-height: 32px;
+      touch-action: manipulation;
+    }
+    #streak { padding: 4px 9px; font-size: 12px; }
+    #autospeak-toggle {
+      font-size: 0;          /* hide text */
+      padding: 6px 9px;
+    }
+    #autospeak-toggle::before {
+      content: '🗣️';
+      font-size: 14px;
+    }
+    /* Progress row */
+    .progress-row { padding: 6px 12px; gap: 10px; }
+    .progress-text { font-size: 11px; min-width: 56px; }
+
+    /* Screens */
+    .screen { padding: 14px; }
+    #screen-quiz { gap: 18px; }
+    #screen-family { padding: 14px; gap: 14px; }
+
+    /* Start card */
+    .start-card { padding: 24px 22px; max-width: 94vw; }
+    .start-card h2 { font-size: 24px; }
+    .start-card .subtitle { font-size: 13px; margin-bottom: 18px; }
+    .start-row { padding: 10px 12px; gap: 10px; }
+    .start-row label { flex: 0 0 60px; font-size: 12px; }
+    .start-row select { font-size: 13px; padding: 7px 10px; }
+    .btn-primary { padding: 12px 28px; font-size: 16px; }
+
+    /* Quiz screen */
+    .quiz-prompt { font-size: 12px; }
+    .big-word {
+      font-size: clamp(40px, 13vw, 88px);
+      padding: 0.12em 0.05em 0.18em;
+    }
+    .meaning-big { font-size: clamp(17px, 4vw, 22px); }
+    .pos-big { font-size: 15px; padding: 4px 12px; }
+    .quiz-buttons { gap: 8px; }
+    .btn-secondary { padding: 10px 18px; font-size: 13px; min-height: 40px; }
+    .btn-ghost { padding: 9px 14px; font-size: 12px; min-height: 38px; }
+    .tts-btn { width: 44px; height: 44px; font-size: 17px; }
+
+    /* Family screen */
+    .family-header .root { font-size: clamp(28px, 8vw, 44px); }
+    .family-header .meaning { font-size: 13px; }
+    .family-header .count { font-size: 12px; }
+    .family-list {
+      max-width: 100%;
+      max-height: calc(100vh - 260px);
+      gap: 8px;
+    }
+    .word-card { padding: 12px 14px; }
+    .word-card.quiz-card { padding-top: 22px; }
+    .wc-word { font-size: 19px; }
+    .wc-hint { font-size: 10px; }
+    .wc-meaning { font-size: 14px; }
+    .wc-tts { width: 30px; height: 30px; font-size: 13px; }
+    .quiz-prompt-row { gap: 8px; }
+    .quiz-prompt-meaning { font-size: 16px; }
+    .quiz-input {
+      font-size: 16px;     /* 16px or more avoids iOS auto-zoom */
+      padding: 10px 12px;
+    }
+    .quiz-submit { padding: 0 14px; font-size: 13px; min-height: 42px; }
+    .quiz-tts-small { width: 30px; height: 30px; font-size: 13px; }
+    .quiz-diff { font-size: 13px; gap: 8px; }
+    .quiz-result { font-size: 12px; }
+    .quiz-result.correct { font-size: 14px; }
+    .quiz-hint-text { font-size: 14px; letter-spacing: 1.5px; }
+
+    /* Summary card */
+    .summary-card { padding: 22px 20px; max-width: 94vw; }
+    .summary-card h2 { font-size: 18px; }
+    .summary-card .summary-root { font-size: 28px; }
+    .summary-card .summary-meaning { font-size: 13px; }
+    .summary-stats { gap: 8px; margin-bottom: 16px; }
+    .summary-stats .stat-item { padding: 12px 6px; }
+    .summary-stats .label { font-size: 9px; }
+    .summary-stats .value { font-size: 20px; }
+    .summary-words { font-size: 12px; max-height: 30vh; padding: 10px 12px; }
+    .summary-words .summary-word-line { gap: 6px; }
+
+    /* Done card */
+    .done-card { padding: 32px 26px; max-width: 94vw; }
+    .done-card h2 { font-size: 30px; }
+    .done-stats { gap: 12px; margin: 22px 0; }
+    .done-stat { padding: 14px 10px; }
+    .done-stat .value { font-size: 22px; }
+
+    /* Hint card / affix popup */
+    .affix-popup { max-width: calc(100vw - 32px); }
+    .toast { font-size: 13px; padding: 9px 18px; }
+  }
+
+  /* Very small phones (iPhone SE 1st gen, 320px) */
+  @media (max-width: 380px) {
+    h1 { font-size: 13px; }
+    .h-controls button, .h-controls a {
+      padding: 5px 7px;
+      font-size: 10px;
+    }
+    #streak { padding: 3px 7px; font-size: 11px; }
+    .start-row label { flex: 0 0 52px; }
+    .word-card { padding: 10px 12px; }
+    .wc-word { font-size: 17px; }
+    .quiz-prompt-meaning { font-size: 15px; }
+    .quiz-input { font-size: 16px; padding: 9px 11px; }
+  }
+
+  /* Landscape phones with low height — keep prior @media still applies */
+</style>
+</head>
+<body>
+  <header>
+    <h1>🎮 어휘 학습 게임 <span style="color:#9aa3c7;font-weight:400;font-size:12px;margin-left:8px">마석고 2학년</span></h1>
+    <div class="h-controls">
+      <span id="streak" title="연속 정답">🔥 0</span>
+      <button id="sound-toggle" title="사운드 켜기/끄기">🔇</button>
+      <button id="autospeak-toggle" class="on" title="기본형 자동 발음">🗣️ 자동발음</button>
+      <button id="theme-toggle" title="라이트/다크 모드">🌙</button>
+    </div>
+  </header>
+
+  <div class="progress-row hidden" id="progress-row">
+    <span class="progress-text" id="progress-text">0 / 0</span>
+    <div class="progress-shell"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <main>
+    <section id="screen-start" class="screen active">
+      <div class="start-card">
+        <h2>🎯 어휘 학습</h2>
+        <p class="subtitle">기본형을 보고 품사·뜻을 떠올린 다음,<br>그 가족의 모든 단어를 한꺼번에 익혀요.</p>
+        <div class="start-controls">
+          <div class="start-row">
+            <label>📚 덱</label>
+            <select id="deck-select">
+              <option value="0-48" selected>Set 1 (1–48)</option>
+              <option value="48-96">Set 2 (49–96)</option>
+              <option value="96-144">Set 3 (97–144)</option>
+              <option value="144-192">Set 4 (145–192)</option>
+              <option value="192-241">Set 5 (193–241)</option>
+              <option value="all">전체 (241)</option>
+            </select>
+          </div>
+          <div class="start-row">
+            <label>🎲 개수</label>
+            <select id="count-select">
+              <option value="10" selected>10가족</option>
+              <option value="20">20가족</option>
+              <option value="30">30가족</option>
+              <option value="50">50가족</option>
+              <option value="all">전체</option>
+            </select>
+          </div>
+          <div class="start-row">
+            <label>🔀 순서</label>
+            <select id="order-select">
+              <option value="random" selected>랜덤</option>
+              <option value="seq">단어장 순서</option>
+              <option value="weak">💪 약점 가족 우선</option>
+            </select>
+          </div>
+        </div>
+        <div class="weak-info hidden" id="weak-info"></div>
+        <button class="btn-primary" id="start-btn">🚀 시작하기</button>
+      </div>
+    </section>
+
+    <section id="screen-quiz" class="screen">
+      <div class="quiz-prompt">이 단어의 <b style="color:#74c0fc">품사</b>와 <b style="color:#ec4899">뜻</b>은?</div>
+      <div class="big-word" id="quiz-word">profit</div>
+      <div class="answer-reveal" id="quiz-answer">
+        <div class="pos-group-big" id="quiz-pos"></div>
+        <div class="meaning-big" id="quiz-meaning"></div>
+      </div>
+      <div class="quiz-buttons">
+        <button class="tts-btn" id="quiz-tts" title="발음 듣기">🔊</button>
+        <button class="btn-secondary" id="quiz-reveal-btn">👀 정답 보기</button>
+        <button class="btn-secondary" id="quiz-next-btn" style="display:none">📖 가족 단어 보기 →</button>
+        <button class="btn-ghost" id="quiz-skip-btn">⏭ 건너뛰기</button>
+      </div>
+    </section>
+
+    <section id="screen-family" class="screen">
+      <div class="family-header">
+        <div class="root" id="family-root"></div>
+        <div class="meaning" id="family-meaning"></div>
+        <div class="count" id="family-count"></div>
+        <div class="family-dots" id="family-dots"></div>
+      </div>
+      <div class="family-list" id="family-list"></div>
+      <div class="family-footer">
+        <button class="btn-ghost" id="family-reveal-all">✨ 모두 보기</button>
+        <button class="btn-primary" id="family-next-btn">➡️ 다음 가족</button>
+      </div>
+    </section>
+
+    <section id="screen-summary" class="screen">
+      <div class="summary-card">
+        <h2>📚 가족 학습 완료</h2>
+        <div class="summary-root" id="summary-root"></div>
+        <div class="summary-meaning" id="summary-meaning"></div>
+        <div class="summary-stats">
+          <div class="stat-item">
+            <div class="label">단어 수</div>
+            <div class="value" id="summary-total">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="label">정답률</div>
+            <div class="value" id="summary-rate">—</div>
+          </div>
+          <div class="stat-item">
+            <div class="label">총 시도</div>
+            <div class="value" id="summary-attempts">0</div>
+          </div>
+        </div>
+        <div class="summary-words" id="summary-words"></div>
+        <button class="btn-primary" id="summary-next-btn">➡️ 다음 가족</button>
+      </div>
+    </section>
+
+    <section id="screen-review-intro" class="screen">
+      <div class="start-card">
+        <h2>🔄 복습 라운드</h2>
+        <p class="subtitle">이번 세션에서 틀렸던 단어 <b style="color:#fbbf24" id="review-count">0</b>개,<br>한 번만 더 점검할까요?</p>
+        <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+          <button class="btn-primary" id="review-start-btn">🔥 복습 시작</button>
+          <button class="btn-ghost" id="review-skip-btn">건너뛰기</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-done" class="screen">
+      <div class="done-card">
+        <h2>🏆 학습 완료!</h2>
+        <p class="subtitle">모든 가족 단어를 살펴봤어요. 시험 화이팅!</p>
+        <div class="done-stats">
+          <div class="done-stat">
+            <div class="label">학습한 가족</div>
+            <div class="value" id="stat-families">0</div>
+          </div>
+          <div class="done-stat">
+            <div class="label">총 단어</div>
+            <div class="value" id="stat-words">0</div>
+          </div>
+        </div>
+        <button class="btn-primary" id="done-restart-btn">🔁 다시 학습하기</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="fx-area"></div>
+  <div class="toast-area" id="toast-area"></div>
+
+  <div id="affix-popup" class="affix-popup">
+    <div class="affix-role"></div>
+    <div class="affix-desc"></div>
+    <div class="affix-examples"></div>
+  </div>
+
+<script>
+/* === DATA INJECTED BELOW === */
+const ALL_FAMILIES = [
+  {"root": "urge", "meaning": "v.촉구하다, 재촉하다", "words": [{"word": "urge", "pos": ["v.", "n."]}, {"word": "urgency", "pos": ["n."], "meaning": "긴급, 시급함"}, {"word": "urgent", "pos": ["adj."], "meaning": "긴급한, 시급한"}, {"word": "urgently", "pos": ["adv."], "meaning": "긴급히, 시급히"}]},
+  {"root": "major", "meaning": "a. 주요한", "words": [{"word": "major", "pos": ["v.", "n.", "adj."]}, {"word": "majority", "pos": ["n."], "meaning": "대다수, 과반수"}]},
+  {"root": "mature", "meaning": "a.성숙한", "words": [{"word": "mature", "pos": ["v.", "adj."]}, {"word": "maturity", "pos": ["n."], "meaning": "성숙, 성숙함"}, {"word": "maturely", "pos": ["adv."], "meaning": "성숙하게"}]},
+  {"root": "analyst", "meaning": "n.분석가", "words": [{"word": "analyze", "pos": ["v."], "meaning": "분석하다"}, {"word": "analysis", "pos": ["n."], "meaning": "분석"}, {"word": "analyst", "pos": ["n."]}, {"word": "analytical", "pos": ["adj."], "meaning": "분석적인"}, {"word": "analytically", "pos": ["adv."], "meaning": "분석적으로"}]},
+  {"root": "profit", "meaning": "n.이윤, 수익", "words": [{"word": "profit", "pos": ["v.", "n."]}, {"word": "profitable", "pos": ["adj."], "meaning": "수익성 있는"}, {"word": "profitably", "pos": ["adv."], "meaning": "수익성 있게"}]},
+  {"root": "essential", "meaning": "a.필수적인", "words": [{"word": "essence", "pos": ["n."], "meaning": "본질, 정수"}, {"word": "essential", "pos": ["n.", "adj."]}, {"word": "essentially", "pos": ["adv."], "meaning": "본질적으로"}]},
+  {"root": "criterion", "meaning": "n.기준, 척도", "words": [{"word": "criterion", "pos": ["n."]}, {"word": "criteria", "pos": ["n."], "meaning": "기준들 (복수형)"}]},
+  {"root": "insecure", "meaning": "a.불안한", "words": [{"word": "insecurity", "pos": ["n."], "meaning": "불안감, 불안정"}, {"word": "insecure", "pos": ["adj."]}, {"word": "insecurely", "pos": ["adv."], "meaning": "불안하게"}]},
+  {"root": "estimate", "meaning": "v.추정하다", "words": [{"word": "estimate", "pos": ["v.", "n."]}, {"word": "estimation", "pos": ["n."], "meaning": "추정, 평가"}, {"word": "estimated", "pos": ["adj."], "meaning": "추정된"}]},
+  {"root": "temporary", "meaning": "a.일시적인", "words": [{"word": "temporariness", "pos": ["n."], "meaning": "일시성"}, {"word": "temporary", "pos": ["adj."]}, {"word": "temporarily", "pos": ["adv."], "meaning": "일시적으로"}]},
+  {"root": "regain", "meaning": "v.되찾다", "words": [{"word": "regain", "pos": ["v."]}, {"word": "regained", "pos": ["adj."], "meaning": "되찾은"}]},
+  {"root": "expose", "meaning": "v. 노출하다", "words": [{"word": "expose", "pos": ["v."]}, {"word": "exposure", "pos": ["n."], "meaning": "노출"}, {"word": "exposed", "pos": ["adj."], "meaning": "노출된"}]},
+  {"root": "anxious", "meaning": "a.불안한", "words": [{"word": "anxiety", "pos": ["n."], "meaning": "불안, 걱정"}, {"word": "anxious", "pos": ["adj."]}, {"word": "anxiously", "pos": ["adv."], "meaning": "불안하게"}]},
+  {"root": "promote", "meaning": "v.촉진하다", "words": [{"word": "promote", "pos": ["v."]}, {"word": "promotion", "pos": ["n."], "meaning": "촉진, 홍보, 승진"}, {"word": "promoter", "pos": ["n."], "meaning": "추진자, 후원자"}, {"word": "promotional", "pos": ["adj."], "meaning": "홍보의"}]},
+  {"root": "reinforce", "meaning": "v.강화하다", "words": [{"word": "reinforce", "pos": ["v."]}, {"word": "reinforcement", "pos": ["n."], "meaning": "강화"}, {"word": "reinforced", "pos": ["adj."], "meaning": "강화된"}]},
+  {"root": "negative", "meaning": "a.부정적인", "words": [{"word": "negate", "pos": ["v."], "meaning": "부정하다, 무효화하다"}, {"word": "negation", "pos": ["n."], "meaning": "부정"}, {"word": "negativity", "pos": ["n."], "meaning": "부정성, 부정적임"}, {"word": "negative", "pos": ["adj."]}, {"word": "negatively", "pos": ["adv."], "meaning": "부정적으로"}]},
+  {"root": "convince", "meaning": "v. 확신시키다", "words": [{"word": "convince", "pos": ["v."]}, {"word": "conviction", "pos": ["n."], "meaning": "확신, 신념"}, {"word": "convincing", "pos": ["adj."], "meaning": "설득력 있는"}, {"word": "convinced", "pos": ["adj."], "meaning": "확신하는"}, {"word": "convincingly", "pos": ["adv."], "meaning": "설득력 있게"}]},
+  {"root": "stereotype", "meaning": "n.고정관념", "words": [{"word": "stereotype", "pos": ["v.", "n."]}, {"word": "stereotypical", "pos": ["adj."], "meaning": "전형적인, 판에 박힌"}, {"word": "stereotypically", "pos": ["adv."], "meaning": "전형적으로"}]},
+  {"root": "compete", "meaning": "v.경쟁하다", "words": [{"word": "compete", "pos": ["v."]}, {"word": "competition", "pos": ["n."], "meaning": "경쟁"}, {"word": "competitor", "pos": ["n."], "meaning": "경쟁자"}, {"word": "competitive", "pos": ["adj."], "meaning": "경쟁적인"}, {"word": "competitively", "pos": ["adv."], "meaning": "경쟁적으로"}]},
+  {"root": "overwhelm", "meaning": "v. 압도하다", "words": [{"word": "overwhelm", "pos": ["v.", "n."]}, {"word": "overwhelming", "pos": ["adj."], "meaning": "압도적인"}, {"word": "overwhelmed", "pos": ["adj."], "meaning": "압도된"}, {"word": "overwhelmingly", "pos": ["adv."], "meaning": "압도적으로"}]},
+  {"root": "source", "meaning": "v.원산지를 추적하다", "words": [{"word": "source", "pos": ["v.", "n."]}, {"word": "sourced", "pos": ["adj."], "meaning": "출처가 ~인, 조달된"}]},
+  {"root": "investigate", "meaning": "v. 조사하다", "words": [{"word": "investigate", "pos": ["v."]}, {"word": "investigation", "pos": ["n."], "meaning": "조사"}, {"word": "investigator", "pos": ["n."], "meaning": "조사자, 수사관"}, {"word": "investigative", "pos": ["adj."], "meaning": "조사의, 탐구하는"}]},
+  {"root": "annual", "meaning": "a. 연간의", "words": [{"word": "annual", "pos": ["adj."]}, {"word": "annually", "pos": ["adv."], "meaning": "매년, 연간"}]},
+  {"root": "collapse", "meaning": "n.붕괴", "words": [{"word": "collapse", "pos": ["v.", "n."]}, {"word": "collapsed", "pos": ["adj."], "meaning": "붕괴된, 무너진"}]},
+  {"root": "poverty", "meaning": "n.빈곤", "words": [{"word": "poverty", "pos": ["n."]}, {"word": "poor", "pos": ["adj."], "meaning": "가난한"}, {"word": "impoverished", "pos": ["adj."], "meaning": "빈곤해진"}, {"word": "poorly", "pos": ["adv."], "meaning": "형편없이, 가난하게"}]},
+  {"root": "reveal", "meaning": "v.드러내다", "words": [{"word": "reveal", "pos": ["v."]}, {"word": "revelation", "pos": ["n."], "meaning": "폭로, 계시"}, {"word": "revealing", "pos": ["adj."], "meaning": "드러내는, 시사적인"}, {"word": "revealed", "pos": ["adj."], "meaning": "드러난"}, {"word": "revealingly", "pos": ["adv."], "meaning": "드러내듯이"}]},
+  {"root": "trace", "meaning": "v.추적하다", "words": [{"word": "trace", "pos": ["v.", "n."]}, {"word": "traceable", "pos": ["adj."], "meaning": "추적 가능한"}]},
+  {"root": "monitor", "meaning": "v.감시하다", "words": [{"word": "monitor", "pos": ["v.", "n."]}, {"word": "monitoring", "pos": ["n."], "meaning": "감시, 관찰"}, {"word": "monitored", "pos": ["adj."], "meaning": "감시된"}]},
+  {"root": "slavery", "meaning": "n.노예 제도", "words": [{"word": "enslave", "pos": ["v."], "meaning": "노예로 만들다"}, {"word": "slavery", "pos": ["n."]}, {"word": "slave", "pos": ["n."], "meaning": "노예"}]},
+  {"root": "examine", "meaning": "v.조사하다", "words": [{"word": "examine", "pos": ["v."]}, {"word": "examination", "pos": ["n."], "meaning": "조사, 시험"}, {"word": "examiner", "pos": ["n."], "meaning": "시험관, 조사자"}, {"word": "examined", "pos": ["adj."], "meaning": "조사된"}]},
+  {"root": "collective", "meaning": "a.집단적인", "words": [{"word": "collect", "pos": ["v."], "meaning": "모으다, 수집하다"}, {"word": "collection", "pos": ["n."], "meaning": "수집, 모음"}, {"word": "collective", "pos": ["n.", "adj."]}, {"word": "collectively", "pos": ["adv."], "meaning": "집단적으로"}]},
+  {"root": "transparency", "meaning": "n.투명성", "words": [{"word": "transparency", "pos": ["n."]}, {"word": "transparent", "pos": ["adj."], "meaning": "투명한"}, {"word": "transparently", "pos": ["adv."], "meaning": "투명하게"}]},
+  {"root": "complain", "meaning": "v. 불평하다", "words": [{"word": "complain", "pos": ["v."]}, {"word": "complaint", "pos": ["n."], "meaning": "불평, 불만"}, {"word": "complainant", "pos": ["n."], "meaning": "고소인"}, {"word": "complaining", "pos": ["adj."], "meaning": "불평하는"}]},
+  {"root": "wage", "meaning": "n.임금", "words": [{"word": "wage", "pos": ["v.", "n."]}, {"word": "waged", "pos": ["adj."], "meaning": "(전쟁 등을) 벌이는, 유급의"}]},
+  {"root": "produce", "meaning": "v. 생산하다", "words": [{"word": "produce", "pos": ["v."]}, {"word": "product", "pos": ["n."], "meaning": "제품, 상품"}, {"word": "production", "pos": ["n."], "meaning": "생산"}, {"word": "producer", "pos": ["n."], "meaning": "생산자, 제작자"}, {"word": "productive", "pos": ["adj."], "meaning": "생산적인"}, {"word": "productively", "pos": ["adv."], "meaning": "생산적으로"}]},
+  {"root": "minimum", "meaning": "n./a.최저, 최소의", "words": [{"word": "minimize", "pos": ["v."], "meaning": "최소화하다"}, {"word": "minimum", "pos": ["n.", "adj."]}, {"word": "minimal", "pos": ["adj."], "meaning": "최소의"}, {"word": "minimally", "pos": ["adv."], "meaning": "최소한으로"}]},
+  {"root": "consume", "meaning": "v. 소비하다", "words": [{"word": "consume", "pos": ["v."]}, {"word": "consumption", "pos": ["n."], "meaning": "소비"}, {"word": "consumer", "pos": ["n."], "meaning": "소비자"}, {"word": "consumable", "pos": ["adj."], "meaning": "소비할 수 있는"}]},
+  {"root": "coerce", "meaning": "v.강요하다", "words": [{"word": "coerce", "pos": ["v."]}, {"word": "coercion", "pos": ["n."], "meaning": "강요"}, {"word": "coercive", "pos": ["adj."], "meaning": "강압적인"}, {"word": "coercively", "pos": ["adv."], "meaning": "강압적으로"}]},
+  {"root": "appalling", "meaning": "a.끔찍한", "words": [{"word": "appall", "pos": ["v."], "meaning": "오싹하게 하다, 질리게 하다"}, {"word": "appalling", "pos": ["adj."]}, {"word": "appalled", "pos": ["adj."], "meaning": "질겁한, 충격받은"}, {"word": "appallingly", "pos": ["adv."], "meaning": "끔찍하게"}]},
+  {"root": "equip", "meaning": "v. 갖추다, 장비하다", "words": [{"word": "equip", "pos": ["v."]}, {"word": "equipment", "pos": ["n."], "meaning": "장비"}, {"word": "equipped", "pos": ["adj."], "meaning": "갖춰진"}]},
+  {"root": "productive", "meaning": "a.생산적인", "words": [{"word": "produce", "pos": ["v."], "meaning": "생산하다"}, {"word": "product", "pos": ["n."], "meaning": "제품"}, {"word": "production", "pos": ["n."], "meaning": "생산"}, {"word": "productivity", "pos": ["n."], "meaning": "생산성"}, {"word": "productive", "pos": ["adj."]}, {"word": "productively", "pos": ["adv."], "meaning": "생산적으로"}]},
+  {"root": "pledge", "meaning": "v.서약하다", "words": [{"word": "pledge", "pos": ["v.", "n."]}, {"word": "pledged", "pos": ["adj."], "meaning": "서약한"}]},
+  {"root": "exploit", "meaning": "v.착취하다", "words": [{"word": "exploit", "pos": ["v."]}, {"word": "exploitation", "pos": ["n."], "meaning": "착취"}, {"word": "exploiter", "pos": ["n."], "meaning": "착취자"}, {"word": "exploitative", "pos": ["adj."], "meaning": "착취적인"}]},
+  {"root": "agriculture", "meaning": "n.농업", "words": [{"word": "agriculture", "pos": ["n."]}, {"word": "agricultural", "pos": ["adj."], "meaning": "농업의"}, {"word": "agriculturally", "pos": ["adv."], "meaning": "농업적으로"}]},
+  {"root": "nutrition", "meaning": "n.영양", "words": [{"word": "nourish", "pos": ["v."], "meaning": "영양분을 공급하다"}, {"word": "nutrition", "pos": ["n."]}, {"word": "nutrient", "pos": ["n."], "meaning": "영양소"}, {"word": "nutritional", "pos": ["adj."], "meaning": "영양상의"}, {"word": "nutritious", "pos": ["adj."], "meaning": "영양가 있는"}, {"word": "nutritionally", "pos": ["adv."], "meaning": "영양상으로"}]},
+  {"root": "toxic", "meaning": "a.유독한", "words": [{"word": "toxin", "pos": ["n."], "meaning": "독소"}, {"word": "toxicity", "pos": ["n."], "meaning": "독성"}, {"word": "toxic", "pos": ["adj."]}, {"word": "toxically", "pos": ["adv."], "meaning": "유독하게"}]},
+  {"root": "hazardous", "meaning": "a.위험한", "words": [{"word": "hazard", "pos": ["v.", "n."], "meaning": "위험, 위태롭게 하다"}, {"word": "hazardous", "pos": ["adj."]}, {"word": "hazardously", "pos": ["adv."], "meaning": "위험하게"}]},
+  {"root": "renewable", "meaning": "a.재생 가능한", "words": [{"word": "renew", "pos": ["v."], "meaning": "갱신하다, 재개하다"}, {"word": "renewal", "pos": ["n."], "meaning": "갱신, 재생"}, {"word": "renewable", "pos": ["adj."]}, {"word": "renewed", "pos": ["adj."], "meaning": "갱신된, 새로워진"}]},
+  {"root": "greenhouse", "meaning": "n.온실", "words": [{"word": "greenhouse", "pos": ["n.", "adj."]}]},
+  {"root": "proportion", "meaning": "n.비율", "words": [{"word": "proportion", "pos": ["v.", "n."]}, {"word": "proportional", "pos": ["adj."], "meaning": "비례하는"}, {"word": "proportionally", "pos": ["adv."], "meaning": "비례하여"}]},
+  {"root": "constant", "meaning": "a.끊임없는", "words": [{"word": "constancy", "pos": ["n."], "meaning": "변함없음, 항상성"}, {"word": "constant", "pos": ["n.", "adj."]}, {"word": "constantly", "pos": ["adv."], "meaning": "끊임없이"}]},
+  {"root": "recuperate", "meaning": "v.회복하다", "words": [{"word": "recuperate", "pos": ["v."]}, {"word": "recuperation", "pos": ["n."], "meaning": "회복"}, {"word": "recuperative", "pos": ["adj."], "meaning": "회복시키는"}]},
+  {"root": "toll", "meaning": "n.피해, 대가", "words": [{"word": "toll", "pos": ["v.", "n."]}]},
+  {"root": "recognize", "meaning": "v.인식하다", "words": [{"word": "recognize", "pos": ["v."]}, {"word": "recognition", "pos": ["n."], "meaning": "인식, 인정"}, {"word": "recognizable", "pos": ["adj."], "meaning": "알아볼 수 있는"}, {"word": "recognized", "pos": ["adj."], "meaning": "인정받은"}, {"word": "recognizably", "pos": ["adv."], "meaning": "알아볼 수 있게"}]},
+  {"root": "powerless", "meaning": "a.무력한", "words": [{"word": "powerlessness", "pos": ["n."], "meaning": "무력함"}, {"word": "powerless", "pos": ["adj."]}, {"word": "powerlessly", "pos": ["adv."], "meaning": "무력하게"}]},
+  {"root": "competition", "meaning": "n.경쟁", "words": [{"word": "compete", "pos": ["v."], "meaning": "경쟁하다"}, {"word": "competition", "pos": ["n."]}, {"word": "competitor", "pos": ["n."], "meaning": "경쟁자"}, {"word": "competitive", "pos": ["adj."], "meaning": "경쟁적인"}, {"word": "competitively", "pos": ["adv."], "meaning": "경쟁적으로"}]},
+  {"root": "excessive", "meaning": "a.과도한", "words": [{"word": "exceed", "pos": ["v."], "meaning": "초과하다"}, {"word": "excess", "pos": ["n."], "meaning": "과다, 초과"}, {"word": "excessive", "pos": ["adj."]}, {"word": "excessively", "pos": ["adv."], "meaning": "과도하게"}]},
+  {"root": "recuperate", "meaning": "v.회복하다", "words": [{"word": "recuperate", "pos": ["v."]}, {"word": "recuperation", "pos": ["n."], "meaning": "회복"}, {"word": "recuperative", "pos": ["adj."], "meaning": "회복시키는"}]},
+  {"root": "symptom", "meaning": "n.증상", "words": [{"word": "symptom", "pos": ["n."]}, {"word": "symptomatic", "pos": ["adj."], "meaning": "증상의, 증후를 보이는"}, {"word": "symptomatically", "pos": ["adv."], "meaning": "증상으로"}]},
+  {"root": "infect", "meaning": "v.감염시키다", "words": [{"word": "infect", "pos": ["v."]}, {"word": "infection", "pos": ["n."], "meaning": "감염"}, {"word": "infectious", "pos": ["adj."], "meaning": "전염성의"}, {"word": "infected", "pos": ["adj."], "meaning": "감염된"}, {"word": "infectiously", "pos": ["adv."], "meaning": "전염성으로"}]},
+  {"root": "withdraw", "meaning": "v.물러나다", "words": [{"word": "withdraw", "pos": ["v."]}, {"word": "withdrawal", "pos": ["n."], "meaning": "물러남, 인출"}, {"word": "withdrawn", "pos": ["adj."], "meaning": "위축된, 은둔한"}]},
+  {"root": "restlessness", "meaning": "n.불안, 초조", "words": [{"word": "restlessness", "pos": ["n."]}, {"word": "restless", "pos": ["adj."], "meaning": "가만히 못 있는, 불안한"}, {"word": "restlessly", "pos": ["adv."], "meaning": "불안하게"}]},
+  {"root": "irritability", "meaning": "n.과민성", "words": [{"word": "irritability", "pos": ["n."]}, {"word": "irritation", "pos": ["n."], "meaning": "짜증, 자극"}, {"word": "irritable", "pos": ["adj."], "meaning": "짜증을 잘 내는"}, {"word": "irritating", "pos": ["adj."], "meaning": "짜증나게 하는"}, {"word": "irritably", "pos": ["adv."], "meaning": "짜증스럽게"}]},
+  {"root": "modify", "meaning": "v.수정하다", "words": [{"word": "modify", "pos": ["v."]}, {"word": "modification", "pos": ["n."], "meaning": "수정"}, {"word": "modified", "pos": ["adj."], "meaning": "수정된"}]},
+  {"root": "reflect", "meaning": "v.반영하다", "words": [{"word": "reflect", "pos": ["v."]}, {"word": "reflection", "pos": ["n."], "meaning": "반영, 숙고"}, {"word": "reflective", "pos": ["adj."], "meaning": "사색적인, 반사하는"}, {"word": "reflectively", "pos": ["adv."], "meaning": "사색적으로"}]},
+  {"root": "shift", "meaning": "v./n.변화하다, 변화", "words": [{"word": "shift", "pos": ["v.", "n."]}, {"word": "shifting", "pos": ["adj."], "meaning": "변하는, 이동하는"}]},
+  {"root": "urbanization", "meaning": "n.도시화", "words": [{"word": "urbanize", "pos": ["v."], "meaning": "도시화하다"}, {"word": "urbanization", "pos": ["n."]}, {"word": "urban", "pos": ["adj."], "meaning": "도시의"}]},
+  {"root": "psychology", "meaning": "n.심리학", "words": [{"word": "psychology", "pos": ["n."]}, {"word": "psychologist", "pos": ["n."], "meaning": "심리학자"}, {"word": "psychological", "pos": ["adj."], "meaning": "심리적인"}, {"word": "psychologically", "pos": ["adv."], "meaning": "심리적으로"}]},
+  {"root": "evolve", "meaning": "v.진화하다", "words": [{"word": "evolve", "pos": ["v."]}, {"word": "evolution", "pos": ["n."], "meaning": "진화"}, {"word": "evolutionary", "pos": ["adj."], "meaning": "진화의"}, {"word": "evolved", "pos": ["adj."], "meaning": "진화된"}]},
+  {"root": "adaptive", "meaning": "a.적응하는", "words": [{"word": "adapt", "pos": ["v."], "meaning": "적응하다"}, {"word": "adaptation", "pos": ["n."], "meaning": "적응"}, {"word": "adaptive", "pos": ["adj."]}, {"word": "adaptable", "pos": ["adj."], "meaning": "적응할 수 있는"}, {"word": "adaptively", "pos": ["adv."], "meaning": "적응적으로"}]},
+  {"root": "decline", "meaning": "v./n.감소하다", "words": [{"word": "decline", "pos": ["v.", "n."]}, {"word": "declining", "pos": ["adj."], "meaning": "감소하는"}]},
+  {"root": "gradual", "meaning": "a.점진적인", "words": [{"word": "gradual", "pos": ["adj."]}, {"word": "gradually", "pos": ["adv."], "meaning": "점진적으로"}]},
+  {"root": "obedience", "meaning": "n.복종", "words": [{"word": "obey", "pos": ["v."], "meaning": "복종하다"}, {"word": "obedience", "pos": ["n."]}, {"word": "obedient", "pos": ["adj."], "meaning": "순종적인"}, {"word": "obediently", "pos": ["adv."], "meaning": "순종적으로"}]},
+  {"root": "wane", "meaning": "v.약해지다", "words": [{"word": "wane", "pos": ["v.", "n."]}, {"word": "waning", "pos": ["adj."], "meaning": "약해지는, 줄어드는"}]},
+  {"root": "predominant", "meaning": "a.지배적인", "words": [{"word": "predominate", "pos": ["v."], "meaning": "지배하다, 우세하다"}, {"word": "predominance", "pos": ["n."], "meaning": "지배, 우세"}, {"word": "predominant", "pos": ["adj."]}, {"word": "predominantly", "pos": ["adv."], "meaning": "주로, 우세하게"}]},
+  {"root": "function", "meaning": "v.기능하다", "words": [{"word": "function", "pos": ["v.", "n."]}, {"word": "functional", "pos": ["adj."], "meaning": "기능적인"}, {"word": "functionally", "pos": ["adv."], "meaning": "기능적으로"}]},
+  {"root": "sustainable", "meaning": "a.지속 가능한", "words": [{"word": "sustain", "pos": ["v."], "meaning": "지속시키다, 견디다"}, {"word": "sustainability", "pos": ["n."], "meaning": "지속 가능성"}, {"word": "sustainable", "pos": ["adj."]}, {"word": "sustainably", "pos": ["adv."], "meaning": "지속 가능하게"}]},
+  {"root": "scarcity", "meaning": "n.부족", "words": [{"word": "scarcity", "pos": ["n."]}, {"word": "scarce", "pos": ["adj."], "meaning": "부족한, 드문"}]},
+  {"root": "pollute", "meaning": "v.오염시키다", "words": [{"word": "pollute", "pos": ["v."]}, {"word": "pollution", "pos": ["n."], "meaning": "오염"}, {"word": "pollutant", "pos": ["n."], "meaning": "오염 물질"}, {"word": "polluted", "pos": ["adj."], "meaning": "오염된"}, {"word": "polluting", "pos": ["adj."], "meaning": "오염시키는"}]},
+  {"root": "marine", "meaning": "a.해양의", "words": [{"word": "marine", "pos": ["n.", "adj."]}]},
+  {"root": "deforestation", "meaning": "n.삼림 벌채", "words": [{"word": "deforest", "pos": ["v."], "meaning": "산림을 벌채하다"}, {"word": "deforestation", "pos": ["n."]}, {"word": "deforested", "pos": ["adj."], "meaning": "벌채된"}]},
+  {"root": "emit", "meaning": "v.배출하다", "words": [{"word": "emit", "pos": ["v."]}, {"word": "emission", "pos": ["n."], "meaning": "배출"}, {"word": "emitted", "pos": ["adj."], "meaning": "배출된"}]},
+  {"root": "misconceive", "meaning": "v. 오해하다", "words": [{"word": "misconceive", "pos": ["v."]}, {"word": "misconception", "pos": ["n."], "meaning": "오해"}, {"word": "misconceived", "pos": ["adj."], "meaning": "잘못 생각된"}]},
+  {"root": "expert", "meaning": "n.전문가", "words": [{"word": "expert", "pos": ["n.", "adj."]}, {"word": "expertise", "pos": ["n."], "meaning": "전문 지식"}, {"word": "expertly", "pos": ["adv."], "meaning": "전문적으로"}]},
+  {"root": "vast", "meaning": "a.(양이) 방대한", "words": [{"word": "vastness", "pos": ["n."], "meaning": "광대함"}, {"word": "vast", "pos": ["adj."]}, {"word": "vastly", "pos": ["adv."], "meaning": "광대하게, 엄청나게"}]},
+  {"root": "classify", "meaning": "v.분류하다", "words": [{"word": "classify", "pos": ["v."]}, {"word": "classification", "pos": ["n."], "meaning": "분류"}, {"word": "classified", "pos": ["adj."], "meaning": "분류된, 기밀의"}]},
+  {"root": "analyze", "meaning": "v.분석하다, 검토하다", "words": [{"word": "analyze", "pos": ["v."]}, {"word": "analysis", "pos": ["n."], "meaning": "분석"}, {"word": "analyst", "pos": ["n."], "meaning": "분석가"}, {"word": "analytical", "pos": ["adj."], "meaning": "분석적인"}, {"word": "analytically", "pos": ["adv."], "meaning": "분석적으로"}]},
+  {"root": "bloom", "meaning": "v.꽃을 피우다, 꽃이 피다", "words": [{"word": "bloom", "pos": ["v.", "n."]}, {"word": "blooming", "pos": ["adj."], "meaning": "꽃이 피는"}]},
+  {"root": "access", "meaning": "v.접근하다, 이용하다", "words": [{"word": "access", "pos": ["v.", "n."]}, {"word": "accessible", "pos": ["adj."], "meaning": "접근 가능한"}, {"word": "accessibly", "pos": ["adv."], "meaning": "접근 가능하게"}]},
+  {"root": "involve", "meaning": "v.참여시키다; 포함하다", "words": [{"word": "involve", "pos": ["v."]}, {"word": "involvement", "pos": ["n."], "meaning": "관여, 참여"}, {"word": "involved", "pos": ["adj."], "meaning": "관련된, 복잡한"}]},
+  {"root": "tutorial", "meaning": "n.사용 지침(서)", "words": [{"word": "tutor", "pos": ["v.", "n."], "meaning": "가르치다, 가정 교사"}, {"word": "tutorial", "pos": ["n.", "adj."]}]},
+  {"root": "submit", "meaning": "v.제출하다", "words": [{"word": "submit", "pos": ["v."]}, {"word": "submission", "pos": ["n."], "meaning": "제출, 항복"}, {"word": "submitted", "pos": ["adj."], "meaning": "제출된"}]},
+  {"root": "benefit", "meaning": "n.혜택, 이득", "words": [{"word": "benefit", "pos": ["v.", "n."]}, {"word": "beneficial", "pos": ["adj."], "meaning": "유익한"}, {"word": "beneficially", "pos": ["adv."], "meaning": "유익하게"}]},
+  {"root": "outcome", "meaning": "n.결과", "words": [{"word": "outcome", "pos": ["n."]}]},
+  {"root": "respond", "meaning": "v.반응하다, 대응하다; 대답하다", "words": [{"word": "respond", "pos": ["v."]}, {"word": "response", "pos": ["n."], "meaning": "반응, 응답"}, {"word": "respondent", "pos": ["n."], "meaning": "응답자"}, {"word": "responsive", "pos": ["adj."], "meaning": "반응이 빠른"}, {"word": "responsively", "pos": ["adv."], "meaning": "반응적으로"}]},
+  {"root": "forecast", "meaning": "v.예측하다, 예보하다", "words": [{"word": "forecast", "pos": ["v.", "n."]}, {"word": "forecasted", "pos": ["adj."], "meaning": "예측된"}]},
+  {"root": "participate", "meaning": "v.참여하다", "words": [{"word": "participate", "pos": ["v."]}, {"word": "participation", "pos": ["n."], "meaning": "참여"}, {"word": "participant", "pos": ["n."], "meaning": "참가자"}, {"word": "participatory", "pos": ["adj."], "meaning": "참여적인"}]},
+  {"root": "literacy", "meaning": "n.(특정 분야에 관한) 지식, 능력", "words": [{"word": "literacy", "pos": ["n."]}, {"word": "literate", "pos": ["adj."], "meaning": "글을 읽고 쓸 줄 아는"}]},
+  {"root": "tackle", "meaning": "v.(힘든 문제와) 씨름하다", "words": [{"word": "tackle", "pos": ["v.", "n."]}]},
+  {"root": "rewarding", "meaning": "a.보람 있는", "words": [{"word": "reward", "pos": ["v.", "n."], "meaning": "보상, 보상하다"}, {"word": "rewarding", "pos": ["adj."]}, {"word": "rewarded", "pos": ["adj."], "meaning": "보상받은"}]},
+  {"root": "fascinate", "meaning": "v.마음을 사로잡다", "words": [{"word": "fascinate", "pos": ["v."]}, {"word": "fascination", "pos": ["n."], "meaning": "매혹"}, {"word": "fascinating", "pos": ["adj."], "meaning": "매혹적인"}, {"word": "fascinated", "pos": ["adj."], "meaning": "매혹된"}, {"word": "fascinatingly", "pos": ["adv."], "meaning": "매혹적으로"}]},
+  {"root": "range", "meaning": "n.(변화의) 범위, 폭", "words": [{"word": "range", "pos": ["v.", "n."]}, {"word": "ranged", "pos": ["adj."], "meaning": "범위에 걸친"}, {"word": "ranging", "pos": ["adj."], "meaning": "범위가 ~인"}]},
+  {"root": "feature", "meaning": "n.지형; 특징", "words": [{"word": "feature", "pos": ["v.", "n."]}, {"word": "featured", "pos": ["adj."], "meaning": "특집의, 주요한"}]},
+  {"root": "geology", "meaning": "n.지질학", "words": [{"word": "geology", "pos": ["n."]}, {"word": "geologist", "pos": ["n."], "meaning": "지질학자"}, {"word": "geological", "pos": ["adj."], "meaning": "지질학의"}, {"word": "geologically", "pos": ["adv."], "meaning": "지질학적으로"}]},
+  {"root": "urban", "meaning": "a.도시의", "words": [{"word": "urbanize", "pos": ["v."], "meaning": "도시화하다"}, {"word": "urbanization", "pos": ["n."], "meaning": "도시화"}, {"word": "urban", "pos": ["adj."]}]},
+  {"root": "label", "meaning": "n.라벨, 꼬리표", "words": [{"word": "label", "pos": ["v.", "n."]}, {"word": "labeled", "pos": ["adj."], "meaning": "라벨이 붙은"}]},
+  {"root": "glacier", "meaning": "n.빙하", "words": [{"word": "glacier", "pos": ["n."]}, {"word": "glacial", "pos": ["adj."], "meaning": "빙하의"}, {"word": "glacially", "pos": ["adv."], "meaning": "빙하처럼"}]},
+  {"root": "examine", "meaning": "v.검토하다, 조사하다", "words": [{"word": "examine", "pos": ["v."]}, {"word": "examination", "pos": ["n."], "meaning": "조사, 시험"}, {"word": "examiner", "pos": ["n."], "meaning": "시험관, 조사자"}, {"word": "examined", "pos": ["adj."], "meaning": "조사된"}]},
+  {"root": "specific", "meaning": "a.특정한", "words": [{"word": "specify", "pos": ["v."], "meaning": "명시하다"}, {"word": "specification", "pos": ["n."], "meaning": "명세, 설명서"}, {"word": "specific", "pos": ["adj."]}, {"word": "specifically", "pos": ["adv."], "meaning": "구체적으로, 특히"}]},
+  {"root": "display", "meaning": "v.보여 주다", "words": [{"word": "display", "pos": ["v.", "n."]}, {"word": "displayed", "pos": ["adj."], "meaning": "표시된"}]},
+  {"root": "visible", "meaning": "a.(눈에) 보이는", "words": [{"word": "visibility", "pos": ["n."], "meaning": "가시성, 시야"}, {"word": "visible", "pos": ["adj."]}, {"word": "visibly", "pos": ["adv."], "meaning": "눈에 띄게"}]},
+  {"root": "resize", "meaning": "v.크기를 조절하다", "words": [{"word": "resize", "pos": ["v."]}, {"word": "size", "pos": ["n."], "meaning": "크기"}, {"word": "resizable", "pos": ["adj."], "meaning": "크기 조절 가능한"}]},
+  {"root": "crucial", "meaning": "a.중대한", "words": [{"word": "crucial", "pos": ["adj."]}, {"word": "crucially", "pos": ["adv."], "meaning": "결정적으로"}]},
+  {"root": "automatic", "meaning": "a.자동의", "words": [{"word": "automate", "pos": ["v."], "meaning": "자동화하다"}, {"word": "automation", "pos": ["n."], "meaning": "자동화"}, {"word": "automatic", "pos": ["adj."]}, {"word": "automated", "pos": ["adj."], "meaning": "자동화된"}, {"word": "automatically", "pos": ["adv."], "meaning": "자동으로"}]},
+  {"root": "raw", "meaning": "a.날것의, 가공되지 않은", "words": [{"word": "rawness", "pos": ["n."], "meaning": "날것임, 가공되지 않음"}, {"word": "raw", "pos": ["adj."]}]},
+  {"root": "geographical", "meaning": "a.지리적인", "words": [{"word": "geography", "pos": ["n."], "meaning": "지리학"}, {"word": "geographer", "pos": ["n."], "meaning": "지리학자"}, {"word": "geographical", "pos": ["adj."]}, {"word": "geographically", "pos": ["adv."], "meaning": "지리적으로"}]},
+  {"root": "accurate", "meaning": "a.정확한", "words": [{"word": "accuracy", "pos": ["n."], "meaning": "정확성"}, {"word": "accurate", "pos": ["adj."]}, {"word": "accurately", "pos": ["adv."], "meaning": "정확하게"}]},
+  {"root": "ultimate", "meaning": "a.궁극적인", "words": [{"word": "ultimate", "pos": ["adj."]}, {"word": "ultimately", "pos": ["adv."], "meaning": "궁극적으로, 결국"}]},
+  {"root": "enhance", "meaning": "v.높이다, 향상시키다", "words": [{"word": "enhance", "pos": ["v."]}, {"word": "enhancement", "pos": ["n."], "meaning": "향상, 개선"}, {"word": "enhanced", "pos": ["adj."], "meaning": "향상된"}]},
+  {"root": "addiction", "meaning": "n. 중독", "words": [{"word": "addict", "pos": ["v.", "n."], "meaning": "중독시키다 / 중독자"}, {"word": "addiction", "pos": ["n."]}, {"word": "addictive", "pos": ["adj."], "meaning": "중독성의"}, {"word": "addicted", "pos": ["adj."], "meaning": "중독된"}, {"word": "addictively", "pos": ["adv."], "meaning": "중독적으로"}]},
+  {"root": "principle", "meaning": "n. 원칙", "words": [{"word": "principle", "pos": ["n."]}, {"word": "principled", "pos": ["adj."], "meaning": "원칙을 따르는"}]},
+  {"root": "abbreviate", "meaning": "v.줄여 쓰다", "words": [{"word": "abbreviate", "pos": ["v."]}, {"word": "abbreviation", "pos": ["n."], "meaning": "줄임말, 약어"}, {"word": "abbreviated", "pos": ["adj."], "meaning": "줄여 쓴"}]},
+  {"root": "coin", "meaning": "v. (신조어를) 만들다", "words": [{"word": "coin", "pos": ["v.", "n."]}, {"word": "coinage", "pos": ["n."], "meaning": "신조어, 주조"}, {"word": "coined", "pos": ["adj."], "meaning": "(신조어가) 만들어진"}]},
+  {"root": "phobia", "meaning": "n. 공포증", "words": [{"word": "phobia", "pos": ["n."]}, {"word": "phobic", "pos": ["adj."], "meaning": "공포증의"}]},
+  {"root": "additional", "meaning": "a. 추가적인", "words": [{"word": "add", "pos": ["v."], "meaning": "더하다"}, {"word": "addition", "pos": ["n."], "meaning": "추가, 덧셈"}, {"word": "additional", "pos": ["adj."]}, {"word": "additionally", "pos": ["adv."], "meaning": "추가적으로"}]},
+  {"root": "jitters", "meaning": "n. 초조감, 안절부절", "words": [{"word": "jitter", "pos": ["v."], "meaning": "초조하게 만들다"}, {"word": "jitters", "pos": ["n."]}, {"word": "jittery", "pos": ["adj."], "meaning": "초조한, 불안한"}]},
+  {"root": "solitude", "meaning": "n. 고독", "words": [{"word": "solitude", "pos": ["n."]}, {"word": "solitary", "pos": ["adj."], "meaning": "고독한, 외로운"}]},
+  {"root": "invest", "meaning": "v. 투자하다", "words": [{"word": "invest", "pos": ["v."]}, {"word": "investment", "pos": ["n."], "meaning": "투자"}, {"word": "investor", "pos": ["n."], "meaning": "투자자"}, {"word": "invested", "pos": ["adj."], "meaning": "투자된"}]},
+  {"root": "argue", "meaning": "v. 주장하다", "words": [{"word": "argue", "pos": ["v."]}, {"word": "argument", "pos": ["n."], "meaning": "논쟁, 주장"}, {"word": "argumentative", "pos": ["adj."], "meaning": "논쟁적인"}, {"word": "argumentatively", "pos": ["adv."], "meaning": "논쟁적으로"}]},
+  {"root": "revive", "meaning": "v. 되살리다, 부활시키다", "words": [{"word": "revive", "pos": ["v."]}, {"word": "revival", "pos": ["n."], "meaning": "부활, 재생"}, {"word": "revived", "pos": ["adj."], "meaning": "부활한"}]},
+  {"root": "acquire", "meaning": "v. 습득하다, 얻다", "words": [{"word": "acquire", "pos": ["v."]}, {"word": "acquisition", "pos": ["n."], "meaning": "습득, 인수"}, {"word": "acquired", "pos": ["adj."], "meaning": "습득한, 후천적인"}]},
+  {"root": "academic", "meaning": "a. 학업의", "words": [{"word": "academy", "pos": ["n."], "meaning": "학원, 학교"}, {"word": "academic", "pos": ["n.", "adj."]}, {"word": "academically", "pos": ["adv."], "meaning": "학업적으로"}]},
+  {"root": "awareness", "meaning": "n. 인식", "words": [{"word": "awareness", "pos": ["n."]}, {"word": "aware", "pos": ["adj."], "meaning": "인식하고 있는"}]},
+  {"root": "interact", "meaning": "v. 교류하다, 소통하다", "words": [{"word": "interact", "pos": ["v."]}, {"word": "interaction", "pos": ["n."], "meaning": "상호작용"}, {"word": "interactive", "pos": ["adj."], "meaning": "상호적인"}, {"word": "interactively", "pos": ["adv."], "meaning": "상호적으로"}]},
+  {"root": "renowned", "meaning": "a. 유명한, 명성 있는", "words": [{"word": "renowned", "pos": ["adj."]}]},
+  {"root": "state", "meaning": "v. 진술하다", "words": [{"word": "state", "pos": ["v.", "n."]}, {"word": "statement", "pos": ["n."], "meaning": "진술, 성명"}, {"word": "stated", "pos": ["adj."], "meaning": "진술된, 명시된"}]},
+  {"root": "place", "meaning": "v. 부여하다, 두다", "words": [{"word": "place", "pos": ["v.", "n."]}, {"word": "placement", "pos": ["n."], "meaning": "배치"}, {"word": "placed", "pos": ["adj."], "meaning": "놓인, 배치된"}]},
+  {"root": "achievement", "meaning": "n. 성취, 업적", "words": [{"word": "achieve", "pos": ["v."], "meaning": "성취하다"}, {"word": "achievement", "pos": ["n."]}, {"word": "achiever", "pos": ["n."], "meaning": "성취자"}, {"word": "achievable", "pos": ["adj."], "meaning": "달성 가능한"}]},
+  {"root": "bond", "meaning": "v. 유대감을 형성하다", "words": [{"word": "bond", "pos": ["v.", "n."]}, {"word": "bonded", "pos": ["adj."], "meaning": "결속된, 유대를 맺은"}]},
+  {"root": "identity", "meaning": "n. 정체성", "words": [{"word": "identify", "pos": ["v."], "meaning": "확인하다, 동일시하다"}, {"word": "identity", "pos": ["n."]}, {"word": "identification", "pos": ["n."], "meaning": "식별, 신원 확인"}]},
+  {"root": "entirely", "meaning": "ad. 완전히, 전적으로", "words": [{"word": "entirety", "pos": ["n."], "meaning": "전체, 전부"}, {"word": "entire", "pos": ["adj."], "meaning": "전체의"}, {"word": "entirely", "pos": ["adv."]}]},
+  {"root": "prove", "meaning": "v. 증명하다", "words": [{"word": "prove", "pos": ["v."]}, {"word": "proof", "pos": ["n."], "meaning": "증거, 증명"}, {"word": "proven", "pos": ["adj."], "meaning": "증명된"}]},
+  {"root": "retrieve", "meaning": "v. 되찾다, 복구하다", "words": [{"word": "retrieve", "pos": ["v."]}, {"word": "retrieval", "pos": ["n."], "meaning": "회수, 복구"}, {"word": "retrievable", "pos": ["adj."], "meaning": "되찾을 수 있는"}]},
+  {"root": "ensure", "meaning": "v. 보장하다, 확실히 하다", "words": [{"word": "ensure", "pos": ["v."]}, {"word": "ensured", "pos": ["adj."], "meaning": "보장된"}]},
+  {"root": "researcher", "meaning": "n. 연구원", "words": [{"word": "research", "pos": ["v.", "n."], "meaning": "연구 / 연구하다"}, {"word": "researcher", "pos": ["n."]}, {"word": "research-based", "pos": ["adj."], "meaning": "연구 기반의"}]},
+  {"root": "frequently", "meaning": "ad. 자주", "words": [{"word": "frequent", "pos": ["v.", "adj."], "meaning": "빈번한 / 자주 다니다"}, {"word": "frequency", "pos": ["n."], "meaning": "빈도"}, {"word": "frequently", "pos": ["adv."]}]},
+  {"root": "inappropriate", "meaning": "a. 부적절한", "words": [{"word": "inappropriateness", "pos": ["n."], "meaning": "부적절함"}, {"word": "inappropriate", "pos": ["adj."]}, {"word": "inappropriately", "pos": ["adv."], "meaning": "부적절하게"}]},
+  {"root": "harass", "meaning": "v. 괴롭히다", "words": [{"word": "harass", "pos": ["v."]}, {"word": "harassment", "pos": ["n."], "meaning": "괴롭힘"}, {"word": "harassing", "pos": ["adj."], "meaning": "괴롭히는"}, {"word": "harassed", "pos": ["adj."], "meaning": "괴롭힘 당한"}]},
+  {"root": "admission", "meaning": "n. 입학,허가", "words": [{"word": "admit", "pos": ["v."], "meaning": "인정하다, 입학을 허가하다"}, {"word": "admission", "pos": ["n."]}]},
+  {"root": "reputation", "meaning": "n. 평판, 명성", "words": [{"word": "reputation", "pos": ["n."]}, {"word": "reputable", "pos": ["adj."], "meaning": "평판이 좋은"}, {"word": "reputably", "pos": ["adv."], "meaning": "평판 좋게"}]},
+  {"root": "stimulate", "meaning": "v. 자극하다", "words": [{"word": "stimulate", "pos": ["v."]}, {"word": "stimulation", "pos": ["n."], "meaning": "자극"}, {"word": "stimulus", "pos": ["n."], "meaning": "자극(물)"}, {"word": "stimulating", "pos": ["adj."], "meaning": "자극적인"}]},
+  {"root": "inclined", "meaning": "a. ~하려는 경향이 있는", "words": [{"word": "incline", "pos": ["v."], "meaning": "기울이다, 기울다"}, {"word": "inclination", "pos": ["n."], "meaning": "경향, 성향"}, {"word": "inclined", "pos": ["adj."]}]},
+  {"root": "infinite", "meaning": "a. 무한한", "words": [{"word": "infinity", "pos": ["n."], "meaning": "무한"}, {"word": "infinite", "pos": ["adj."]}, {"word": "infinitely", "pos": ["adv."], "meaning": "무한히"}]},
+  {"root": "unstructured", "meaning": "a.비구조적인", "words": [{"word": "structure", "pos": ["v.", "n."], "meaning": "구조 / 구조화하다"}, {"word": "structured", "pos": ["adj."], "meaning": "구조화된"}, {"word": "unstructured", "pos": ["adj."]}]},
+  {"root": "improvise", "meaning": "v.즉흥적으로 하다", "words": [{"word": "improvise", "pos": ["v."]}, {"word": "improvisation", "pos": ["n."], "meaning": "즉흥 (연주, 행동)"}, {"word": "improvised", "pos": ["adj."], "meaning": "즉흥적인"}]},
+  {"root": "mistreat", "meaning": "v. 학대하다, 함부로 다루다", "words": [{"word": "mistreat", "pos": ["v."]}, {"word": "mistreatment", "pos": ["n."], "meaning": "학대"}, {"word": "mistreated", "pos": ["adj."], "meaning": "학대받은"}]},
+  {"root": "entrust", "meaning": "v. 맡기다, 위임하다", "words": [{"word": "entrust", "pos": ["v."]}, {"word": "entrusted", "pos": ["adj."], "meaning": "맡겨진"}]},
+  {"root": "inspiring", "meaning": "a.영감을주는", "words": [{"word": "inspire", "pos": ["v."], "meaning": "영감을 주다"}, {"word": "inspiration", "pos": ["n."], "meaning": "영감"}, {"word": "inspiring", "pos": ["adj."]}, {"word": "inspired", "pos": ["adj."], "meaning": "영감을 받은"}]},
+  {"root": "indifference", "meaning": "n. 무관심", "words": [{"word": "indifference", "pos": ["n."]}, {"word": "indifferent", "pos": ["adj."], "meaning": "무관심한"}, {"word": "indifferently", "pos": ["adv."], "meaning": "무관심하게"}]},
+  {"root": "effortless", "meaning": "a.힘들이지 않는", "words": [{"word": "effort", "pos": ["n."], "meaning": "노력"}, {"word": "effortless", "pos": ["adj."]}, {"word": "effortlessly", "pos": ["adv."], "meaning": "힘들이지 않고"}]},
+  {"root": "bilingual", "meaning": "n. 2개 국어를 구사하는 사람", "words": [{"word": "bilingual", "pos": ["n.", "adj."]}, {"word": "bilingualism", "pos": ["n."], "meaning": "2개 국어 사용"}, {"word": "bilingually", "pos": ["adv."], "meaning": "2개 국어로"}]},
+  {"root": "adept", "meaning": "a. 능숙한, 숙련된", "words": [{"word": "adeptness", "pos": ["n."], "meaning": "능숙함"}, {"word": "adept", "pos": ["adj."]}, {"word": "adeptly", "pos": ["adv."], "meaning": "능숙하게"}]},
+  {"root": "function", "meaning": "n. 기능", "words": [{"word": "function", "pos": ["v.", "n."]}, {"word": "functional", "pos": ["adj."], "meaning": "기능적인"}, {"word": "functionally", "pos": ["adv."], "meaning": "기능적으로"}]},
+  {"root": "demand", "meaning": "v. 요구하다 n. 요구, 수요", "words": [{"word": "demand", "pos": ["v.", "n."]}, {"word": "demanding", "pos": ["adj."], "meaning": "요구가 많은, 부담이 큰"}]},
+  {"root": "deliberate", "meaning": "a. 의도적인, 신중한", "words": [{"word": "deliberate", "pos": ["v.", "adj."]}, {"word": "deliberation", "pos": ["n."], "meaning": "숙고, 심의"}, {"word": "deliberately", "pos": ["adv."], "meaning": "의도적으로, 신중하게"}]},
+  {"root": "heighten", "meaning": "v. 높이다, 강화하다", "words": [{"word": "heighten", "pos": ["v."]}, {"word": "height", "pos": ["n."], "meaning": "높이"}, {"word": "heightened", "pos": ["adj."], "meaning": "고조된, 높아진"}]},
+  {"root": "extend", "meaning": "v. 연장하다, 확장하다", "words": [{"word": "extend", "pos": ["v."]}, {"word": "extension", "pos": ["n."], "meaning": "연장, 확장"}, {"word": "extent", "pos": ["n."], "meaning": "정도, 범위"}, {"word": "extensive", "pos": ["adj."], "meaning": "광범위한"}, {"word": "extended", "pos": ["adj."], "meaning": "연장된"}, {"word": "extensively", "pos": ["adv."], "meaning": "광범위하게"}]},
+  {"root": "resist", "meaning": "v. 저항, 반대하다", "words": [{"word": "resist", "pos": ["v."]}, {"word": "resistance", "pos": ["n."], "meaning": "저항"}, {"word": "resistant", "pos": ["adj."], "meaning": "저항하는, 내성이 있는"}]},
+  {"root": "imprint", "meaning": "n. 각인, 자국", "words": [{"word": "imprint", "pos": ["v.", "n."]}, {"word": "imprinted", "pos": ["adj."], "meaning": "각인된"}]},
+  {"root": "consolidate", "meaning": "v. 굳히다, 강화하다", "words": [{"word": "consolidate", "pos": ["v."]}, {"word": "consolidation", "pos": ["n."], "meaning": "강화, 통합"}, {"word": "consolidated", "pos": ["adj."], "meaning": "통합된"}]},
+  {"root": "modulate", "meaning": "v. 조절하다, 맞추다", "words": [{"word": "modulate", "pos": ["v."]}, {"word": "modulation", "pos": ["n."], "meaning": "조절"}, {"word": "modulated", "pos": ["adj."], "meaning": "조절된"}]},
+  {"root": "toddle", "meaning": "v. 아장아장 걷다", "words": [{"word": "toddle", "pos": ["v."]}, {"word": "toddler", "pos": ["n."], "meaning": "아장아장 걷는 아이"}, {"word": "toddling", "pos": ["adj."], "meaning": "아장아장 걷는"}]},
+  {"root": "typical", "meaning": "a. 전형, 일반적인", "words": [{"word": "typify", "pos": ["v."], "meaning": "전형이 되다"}, {"word": "type", "pos": ["n."], "meaning": "유형, 종류"}, {"word": "typicality", "pos": ["n."], "meaning": "전형성"}, {"word": "typical", "pos": ["adj."]}, {"word": "typically", "pos": ["adv."], "meaning": "전형적으로"}]},
+  {"root": "activate", "meaning": "v. 활성화하다, 작동시키다", "words": [{"word": "activate", "pos": ["v."]}, {"word": "activation", "pos": ["n."], "meaning": "활성화"}, {"word": "active", "pos": ["adj."], "meaning": "활동적인"}, {"word": "actively", "pos": ["adv."], "meaning": "활발하게"}]},
+  {"root": "mutter", "meaning": "v. 중얼거리다", "words": [{"word": "mutter", "pos": ["v.", "n."]}, {"word": "muttering", "pos": ["adj."], "meaning": "중얼거리는"}]},
+  {"root": "circumstance", "meaning": "n. 상황, 환경", "words": [{"word": "circumstance", "pos": ["n."]}, {"word": "circumstantial", "pos": ["adj."], "meaning": "상황의, 정황의"}, {"word": "circumstantially", "pos": ["adv."], "meaning": "상황적으로"}]},
+  {"root": "elegant", "meaning": "a. 우아한, 고상한, 명쾌한", "words": [{"word": "elegance", "pos": ["n."], "meaning": "우아함"}, {"word": "elegant", "pos": ["adj."]}, {"word": "elegantly", "pos": ["adv."], "meaning": "우아하게"}]},
+  {"root": "mislead", "meaning": "v. 오도하다, 잘못 이끌다", "words": [{"word": "mislead", "pos": ["v."]}, {"word": "misleading", "pos": ["adj."], "meaning": "오해를 일으키는"}, {"word": "misleadingly", "pos": ["adv."], "meaning": "오해의 소지가 있게"}]},
+  {"root": "potential", "meaning": "a. 잠재적인", "words": [{"word": "potential", "pos": ["n.", "adj."]}, {"word": "potentially", "pos": ["adv."], "meaning": "잠재적으로"}]},
+  {"root": "scent", "meaning": "n. 향기, 냄새", "words": [{"word": "scent", "pos": ["v.", "n."]}, {"word": "scented", "pos": ["adj."], "meaning": "향이 나는"}]},
+  {"root": "fragrance", "meaning": "n. 향기, 향수", "words": [{"word": "fragrance", "pos": ["n."]}, {"word": "fragrant", "pos": ["adj."], "meaning": "향기로운"}, {"word": "fragrantly", "pos": ["adv."], "meaning": "향기롭게"}]},
+  {"root": "disclose", "meaning": "v. 밝히다, 폭로하다", "words": [{"word": "disclose", "pos": ["v."]}, {"word": "disclosure", "pos": ["n."], "meaning": "폭로, 공개"}, {"word": "disclosed", "pos": ["adj."], "meaning": "공개된"}]},
+  {"root": "claim", "meaning": "n. 권리, 주장 v. 주장하다", "words": [{"word": "claim", "pos": ["v.", "n."]}, {"word": "claimed", "pos": ["adj."], "meaning": "주장된"}]},
+  {"root": "certify", "meaning": "v. 증명하다", "words": [{"word": "certify", "pos": ["v."]}, {"word": "certificate", "pos": ["n."], "meaning": "증명서"}, {"word": "certification", "pos": ["n."], "meaning": "증명, 인증"}, {"word": "certified", "pos": ["adj."], "meaning": "인증된"}]},
+  {"root": "raw", "meaning": "a. 가공하지 않은, 날것의", "words": [{"word": "rawness", "pos": ["n."], "meaning": "날것임, 가공되지 않음"}, {"word": "raw", "pos": ["adj."]}]},
+  {"root": "complicate", "meaning": "v. 복잡하게 만들다", "words": [{"word": "complicate", "pos": ["v."]}, {"word": "complication", "pos": ["n."], "meaning": "복잡함, 합병증"}, {"word": "complicated", "pos": ["adj."], "meaning": "복잡한"}]},
+  {"root": "hazard", "meaning": "n. 위험( 요소)", "words": [{"word": "hazard", "pos": ["v.", "n."]}, {"word": "hazardous", "pos": ["adj."], "meaning": "위험한"}, {"word": "hazardously", "pos": ["adv."], "meaning": "위험하게"}]},
+  {"root": "stump", "meaning": "v. 당황하게 하다", "words": [{"word": "stump", "pos": ["v.", "n."]}, {"word": "stumped", "pos": ["adj."], "meaning": "당황한, 곤혹스러운"}]},
+  {"root": "transparent", "meaning": "a. 투명한", "words": [{"word": "transparency", "pos": ["n."], "meaning": "투명성"}, {"word": "transparent", "pos": ["adj."]}, {"word": "transparently", "pos": ["adv."], "meaning": "투명하게"}]},
+  {"root": "obese", "meaning": "a. 비만인", "words": [{"word": "obesity", "pos": ["n."], "meaning": "비만"}, {"word": "obese", "pos": ["adj."]}]},
+  {"root": "conduct", "meaning": "v. 수행하다, 실시하다", "words": [{"word": "conduct", "pos": ["v.", "n."]}, {"word": "conducted", "pos": ["adj."], "meaning": "수행된, 실시된"}]},
+  {"root": "suffer", "meaning": "v. 고통받다, 겪다", "words": [{"word": "suffer", "pos": ["v."]}, {"word": "suffering", "pos": ["n.", "adj."], "meaning": "고통 / 고통받는"}, {"word": "sufferer", "pos": ["n."], "meaning": "고통받는 사람"}]},
+  {"root": "discriminate", "meaning": "v. 차별, 구별하다", "words": [{"word": "discriminate", "pos": ["v."]}, {"word": "discrimination", "pos": ["n."], "meaning": "차별, 구별"}, {"word": "discriminatory", "pos": ["adj."], "meaning": "차별적인"}]},
+  {"root": "bully", "meaning": "v. 괴롭히다", "words": [{"word": "bully", "pos": ["v.", "n."]}, {"word": "bullying", "pos": ["n.", "adj."], "meaning": "괴롭힘 / 괴롭히는"}]},
+  {"root": "tease", "meaning": "v. 놀리다, 장난하다", "words": [{"word": "tease", "pos": ["v.", "n."]}, {"word": "teasing", "pos": ["n.", "adj."], "meaning": "놀림 / 놀리는"}, {"word": "teasingly", "pos": ["adv."], "meaning": "놀리듯이"}]},
+  {"root": "perceive", "meaning": "v. 인식하다, 감지하다", "words": [{"word": "perceive", "pos": ["v."]}, {"word": "perception", "pos": ["n."], "meaning": "인식, 지각"}, {"word": "perceptive", "pos": ["adj."], "meaning": "통찰력 있는"}, {"word": "perceived", "pos": ["adj."], "meaning": "인식된"}, {"word": "perceptively", "pos": ["adv."], "meaning": "통찰력 있게"}]},
+  {"root": "represent", "meaning": "v. 나타내다, 대표하다", "words": [{"word": "represent", "pos": ["v."]}, {"word": "representation", "pos": ["n."], "meaning": "표현, 대표"}, {"word": "representative", "pos": ["n.", "adj."], "meaning": "대표 / 대표적인"}, {"word": "representatively", "pos": ["adv."], "meaning": "대표적으로"}]},
+  {"root": "portray", "meaning": "v. 묘사하다, 그리다", "words": [{"word": "portray", "pos": ["v."]}, {"word": "portrayal", "pos": ["n."], "meaning": "묘사"}, {"word": "portrayed", "pos": ["adj."], "meaning": "묘사된"}]},
+  {"root": "greed", "meaning": "n. 탐욕", "words": [{"word": "greed", "pos": ["n."]}, {"word": "greedy", "pos": ["adj."], "meaning": "탐욕스러운"}, {"word": "greedily", "pos": ["adv."], "meaning": "탐욕스럽게"}]},
+  {"root": "indicate", "meaning": "v. 나타내다, 가리키다", "words": [{"word": "indicate", "pos": ["v."]}, {"word": "indication", "pos": ["n."], "meaning": "표시, 징후"}, {"word": "indicator", "pos": ["n."], "meaning": "지표, 지시기"}, {"word": "indicative", "pos": ["adj."], "meaning": "나타내는, 시사하는"}]},
+  {"root": "generate", "meaning": "발생시키다", "words": [{"word": "generate", "pos": ["v."]}, {"word": "generation", "pos": ["n."], "meaning": "세대, 생성"}, {"word": "generator", "pos": ["n."], "meaning": "발전기, 생성자"}, {"word": "generative", "pos": ["adj."], "meaning": "생성적인"}]},
+  {"root": "encounter", "meaning": "마주치다", "words": [{"word": "encounter", "pos": ["v.", "n."]}, {"word": "encountered", "pos": ["adj."], "meaning": "마주친"}]},
+  {"root": "excessive", "meaning": "과도한", "words": [{"word": "exceed", "pos": ["v."], "meaning": "초과하다"}, {"word": "excess", "pos": ["n."], "meaning": "과다, 초과"}, {"word": "excessive", "pos": ["adj."]}, {"word": "excessively", "pos": ["adv."], "meaning": "과도하게"}]},
+  {"root": "atmosphere", "meaning": "대기", "words": [{"word": "atmosphere", "pos": ["n."]}, {"word": "atmospheric", "pos": ["adj."], "meaning": "대기의, 분위기의"}, {"word": "atmospherically", "pos": ["adv."], "meaning": "대기 면에서"}]},
+  {"root": "result", "meaning": "결과", "words": [{"word": "result", "pos": ["v.", "n."]}, {"word": "resulting", "pos": ["adj."], "meaning": "결과적인, 그 결과의"}]},
+  {"root": "gradual", "meaning": "점진적인", "words": [{"word": "gradual", "pos": ["adj."]}, {"word": "gradually", "pos": ["adv."], "meaning": "점진적으로"}]},
+  {"root": "threaten", "meaning": "위협하다", "words": [{"word": "threaten", "pos": ["v."]}, {"word": "threat", "pos": ["n."], "meaning": "위협"}, {"word": "threatening", "pos": ["adj."], "meaning": "위협적인"}, {"word": "threatened", "pos": ["adj."], "meaning": "위협받은"}, {"word": "threateningly", "pos": ["adv."], "meaning": "위협적으로"}]},
+  {"root": "creature", "meaning": "생물", "words": [{"word": "creature", "pos": ["n."]}]},
+  {"root": "enormous", "meaning": "거대한", "words": [{"word": "enormousness", "pos": ["n."], "meaning": "거대함"}, {"word": "enormous", "pos": ["adj."]}, {"word": "enormously", "pos": ["adv."], "meaning": "엄청나게"}]},
+  {"root": "extremely", "meaning": "극도로", "words": [{"word": "extreme", "pos": ["n.", "adj."], "meaning": "극단 / 극단적인"}, {"word": "extremely", "pos": ["adv."]}]},
+  {"root": "beneficial", "meaning": "유익한", "words": [{"word": "benefit", "pos": ["v.", "n."], "meaning": "혜택 / 이로움을 주다"}, {"word": "beneficial", "pos": ["adj."]}, {"word": "beneficially", "pos": ["adv."], "meaning": "유익하게"}]},
+  {"root": "absorb", "meaning": "흡수하다", "words": [{"word": "absorb", "pos": ["v."]}, {"word": "absorption", "pos": ["n."], "meaning": "흡수"}, {"word": "absorbent", "pos": ["adj."], "meaning": "흡수성의"}, {"word": "absorbed", "pos": ["adj."], "meaning": "몰두한, 흡수된"}]},
+  {"root": "sink", "meaning": "가라앉다", "words": [{"word": "sink", "pos": ["v.", "n."]}, {"word": "sinking", "pos": ["adj."], "meaning": "가라앉는"}]},
+  {"root": "permanently", "meaning": "영구적으로", "words": [{"word": "permanence", "pos": ["n."], "meaning": "영구성"}, {"word": "permanent", "pos": ["adj."], "meaning": "영구적인"}, {"word": "permanently", "pos": ["adv."]}]},
+  {"root": "bury", "meaning": "묻다", "words": [{"word": "bury", "pos": ["v."]}, {"word": "burial", "pos": ["n."], "meaning": "매장"}, {"word": "buried", "pos": ["adj."], "meaning": "묻힌"}]},
+  {"root": "vertical", "meaning": "수직의", "words": [{"word": "vertical", "pos": ["n.", "adj."]}, {"word": "vertically", "pos": ["adv."], "meaning": "수직으로"}]},
+  {"root": "circulate", "meaning": "순환하다", "words": [{"word": "circulate", "pos": ["v."]}, {"word": "circulation", "pos": ["n."], "meaning": "순환, 유통"}, {"word": "circulating", "pos": ["adj."], "meaning": "순환하는"}]},
+  {"root": "prey", "meaning": "먹이", "words": [{"word": "prey", "pos": ["v.", "n."]}]},
+  {"root": "greenhouse", "meaning": "온실", "words": [{"word": "greenhouse", "pos": ["n.", "adj."]}]},
+  {"root": "occasionally", "meaning": "가끔", "words": [{"word": "occasion", "pos": ["v.", "n."], "meaning": "경우, 행사 / 야기하다"}, {"word": "occasional", "pos": ["adj."], "meaning": "가끔의"}, {"word": "occasionally", "pos": ["adv."]}]},
+  {"root": "release", "meaning": "방출하다", "words": [{"word": "release", "pos": ["v.", "n."]}, {"word": "released", "pos": ["adj."], "meaning": "방출된, 공개된"}]},
+  {"root": "microscopic", "meaning": "미세한", "words": [{"word": "microscope", "pos": ["n."], "meaning": "현미경"}, {"word": "microscopic", "pos": ["adj."]}, {"word": "microscopically", "pos": ["adv."], "meaning": "미세하게, 현미경적으로"}]},
+  {"root": "oxygen", "meaning": "산소", "words": [{"word": "oxygenate", "pos": ["v."], "meaning": "산소를 공급하다"}, {"word": "oxygen", "pos": ["n."]}, {"word": "oxygenated", "pos": ["adj."], "meaning": "산소가 공급된"}]},
+  {"root": "photosynthesis", "meaning": "광합성", "words": [{"word": "photosynthesize", "pos": ["v."], "meaning": "광합성하다"}, {"word": "photosynthesis", "pos": ["n."]}, {"word": "photosynthetic", "pos": ["adj."], "meaning": "광합성의"}, {"word": "photosynthetically", "pos": ["adv."], "meaning": "광합성으로"}]},
+  {"root": "estimate", "meaning": "추정하다", "words": [{"word": "estimate", "pos": ["v.", "n."]}, {"word": "estimation", "pos": ["n."], "meaning": "추정, 평가"}, {"word": "estimated", "pos": ["adj."], "meaning": "추정된"}]},
+  {"root": "equivalent", "meaning": "동등한", "words": [{"word": "equivalence", "pos": ["n."], "meaning": "동등성"}, {"word": "equivalent", "pos": ["n.", "adj."]}, {"word": "equivalently", "pos": ["adv."], "meaning": "동등하게"}]},
+  {"root": "stir", "meaning": "젓다", "words": [{"word": "stir", "pos": ["v.", "n."]}, {"word": "stirring", "pos": ["adj."], "meaning": "감동적인 / 휘젓는"}]},
+  {"root": "promote", "meaning": "촉진하다", "words": [{"word": "promote", "pos": ["v."]}, {"word": "promotion", "pos": ["n."], "meaning": "촉진, 홍보, 승진"}, {"word": "promoter", "pos": ["n."], "meaning": "추진자, 후원자"}, {"word": "promotional", "pos": ["adj."], "meaning": "홍보의"}]},
+  {"root": "mammal", "meaning": "포유동물", "words": [{"word": "mammal", "pos": ["n."]}, {"word": "mammalian", "pos": ["adj."], "meaning": "포유류의"}]},
+  {"root": "migrate", "meaning": "이주하다", "words": [{"word": "migrate", "pos": ["v."]}, {"word": "migration", "pos": ["n."], "meaning": "이주"}, {"word": "migrant", "pos": ["n."], "meaning": "이주자"}, {"word": "migratory", "pos": ["adj."], "meaning": "이주하는"}]},
+  {"root": "approach", "meaning": "다가가다", "words": [{"word": "approach", "pos": ["v.", "n."]}, {"word": "approachable", "pos": ["adj."], "meaning": "접근하기 쉬운"}]},
+  {"root": "breed", "meaning": "번식하다", "words": [{"word": "breed", "pos": ["v.", "n."]}, {"word": "breeding", "pos": ["n.", "adj."], "meaning": "번식, 사육 / 번식하는"}]},
+  {"root": "relative", "meaning": "상대적인", "words": [{"word": "relate", "pos": ["v."], "meaning": "관련시키다"}, {"word": "relation", "pos": ["n."], "meaning": "관계"}, {"word": "relative", "pos": ["n.", "adj."]}, {"word": "relatively", "pos": ["adv."], "meaning": "상대적으로"}]},
+  {"root": "scarce", "meaning": "부족한", "words": [{"word": "scarcity", "pos": ["n."], "meaning": "부족"}, {"word": "scarce", "pos": ["adj."]}]},
+  {"root": "fill", "meaning": "채우다", "words": [{"word": "fill", "pos": ["v.", "n."]}, {"word": "filler", "pos": ["n."], "meaning": "채우는 것, 충전재"}, {"word": "filled", "pos": ["adj."], "meaning": "채워진"}]},
+  {"root": "combat", "meaning": "싸우다", "words": [{"word": "combat", "pos": ["v.", "n."]}, {"word": "combative", "pos": ["adj."], "meaning": "호전적인"}, {"word": "combatively", "pos": ["adv."], "meaning": "호전적으로"}]},
+  {"root": "commercial", "meaning": "상업적인", "words": [{"word": "commercialize", "pos": ["v."], "meaning": "상업화하다"}, {"word": "commerce", "pos": ["n."], "meaning": "상업"}, {"word": "commercial", "pos": ["n.", "adj."]}, {"word": "commercially", "pos": ["adv."], "meaning": "상업적으로"}]},
+  {"root": "ban", "meaning": "금지하다", "words": [{"word": "ban", "pos": ["v.", "n."]}, {"word": "banned", "pos": ["adj."], "meaning": "금지된"}]},
+  {"root": "population", "meaning": "인구", "words": [{"word": "populate", "pos": ["v."], "meaning": "거주시키다"}, {"word": "population", "pos": ["n."]}, {"word": "populous", "pos": ["adj."], "meaning": "인구가 많은"}, {"word": "populated", "pos": ["adj."], "meaning": "사람이 사는"}]},
+  {"root": "efficient", "meaning": "효율적인", "words": [{"word": "efficiency", "pos": ["n."], "meaning": "효율성"}, {"word": "efficient", "pos": ["adj."]}, {"word": "efficiently", "pos": ["adv."], "meaning": "효율적으로"}]},
+  {"root": "address", "meaning": "다루다", "words": [{"word": "address", "pos": ["v.", "n."]}, {"word": "addressed", "pos": ["adj."], "meaning": "다뤄진"}]}
+];
+
+
+
+// ───── Helpers ─────
+function posClass(p) {
+  if (p === 'n.') return 'pos-n';
+  if (p === 'v.') return 'pos-v';
+  if (p === 'adj.') return 'pos-adj';
+  if (p === 'adv.') return 'pos-adv';
+  return '';
+}
+const COMMON_PREFIXES = ['inter','dis','un','im','in','en','re'];
+function splitAffix(word, root) {
+  for (const p of COMMON_PREFIXES) {
+    if (word.startsWith(p) && word.length > p.length) {
+      const rest = word.slice(p.length);
+      const minMatch = Math.min(3, root.length);
+      if (rest.startsWith(root.slice(0, minMatch))) {
+        return { prefix: p, stem: rest, suffix: '' };
+      }
+    }
+  }
+  let i = 0;
+  while (i < word.length && i < root.length && word[i] === root[i]) i++;
+  if (i < root.length && root[i] === 'y' && word[i] === 'i') i++;
+  if (i >= 3 && i < word.length) {
+    return { prefix: '', stem: word.slice(0, i), suffix: word.slice(i) };
+  }
+  return { prefix: '', stem: word, suffix: '' };
+}
+// ───── Quiz challenge helper ─────
+// IMPORTANT: We only have meanings for the family's base word (fam.meaning).
+// Derivative words don't have individual meanings, so showing a derivative's POS
+// alongside the base form's meaning creates contradictory hints (e.g. [n.] with
+// adj. meaning "a.생산적인"). FIXED: each derivative now has its own w.meaning.
+// Quiz cards ONLY target derivative words (not the base/기본형) — the base remains
+// as a normal reference card so students see the word family's origin.
+function chooseQuizIndices(fam) {
+  if (!fam || !fam.words || fam.words.length < 2) return new Set();
+  // Collect indices of derivatives (non-base words)
+  const derivIndices = [];
+  fam.words.forEach((w, i) => {
+    if (w.word !== fam.root) derivIndices.push(i);
+  });
+  if (derivIndices.length === 0) return new Set();
+  // Pick 1 or 2 random derivatives
+  const maxQuiz = Math.min(2, derivIndices.length);
+  const count = derivIndices.length === 1
+    ? 1
+    : (Math.random() < 0.5 ? 1 : maxQuiz);
+  // Shuffle
+  for (let i = derivIndices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = derivIndices[i]; derivIndices[i] = derivIndices[j]; derivIndices[j] = tmp;
+  }
+  return new Set(derivIndices.slice(0, count));
+}
+function normalizeAnswer(s) {
+  return (s || '').trim().toLowerCase();
+}
+
+function buildWordEl(word, root) {
+  const span = document.createElement('span');
+  span.className = 'wc-word';
+  if (word === root) {
+    span.classList.add('is-base');
+    span.textContent = word;
+    return span;
+  }
+  const parts = splitAffix(word, root);
+  if (parts.prefix) {
+    const pre = document.createElement('span');
+    pre.className = 'aff';
+    pre.textContent = parts.prefix;
+    span.appendChild(pre);
+  }
+  const stem = document.createElement('span');
+  stem.textContent = parts.stem;
+  span.appendChild(stem);
+  if (parts.suffix) {
+    const suf = document.createElement('span');
+    suf.className = 'aff';
+    suf.textContent = parts.suffix;
+    span.appendChild(suf);
+  }
+  return span;
+}
+
+// ───── Toast ─────
+function showToast(text, duration) {
+  if (duration === undefined) duration = 1800;
+  const area = document.getElementById('toast-area');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = text;
+  area.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 350);
+  }, duration);
+}
+
+// ───── Audio: Web Audio synth SFX ─────
+let _audioCtx = null;
+function audioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+function playTone(freq, dur, when, type, vol) {
+  if (when === undefined) when = 0;
+  if (type === undefined) type = 'sine';
+  if (vol === undefined) vol = 0.12;
+  if (!state.soundOn) return;
+  try {
+    const ctx = audioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    osc.connect(gain); gain.connect(ctx.destination);
+    const t = ctx.currentTime + when;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.linearRampToValueAtTime(vol, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
+  } catch (e) {}
+}
+function sfxWordEntrance() {
+  playTone(523.25, 0.18, 0, 'triangle', 0.10);
+  playTone(659.25, 0.18, 0.05, 'triangle', 0.09);
+  playTone(783.99, 0.30, 0.10, 'triangle', 0.08);
+}
+function sfxReveal() {
+  playTone(880, 0.18, 0, 'sine', 0.10);
+  playTone(1108.73, 0.18, 0.06, 'sine', 0.09);
+  playTone(1318.51, 0.25, 0.12, 'sine', 0.08);
+}
+function sfxClick() {
+  playTone(660, 0.06, 0, 'sine', 0.06);
+}
+function sfxDone() {
+  playTone(523.25, 0.12, 0.00, 'sine', 0.11);
+  playTone(659.25, 0.12, 0.10, 'sine', 0.11);
+  playTone(783.99, 0.12, 0.20, 'sine', 0.11);
+  playTone(1046.50, 0.35, 0.30, 'triangle', 0.13);
+}
+
+// ───── TTS ─────
+function speak(word, btn) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.rate = 0.85;
+  u.lang = 'en-US';
+  if (btn) {
+    btn.classList.add('speaking');
+    u.onend = u.onerror = () => btn.classList.remove('speaking');
+  }
+  speechSynthesis.speak(u);
+}
+
+// ───── Particle burst ─────
+function burst(originX, originY, color, count) {
+  if (count === undefined) count = 18;
+  const area = document.getElementById('fx-area');
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'burst-particle';
+    p.style.left = (originX - 5) + 'px';
+    p.style.top = (originY - 5) + 'px';
+    p.style.background = color;
+    p.style.boxShadow = '0 0 10px ' + color;
+    const angle = (Math.PI * 2) * (i / count) + (Math.random() * 0.4 - 0.2);
+    const dist = 80 + Math.random() * 100;
+    p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+    p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+    area.appendChild(p);
+    setTimeout(() => p.remove(), 1250);
+  }
+}
+function bigConfetti(originX, originY) {
+  const area = document.getElementById('fx-area');
+  const colors = ['#fbbf24','#ec4899','#a78bfa','#74c0fc','#5cb85c','#f0ad4e'];
+  for (let i = 0; i < 70; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti2';
+    p.style.left = (originX - 4) + 'px';
+    p.style.top  = (originY - 4) + 'px';
+    p.style.background = colors[i % colors.length];
+    const angle = (Math.PI * 2) * (i / 70);
+    const speed = 120 + Math.random() * 220;
+    p.style.setProperty('--dx', Math.cos(angle) * speed + 'px');
+    p.style.setProperty('--dy', Math.sin(angle) * speed * 0.6 + 'px');
+    area.appendChild(p);
+    setTimeout(() => p.remove(), 2100);
+  }
+}
+
+// ───── Affix info dictionary ─────
+const AFFIX_INFO = {
+  // Suffixes (sorted by specificity — longer matches first)
+  '-tion':  { type:'suffix', role:'명사화 (-tion)',  desc:'동사 → 명사 (행위·결과)', ex:'create→creation, produce→production' },
+  '-sion':  { type:'suffix', role:'명사화 (-sion)',  desc:'동사 → 명사', ex:'decide→decision, expand→expansion' },
+  '-ation': { type:'suffix', role:'명사화 (-ation)', desc:'동사 → 명사', ex:'inform→information, exploit→exploitation' },
+  '-ment':  { type:'suffix', role:'명사화 (-ment)',  desc:'동사 → 명사 (행위·결과)', ex:'agree→agreement, achieve→achievement' },
+  '-ness':  { type:'suffix', role:'명사화 (-ness)',  desc:'형용사 → 명사 (상태)', ex:'happy→happiness, kind→kindness' },
+  '-ity':   { type:'suffix', role:'명사화 (-ity)',   desc:'형용사 → 명사 (성질)', ex:'major→majority, equal→equality' },
+  '-ance':  { type:'suffix', role:'명사화 (-ance)',  desc:'동사 → 명사 (행위·상태)', ex:'perform→performance, resist→resistance' },
+  '-ence':  { type:'suffix', role:'명사화 (-ence)',  desc:'동사 → 명사', ex:'differ→difference, depend→dependence' },
+  '-ship':  { type:'suffix', role:'명사화 (-ship)',  desc:'관계·상태', ex:'friend→friendship, leader→leadership' },
+  '-hood':  { type:'suffix', role:'명사화 (-hood)',  desc:'시기·상태', ex:'child→childhood, neighbor→neighborhood' },
+  '-age':   { type:'suffix', role:'명사화 (-age)',   desc:'행위·결과', ex:'use→usage, coin→coinage' },
+  '-er':    { type:'suffix', role:'행위자 (-er)',    desc:'~하는 사람·기계', ex:'teach→teacher, help→helper' },
+  '-or':    { type:'suffix', role:'행위자 (-or)',    desc:'~하는 사람·것', ex:'act→actor, invent→inventor' },
+  '-ist':   { type:'suffix', role:'직업·사람 (-ist)', desc:'~하는 사람', ex:'art→artist, psychology→psychologist' },
+  '-ee':    { type:'suffix', role:'대상자 (-ee)',    desc:'~당하는 사람', ex:'employ→employee, train→trainee' },
+  '-ant':   { type:'suffix', role:'사람·것 (-ant)',  desc:'~하는 사람·물질', ex:'depress→depressant, account→accountant' },
+  '-ent':   { type:'suffix', role:'사람·것 (-ent)',  desc:'~하는 사람·것', ex:'respond→respondent, differ→different' },
+  '-ive':   { type:'suffix', role:'형용사화 (-ive)', desc:'~하는 경향이 있는', ex:'create→creative, produce→productive' },
+  '-able':  { type:'suffix', role:'형용사화 (-able)', desc:'~할 수 있는', ex:'agree→agreeable, access→accessible' },
+  '-ible':  { type:'suffix', role:'형용사화 (-ible)', desc:'~할 수 있는', ex:'access→accessible, visible' },
+  '-ful':   { type:'suffix', role:'형용사화 (-ful)', desc:'~로 가득한, ~이 있는', ex:'help→helpful, beauty→beautiful' },
+  '-less':  { type:'suffix', role:'형용사화 (-less)', desc:'~이 없는', ex:'help→helpless, care→careless' },
+  '-ous':   { type:'suffix', role:'형용사화 (-ous)', desc:'~한, ~의', ex:'danger→dangerous, fame→famous' },
+  '-ious':  { type:'suffix', role:'형용사화 (-ious)', desc:'~한, ~성질의', ex:'nutrition→nutritious, infect→infectious' },
+  '-al':    { type:'suffix', role:'형용사화 (-al)',  desc:'~의, ~에 관한', ex:'nation→national, function→functional' },
+  '-ical':  { type:'suffix', role:'형용사화 (-ical)', desc:'~의, ~적인', ex:'analyze→analytical, geology→geological' },
+  '-ic':    { type:'suffix', role:'형용사화 (-ic)',  desc:'~의, ~한', ex:'hero→heroic, atom→atomic' },
+  '-ish':   { type:'suffix', role:'형용사화 (-ish)', desc:'~같은, ~의 성질을 가진', ex:'child→childish' },
+  '-y':     { type:'suffix', role:'형용사화 (-y)',   desc:'~한, ~로 가득한', ex:'sleep→sleepy, wood→woody' },
+  '-ly':    { type:'suffix', role:'부사화 (-ly)',    desc:'~게, ~으로', ex:'careful→carefully, quick→quickly' },
+  '-ize':   { type:'suffix', role:'동사화 (-ize)',   desc:'~화하다, ~로 만들다', ex:'modern→modernize, urban→urbanize' },
+  '-ise':   { type:'suffix', role:'동사화 (-ise)',   desc:'~화하다 (영국식)', ex:'civil→civilise' },
+  '-ify':   { type:'suffix', role:'동사화 (-ify)',   desc:'~로 만들다', ex:'beauty→beautify, simple→simplify' },
+  '-en':    { type:'suffix', role:'동사화 (-en)',    desc:'~하게 만들다', ex:'wide→widen, strong→strengthen' },
+  '-ate':   { type:'suffix', role:'동사화 (-ate)',   desc:'~하다, ~로 만들다', ex:'activate, generate' },
+  // Prefixes
+  'un-':    { type:'prefix', role:'부정 (un-)',     desc:'아닌, 반대의', ex:'happy→unhappy, fair→unfair' },
+  'in-':    { type:'prefix', role:'부정 (in-)',     desc:'아닌, ~안에', ex:'visible→invisible, secure→insecure' },
+  'im-':    { type:'prefix', role:'부정 (im-)',     desc:'아닌 (p,b,m 앞)', ex:'possible→impossible, perfect→imperfect' },
+  'il-':    { type:'prefix', role:'부정 (il-)',     desc:'아닌 (l 앞)', ex:'legal→illegal' },
+  'ir-':    { type:'prefix', role:'부정 (ir-)',     desc:'아닌 (r 앞)', ex:'regular→irregular' },
+  'dis-':   { type:'prefix', role:'부정·반대 (dis-)', desc:'아닌, 반대', ex:'agree→disagree, like→dislike' },
+  'non-':   { type:'prefix', role:'부정 (non-)',    desc:'~아닌', ex:'fiction→nonfiction' },
+  'mis-':   { type:'prefix', role:'잘못 (mis-)',    desc:'잘못, 틀린', ex:'understand→misunderstand' },
+  're-':    { type:'prefix', role:'재차 (re-)',     desc:'다시, 되', ex:'gain→regain, view→review' },
+  'en-':    { type:'prefix', role:'동사화 (en-)',   desc:'~로 만들다', ex:'large→enlarge, danger→endanger' },
+  'em-':    { type:'prefix', role:'동사화 (em-)',   desc:'~로 만들다 (b,p 앞)', ex:'power→empower' },
+  'inter-': { type:'prefix', role:'사이 (inter-)',  desc:'~사이의, 상호', ex:'national→international, act→interact' },
+  'over-':  { type:'prefix', role:'초과 (over-)',   desc:'지나치게, ~위에', ex:'whelm→overwhelm' },
+  'under-': { type:'prefix', role:'아래 (under-)',  desc:'아래의, 부족한', ex:'underestimate, understand' },
+  'pre-':   { type:'prefix', role:'사전 (pre-)',    desc:'미리, 앞', ex:'predominant' },
+  'post-':  { type:'prefix', role:'사후 (post-)',   desc:'후의, 뒤', ex:'postpone' },
+  'sub-':   { type:'prefix', role:'하위 (sub-)',    desc:'아래, 부속의', ex:'submit, suburb' },
+  'super-': { type:'prefix', role:'위 (super-)',    desc:'~위에, 초월', ex:'superhuman' },
+  'co-':    { type:'prefix', role:'함께 (co-)',     desc:'함께, 공동', ex:'cooperate' },
+  'de-':    { type:'prefix', role:'제거 (de-)',     desc:'아래, 제거, 반대', ex:'forest→deforest' },
+  'trans-': { type:'prefix', role:'전환 (trans-)',  desc:'가로질러, 변환', ex:'transparent, transform' },
+  'ex-':    { type:'prefix', role:'밖 (ex-)',       desc:'밖으로, 이전의', ex:'expose, exploit' },
+};
+
+// ───── State ─────
+const state = {
+  pool: [],
+  currentIdx: 0,
+  revealedInQuiz: false,
+  soundOn: false,
+  autoSpeak: true,
+  streak: 0,
+  maxStreak: 0,
+  wrongQueue: [],          // [{word, root, fam, idx}] for review round
+  theme: 'dark',
+  familyStats: {},         // localStorage: { [root]: { right, wrong, last, attempts } }
+  currentFamilyStats: null,// per-family running stats during a family session
+  inReviewMode: false,     // true during the review round
+};
+const ACCURACY_KEY = 'wordcloud_study_accuracy';
+const THEME_KEY = 'wordcloud_study_theme';
+
+// ───── Screen switch ─────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ───── Streak ─────
+function bumpStreak() {
+  state.streak++;
+  if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+  updateStreakUI();
+  if (state.streak === 3 || state.streak === 5 || state.streak === 10 || state.streak === 20) {
+    showToast(`🔥 ${state.streak}연속 정답!`, 1800);
+    const el = document.getElementById('streak');
+    el.classList.add('milestone');
+    setTimeout(() => el.classList.remove('milestone'), 600);
+  }
+}
+function resetStreak() {
+  state.streak = 0;
+  updateStreakUI();
+}
+function updateStreakUI() {
+  const el = document.getElementById('streak');
+  el.textContent = `🔥 ${state.streak}`;
+  el.classList.toggle('show', state.streak > 0);
+}
+
+// ───── Diff visualization: show user's input with right/wrong chars marked
+// (no answer leak — progressive hint reveals partial answer separately) ─────
+function renderDiff(parent, userInput, correct, showAnswer) {
+  parent.innerHTML = '';
+  const u = (userInput || '').toLowerCase();
+  const c = correct.toLowerCase();
+
+  // "입력" — user's text with per-char styling
+  const labelYour = document.createElement('span'); labelYour.className = 'label'; labelYour.textContent = '입력';
+  const yourSpan = document.createElement('span'); yourSpan.className = 'your';
+  for (let i = 0; i < u.length; i++) {
+    const ch = document.createElement('span');
+    if (i < c.length && u[i] === c[i]) {
+      ch.className = 'good';
+    } else {
+      ch.className = 'bad';
+    }
+    ch.textContent = u[i];
+    yourSpan.appendChild(ch);
+  }
+  // Length mismatch indicator
+  if (u.length < c.length) {
+    const sh = document.createElement('span');
+    sh.style.cssText = 'color:#ffd66e;margin-left:6px;font-size:12px;';
+    sh.textContent = `+ ${c.length - u.length}자 더 필요`;
+    yourSpan.appendChild(sh);
+  } else if (u.length > c.length) {
+    const lg = document.createElement('span');
+    lg.style.cssText = 'color:#ffd66e;margin-left:6px;font-size:12px;';
+    lg.textContent = `(${u.length - c.length}자 많음)`;
+    yourSpan.appendChild(lg);
+  }
+  parent.appendChild(labelYour);
+  parent.appendChild(yourSpan);
+
+  // Only show "정답" line when explicitly enabled (after many attempts)
+  if (showAnswer) {
+    const labelAns = document.createElement('span'); labelAns.className = 'label'; labelAns.textContent = '정답';
+    const ansSpan = document.createElement('span'); ansSpan.className = 'ans';
+    for (let i = 0; i < c.length; i++) {
+      const ch = document.createElement('span');
+      if (i < u.length && u[i] === c[i]) ch.className = 'good';
+      else ch.className = 'miss';
+      ch.textContent = c[i];
+      ansSpan.appendChild(ch);
+    }
+    parent.appendChild(labelAns);
+    parent.appendChild(ansSpan);
+  }
+}
+
+// ───── Progressive hint for wrong attempts ─────
+function buildProgressiveHint(word, attempts) {
+  // attempts: 1=show first letter, 2=show half, 3=show 75%
+  if (attempts < 1) return '';
+  const len = word.length;
+  let revealed;
+  if (attempts === 1)      revealed = Math.max(1, Math.ceil(len * 0.3));   // 30%
+  else if (attempts === 2) revealed = Math.max(2, Math.ceil(len * 0.55));  // 55%
+  else                     revealed = Math.max(3, Math.ceil(len * 0.8));   // 80%
+  revealed = Math.min(revealed, len - 1);
+  return word.slice(0, revealed) + '_'.repeat(Math.max(1, len - revealed));
+}
+
+// ───── Letter glow burst on correct answer ─────
+function letterGlowBurst(inputEl, word) {
+  // Briefly replace input visual with each letter popping in
+  inputEl.classList.add('correct-glow');
+  setTimeout(() => inputEl.classList.remove('correct-glow'), 1100);
+}
+
+// ───── Per-family stats ─────
+function loadFamilyStats() {
+  try { state.familyStats = JSON.parse(localStorage.getItem(ACCURACY_KEY)) || {}; }
+  catch (_) { state.familyStats = {}; }
+}
+function saveFamilyStats() {
+  try { localStorage.setItem(ACCURACY_KEY, JSON.stringify(state.familyStats)); } catch (_) {}
+}
+function recordFamilyResult(root, right, wrong, attempts) {
+  const cur = state.familyStats[root] || { right: 0, wrong: 0, attempts: 0, sessions: 0 };
+  cur.right += right;
+  cur.wrong += wrong;
+  cur.attempts += attempts;
+  cur.sessions = (cur.sessions || 0) + 1;
+  cur.last = Date.now();
+  state.familyStats[root] = cur;
+  saveFamilyStats();
+}
+function familyAccuracy(root) {
+  const s = state.familyStats[root];
+  if (!s || (s.right + s.wrong) === 0) return null;
+  return s.right / (s.right + s.wrong);
+}
+
+// ───── Family progress dots ─────
+function renderFamilyDots(fam, quizSet) {
+  const wrap = document.getElementById('family-dots');
+  wrap.innerHTML = '';
+  fam.words.forEach((w, i) => {
+    const d = document.createElement('span');
+    d.className = 'fdot';
+    d.dataset.idx = i;
+    d.dataset.isQuiz = quizSet.has(i) ? '1' : '0';
+    wrap.appendChild(d);
+  });
+}
+function markDotDone(idx, isQuiz) {
+  const dot = document.querySelector(`.fdot[data-idx="${idx}"]`);
+  if (!dot) return;
+  dot.classList.add(isQuiz ? 'done-quiz' : 'done', 'flash');
+  setTimeout(() => dot.classList.remove('flash'), 280);
+}
+
+// ───── Theme toggle ─────
+function applyTheme(theme) {
+  state.theme = theme;
+  document.body.classList.toggle('light-theme', theme === 'light');
+  const btn = document.getElementById('theme-toggle');
+  if (btn) {
+    btn.textContent = theme === 'light' ? '☀️' : '🌙';
+    btn.classList.toggle('light-on', theme === 'light');
+  }
+  try { localStorage.setItem(THEME_KEY, theme); } catch (_) {}
+}
+function toggleTheme() {
+  applyTheme(state.theme === 'light' ? 'dark' : 'light');
+}
+
+// ───── Affix popup ─────
+let _affixPopupTimer = null;
+function showAffixPopup(target, affixText) {
+  const info = lookupAffix(affixText);
+  if (!info) return;
+  const pop = document.getElementById('affix-popup');
+  pop.querySelector('.affix-role').textContent = info.role;
+  pop.querySelector('.affix-desc').textContent = info.desc;
+  pop.querySelector('.affix-examples').innerHTML = '<b>예:</b> ' + info.ex;
+
+  const rect = target.getBoundingClientRect();
+  // Try below first; if not fitting, above
+  pop.style.left = Math.max(10, Math.min(window.innerWidth - 300, rect.left + rect.width/2 - 140)) + 'px';
+  pop.style.top = (rect.bottom + 8) + 'px';
+  pop.classList.add('show');
+  clearTimeout(_affixPopupTimer);
+  _affixPopupTimer = setTimeout(hideAffixPopup, 3500);
+}
+function hideAffixPopup() {
+  document.getElementById('affix-popup').classList.remove('show');
+}
+function lookupAffix(text) {
+  // text is the raw affix text in the span (e.g. "ly", "tion", "un", "dis")
+  // Try as suffix first (with "-" prefix), then as prefix (with "-" suffix)
+  const lower = text.toLowerCase();
+  // Suffix candidates: longest match
+  const suffixKeys = Object.keys(AFFIX_INFO).filter(k => k.startsWith('-')).sort((a,b) => b.length - a.length);
+  for (const key of suffixKeys) {
+    if (key === '-' + lower) return AFFIX_INFO[key];
+  }
+  // Prefix candidates
+  const prefixKeys = Object.keys(AFFIX_INFO).filter(k => k.endsWith('-')).sort((a,b) => b.length - a.length);
+  for (const key of prefixKeys) {
+    if (key === lower + '-') return AFFIX_INFO[key];
+  }
+  // Fallback: longest matching suffix where text contains the affix
+  for (const key of suffixKeys) {
+    if (lower.endsWith(key.slice(1))) return AFFIX_INFO[key];
+  }
+  for (const key of prefixKeys) {
+    if (lower.startsWith(key.slice(0, -1))) return AFFIX_INFO[key];
+  }
+  return null;
+}
+
+// ───── Build pool from selection ─────
+function buildPool() {
+  const deckVal = document.getElementById('deck-select').value;
+  const countVal = document.getElementById('count-select').value;
+  const orderVal = document.getElementById('order-select').value;
+  let pool;
+  if (deckVal === 'all') {
+    pool = ALL_FAMILIES.slice();
+  } else {
+    const parts = deckVal.split('-').map(Number);
+    pool = ALL_FAMILIES.slice(parts[0], parts[1]);
+  }
+  if (orderVal === 'random') {
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+    }
+  } else if (orderVal === 'weak') {
+    // Sort: weakest accuracy first; untouched families come after weak ones (treat as 100%)
+    pool.sort((a, b) => {
+      const aa = familyAccuracy(a.root);
+      const bb = familyAccuracy(b.root);
+      const av = aa === null ? 1.0 : aa;
+      const bv = bb === null ? 1.0 : bb;
+      return av - bv;
+    });
+  }
+  if (countVal !== 'all') {
+    const n = Math.min(parseInt(countVal, 10), pool.length);
+    pool = pool.slice(0, n);
+  }
+  return pool;
+}
+
+// Update the small weak-info bar under the start controls
+function updateWeakInfo() {
+  const info = document.getElementById('weak-info');
+  const order = document.getElementById('order-select').value;
+  if (order !== 'weak') { info.classList.add('hidden'); return; }
+  // Count weak families (accuracy < 80%)
+  let weak = 0, recorded = 0;
+  Object.entries(state.familyStats).forEach(([root, s]) => {
+    const total = (s.right || 0) + (s.wrong || 0);
+    if (total > 0) {
+      recorded++;
+      if (s.right / total < 0.8) weak++;
+    }
+  });
+  if (recorded === 0) {
+    info.classList.remove('hidden');
+    info.textContent = '💡 학습 기록이 아직 없어요. 평소대로 진행해도 다음번부터 약점이 우선 출제됩니다.';
+  } else {
+    info.classList.remove('hidden');
+    info.innerHTML = `💪 기록 있는 ${recorded}가족 중 <b>${weak}가족</b>이 약점(정답률 80% 미만). 약점이 우선 출제됩니다.`;
+  }
+}
+
+function startGame() {
+  state.pool = buildPool();
+  state.currentIdx = 0;
+  state.streak = 0;
+  state.maxStreak = 0;
+  state.wrongQueue = [];
+  state.inReviewMode = false;
+  state.currentFamilyStats = null;
+  updateStreakUI();
+  if (state.pool.length === 0) { showToast('단어가 없어요'); return; }
+  document.getElementById('progress-row').classList.remove('hidden');
+  updateProgress();
+  goToQuiz();
+}
+
+function updateProgress() {
+  const txt = document.getElementById('progress-text');
+  const fill = document.getElementById('progress-fill');
+  txt.textContent = (state.currentIdx + 1) + ' / ' + state.pool.length;
+  fill.style.width = (state.currentIdx / state.pool.length * 100) + '%';
+}
+
+// ───── Quiz screen ─────
+function goToQuiz() {
+  const fam = state.pool[state.currentIdx];
+  if (!fam) return;
+  state.revealedInQuiz = false;
+
+  document.getElementById('quiz-word').textContent = fam.root;
+  document.getElementById('quiz-answer').classList.remove('shown');
+  document.getElementById('quiz-reveal-btn').style.display = '';
+  document.getElementById('quiz-next-btn').style.display = 'none';
+
+  const baseWord = fam.words.find(w => w.word === fam.root);
+  const posList = baseWord ? baseWord.pos : (fam.words[0] ? fam.words[0].pos : []);
+
+  const posEl = document.getElementById('quiz-pos');
+  posEl.innerHTML = '';
+  posList.forEach(p => {
+    const b = document.createElement('span');
+    b.className = 'pos-big ' + posClass(p);
+    b.textContent = p;
+    posEl.appendChild(b);
+  });
+  document.getElementById('quiz-meaning').textContent = fam.meaning || '';
+
+  updateProgress();
+  showScreen('screen-quiz');
+  sfxWordEntrance();
+
+  if (state.autoSpeak) {
+    setTimeout(() => speak(fam.root, document.getElementById('quiz-tts')), 700);
+  }
+}
+
+function revealQuizAnswer() {
+  if (state.revealedInQuiz) return;
+  state.revealedInQuiz = true;
+  document.getElementById('quiz-answer').classList.add('shown');
+  document.getElementById('quiz-reveal-btn').style.display = 'none';
+  document.getElementById('quiz-next-btn').style.display = '';
+  sfxReveal();
+  const rect = document.getElementById('quiz-word').getBoundingClientRect();
+  burst(rect.left + rect.width/2, rect.top + rect.height/2, '#a78bfa', 22);
+}
+
+// ───── Family screen ─────
+function goToFamily() {
+  const fam = state.pool[state.currentIdx];
+  if (!fam) return;
+  document.getElementById('family-root').textContent = fam.root;
+  document.getElementById('family-meaning').textContent = fam.meaning || '';
+  document.getElementById('family-count').textContent = fam.words.length + '개 단어';
+
+  // Initialize current family stats for summary
+  state.currentFamilyStats = {
+    root: fam.root,
+    meaning: fam.meaning,
+    totalQuiz: 0, rightQuiz: 0, wrongQuiz: 0,
+    totalAttempts: 0,
+    words: fam.words.slice()
+  };
+
+  const list = document.getElementById('family-list');
+  list.innerHTML = '';
+
+  // Quiz only derivatives (1-2 random); base stays as normal reference card
+  const quizSet = chooseQuizIndices(fam);
+  renderFamilyDots(fam, quizSet);
+
+  fam.words.forEach((w, i) => {
+    const isQuiz = quizSet.has(i);
+    const card = document.createElement('div');
+    card.className = 'word-card enter' + (isQuiz ? ' quiz-card' : '');
+    card.style.animationDelay = (0.05 + i * 0.10) + 's';
+
+    if (isQuiz) {
+      buildQuizCard(card, w, fam);
+    } else {
+      buildNormalCard(card, w, fam);
+    }
+
+    list.appendChild(card);
+  });
+}
+
+// ───── Normal card: word visible, click to reveal POS+meaning ─────
+function buildNormalCard(card, w, fam) {
+  const top = document.createElement('div');
+  top.className = 'wc-top';
+
+  const wordEl = buildWordEl(w.word, fam.root);
+  top.appendChild(wordEl);
+
+  const tts = document.createElement('button');
+  tts.className = 'wc-tts';
+  tts.textContent = '🔊';
+  tts.title = '발음 듣기';
+  tts.addEventListener('click', (e) => {
+    e.stopPropagation();
+    speak(w.word, tts);
+  });
+  top.appendChild(tts);
+  card.appendChild(top);
+
+  const hint = document.createElement('div');
+  hint.className = 'wc-hint';
+  hint.textContent = '🔍 탭하면 품사·뜻이 나와요';
+  card.appendChild(hint);
+
+  const reveal = document.createElement('div');
+  reveal.className = 'wc-reveal';
+  const posRow = document.createElement('div');
+  posRow.className = 'wc-pos';
+  w.pos.forEach(p => {
+    const b = document.createElement('span');
+    b.className = 'pos-badge ' + posClass(p);
+    b.textContent = p;
+    posRow.appendChild(b);
+  });
+  reveal.appendChild(posRow);
+  const meaningRow = document.createElement('div');
+  meaningRow.className = 'wc-meaning';
+  meaningRow.textContent = w.meaning || fam.meaning || '';
+  reveal.appendChild(meaningRow);
+  card.appendChild(reveal);
+
+  card.addEventListener('click', () => {
+    const wasRevealed = card.classList.contains('revealed');
+    card.classList.toggle('revealed');
+    if (!wasRevealed) {
+      sfxClick();
+      const r = card.getBoundingClientRect();
+      burst(r.left + r.width - 30, r.top + 20, '#ec4899', 10);
+      if (state.autoSpeak) speak(w.word, tts);
+      // Mark family dot
+      const fam = state.pool[state.currentIdx];
+      const idx = fam ? fam.words.findIndex(ww => ww.word === w.word) : -1;
+      if (idx >= 0) markDotDone(idx, false);
+    }
+  });
+}
+
+// ───── Quiz card: POS+meaning visible, user types word ─────
+function buildQuizCard(card, w, fam) {
+  // Hint row: POS badges + meaning + tiny TTS hint button
+  const promptRow = document.createElement('div');
+  promptRow.className = 'quiz-prompt-row';
+  w.pos.forEach(p => {
+    const b = document.createElement('span');
+    b.className = 'pos-badge ' + posClass(p);
+    b.textContent = p;
+    promptRow.appendChild(b);
+  });
+  const meaning = document.createElement('span');
+  meaning.className = 'quiz-prompt-meaning';
+  meaning.textContent = w.meaning || fam.meaning || '';
+  promptRow.appendChild(meaning);
+  const ttsHint = document.createElement('button');
+  ttsHint.className = 'quiz-tts-small';
+  ttsHint.textContent = '🔊';
+  ttsHint.title = '발음 들어보기 (힌트)';
+  ttsHint.addEventListener('click', (e) => {
+    e.stopPropagation();
+    speak(w.word, ttsHint);
+  });
+  promptRow.appendChild(ttsHint);
+  card.appendChild(promptRow);
+
+  // Input row
+  const inputRow = document.createElement('div');
+  inputRow.className = 'quiz-input-row';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'quiz-input';
+  input.placeholder = '영어 단어를 입력하세요';
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  input.autocapitalize = 'off';
+  inputRow.appendChild(input);
+  const submit = document.createElement('button');
+  submit.className = 'quiz-submit';
+  submit.textContent = '✓ 제출';
+  inputRow.appendChild(submit);
+  card.appendChild(inputRow);
+
+  // Result row (hint / feedback)
+  const result = document.createElement('div');
+  result.className = 'quiz-result';
+  result.textContent = '💭 한국어 뜻을 보고 영어 단어를 적어보세요';
+  card.appendChild(result);
+
+  // State
+  let attempts = 0;
+  let solved = false;
+  let wasWrongBeforeCorrect = false;  // tracks "first-try correct?"
+
+  // Track current-family stats for summary
+  if (state.currentFamilyStats) {
+    state.currentFamilyStats.totalQuiz++;
+  }
+
+  function checkAnswer() {
+    if (solved) return;
+    const userVal = normalizeAnswer(input.value);
+    const target = w.word.toLowerCase();
+    if (!userVal) {
+      result.classList.remove('correct');
+      result.classList.add('wrong');
+      result.textContent = '✏️ 입력해주세요';
+      return;
+    }
+    if (userVal === target) {
+      // Correct!
+      solved = true;
+      card.classList.add('correct');
+      input.classList.remove('wrong');
+      input.classList.add('correct');
+      input.value = w.word;
+      input.disabled = true;
+      submit.disabled = true;
+      submit.textContent = '✓';
+      result.classList.remove('wrong');
+      result.classList.add('correct');
+      result.innerHTML = (wasWrongBeforeCorrect ? '✓ 맞췄어요! ' : '🎉 정답! ') +
+        '&nbsp; <span class="correct-word">' + w.word + '</span>';
+      sfxReveal();
+      letterGlowBurst(input, w.word);
+      const r = card.getBoundingClientRect();
+      burst(r.left + r.width/2, r.top + r.height/2, '#5cb85c', 22);
+      if (state.autoSpeak) speak(w.word, ttsHint);
+      // Stats: count this quiz as right (first try) or wrong
+      if (state.currentFamilyStats) {
+        if (wasWrongBeforeCorrect) state.currentFamilyStats.wrongQuiz++;
+        else state.currentFamilyStats.rightQuiz++;
+        state.currentFamilyStats.totalAttempts += (attempts + 1);
+      }
+      // Streak
+      if (!wasWrongBeforeCorrect) bumpStreak();
+      // Mark dot done
+      const idx = fam.words.indexOf(w);
+      if (idx >= 0) markDotDone(idx, true);
+      // Remove from wrong queue if present (review mode)
+      if (state.inReviewMode) {
+        state.wrongQueue = state.wrongQueue.filter(x => !(x.word === w.word && x.root === fam.root));
+      }
+    } else {
+      attempts++;
+      wasWrongBeforeCorrect = true;
+      input.classList.remove('correct');
+      input.classList.add('wrong');
+      result.classList.remove('correct');
+      result.classList.add('wrong');
+      resetStreak();
+      // SFX
+      try {
+        if (state.soundOn) {
+          playTone(220, 0.12, 0, 'sawtooth', 0.08);
+          playTone(180, 0.16, 0.08, 'sawtooth', 0.07);
+        }
+      } catch (e) {}
+      // Build feedback: header line + diff + hint
+      result.innerHTML = '';
+      const headerLine = document.createElement('div');
+      headerLine.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+      headerLine.innerHTML = `<span style="color:#ff9b9b;font-weight:800">❌ 틀렸어요</span> <span style="color:#9aa3c7;font-size:12px">(${attempts}회 시도)</span>`;
+      result.appendChild(headerLine);
+      // Diff — input-only by default; show answer only after 4+ wrong tries
+      const diffDiv = document.createElement('div');
+      diffDiv.className = 'quiz-diff';
+      renderDiff(diffDiv, input.value, w.word, attempts >= 4);
+      result.appendChild(diffDiv);
+      // Progressive hint
+      if (attempts >= 1) {
+        const hintDiv = document.createElement('div');
+        hintDiv.innerHTML = `<span style="color:#9aa3c7;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-right:6px">💡 힌트</span><span class="quiz-hint-text">${buildProgressiveHint(w.word, attempts)}</span>`;
+        result.appendChild(hintDiv);
+      }
+      // After 4 wrong, reveal full answer
+      if (attempts >= 4) {
+        const full = document.createElement('div');
+        full.innerHTML = `정답: <span class="correct-word">${w.word}</span> · 입력해서 확인하세요`;
+        full.style.cssText = 'color:#fbbf24;font-weight:700';
+        result.appendChild(full);
+      }
+      setTimeout(() => input.classList.remove('wrong'), 500);
+      // Track in review queue (once per word)
+      if (!state.inReviewMode && !state.wrongQueue.some(x => x.word === w.word && x.root === fam.root)) {
+        state.wrongQueue.push({ word: w.word, root: fam.root, fam: fam });
+      }
+      // Auto-select for retry
+      input.select();
+    }
+  }
+
+  submit.addEventListener('click', checkAnswer);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      checkAnswer();
+    }
+  });
+  // Mobile: when keyboard opens, scroll input into view
+  input.addEventListener('focus', () => {
+    setTimeout(() => {
+      try { input.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
+    }, 320);
+  });
+  // Don't let card click do anything (no reveal toggle for quiz cards)
+  card.addEventListener('click', (e) => {
+    if (e.target === card) input.focus();
+  });
+
+  showScreen('screen-family');
+}
+
+function revealAllInFamily() {
+  document.querySelectorAll('#family-list .word-card').forEach((card, i) => {
+    if (!card.classList.contains('revealed')) {
+      setTimeout(() => {
+        card.classList.add('revealed');
+        const r = card.getBoundingClientRect();
+        burst(r.left + r.width - 30, r.top + 20, '#ec4899', 8);
+      }, i * 80);
+    }
+  });
+  sfxReveal();
+}
+
+function nextFamily() {
+  // Review mode: advance through wrongQueue, not pool
+  if (state.inReviewMode) {
+    advanceReview();
+    return;
+  }
+  // Normal flow: summary then next
+  if (state.currentFamilyStats) {
+    saveCurrentFamilyStats();
+    showFamilySummary();
+    return;
+  }
+  proceedToNextOrDone();
+}
+
+function skipFamily() {
+  if (state.inReviewMode) {
+    advanceReview();
+    return;
+  }
+  proceedToNextOrDone();
+}
+
+function proceedToNextOrDone() {
+  state.currentIdx++;
+  if (state.currentIdx >= state.pool.length) {
+    // If we're in review mode and finished, go to done; else go to review (if wrongs)
+    if (state.inReviewMode) {
+      state.inReviewMode = false;
+      goToDone();
+    } else if (state.wrongQueue.length > 0) {
+      goToReviewIntro();
+    } else {
+      goToDone();
+    }
+  } else {
+    goToQuiz();
+  }
+}
+
+function saveCurrentFamilyStats() {
+  const s = state.currentFamilyStats;
+  if (!s || !s.root) return;
+  // Save to persistent family stats (for "weak family" tracking)
+  recordFamilyResult(s.root, s.rightQuiz, s.wrongQuiz, s.totalAttempts);
+}
+
+function showFamilySummary() {
+  const s = state.currentFamilyStats;
+  if (!s) { proceedToNextOrDone(); return; }
+  document.getElementById('summary-root').textContent = s.root;
+  document.getElementById('summary-meaning').textContent = s.meaning || '';
+  document.getElementById('summary-total').textContent = s.words.length;
+  const rateEl = document.getElementById('summary-rate');
+  if (s.totalQuiz > 0) {
+    const pct = Math.round(s.rightQuiz / s.totalQuiz * 100);
+    rateEl.textContent = `${pct}%`;
+    rateEl.className = 'value ' + (pct >= 90 ? 'good' : pct >= 60 ? 'mid' : 'poor');
+  } else {
+    rateEl.textContent = '—';
+    rateEl.className = 'value';
+  }
+  document.getElementById('summary-attempts').textContent = s.totalAttempts || s.words.length;
+
+  // Build words list with meanings
+  const wordsBox = document.getElementById('summary-words');
+  wordsBox.innerHTML = '';
+  const fam = state.pool[state.currentIdx];
+  s.words.forEach(w => {
+    const line = document.createElement('div');
+    line.className = 'summary-word-line';
+    const ww = document.createElement('span');
+    ww.className = 'w';
+    ww.textContent = w.word + (w.word === fam.root ? ' ★' : '');
+    const mm = document.createElement('span');
+    mm.className = 'm';
+    const meaningTxt = w.meaning || fam.meaning || '';
+    mm.textContent = `[${w.pos.join(',')}] ${meaningTxt}`;
+    line.appendChild(ww);
+    line.appendChild(mm);
+    wordsBox.appendChild(line);
+  });
+
+  showScreen('screen-summary');
+}
+
+function goToReviewIntro() {
+  document.getElementById('review-count').textContent = state.wrongQueue.length;
+  showScreen('screen-review-intro');
+}
+
+function startReview() {
+  if (state.wrongQueue.length === 0) { goToDone(); return; }
+  state.inReviewMode = true;
+  state.reviewInitialCount = state.wrongQueue.length;  // for "X / Y" progress display
+  state.currentReviewItem = null;
+  goToReviewQuiz();
+}
+
+function skipReview() {
+  state.inReviewMode = false;
+  goToDone();
+}
+
+// Show wrongQueue[0]. As student answers correctly, checkAnswer removes from queue.
+function goToReviewQuiz() {
+  if (state.wrongQueue.length === 0) {
+    state.inReviewMode = false;
+    state.currentReviewItem = null;
+    showToast('🎉 복습 끝!', 1800);
+    setTimeout(goToDone, 800);
+    return;
+  }
+  const item = state.wrongQueue[0];
+  if (!item) { state.inReviewMode = false; goToDone(); return; }
+  state.currentReviewItem = item;
+
+  const fam = item.fam;
+  const total = state.reviewInitialCount || state.wrongQueue.length;
+  const solved = total - state.wrongQueue.length;
+  document.getElementById('family-root').textContent = fam.root + ' (복습)';
+  document.getElementById('family-meaning').textContent = fam.meaning || '';
+  document.getElementById('family-count').textContent = `🔄 복습 · ✓ ${solved}개 정답 · 남은 ${state.wrongQueue.length}개`;
+  document.getElementById('family-dots').innerHTML = '';
+
+  state.currentFamilyStats = { root: fam.root, meaning: fam.meaning, totalQuiz:0, rightQuiz:0, wrongQuiz:0, totalAttempts:0, words: fam.words.slice() };
+
+  const list = document.getElementById('family-list');
+  list.innerHTML = '';
+  const w = fam.words.find(ww => ww.word === item.word);
+  if (!w) {
+    // Word reference broken — drop it and continue
+    state.wrongQueue.shift();
+    goToReviewQuiz();
+    return;
+  }
+  const card = document.createElement('div');
+  card.className = 'word-card enter quiz-card';
+  card.style.animationDelay = '0.05s';
+  buildQuizCard(card, w, fam);
+  list.appendChild(card);
+
+  showScreen('screen-family');
+}
+
+// Called when student clicks "다음 가족" in review mode.
+// If current item is still at queue front → wasn't solved → move to back so others get a turn.
+// If correct answer already removed it from queue → just go to next.
+function advanceReview() {
+  if (state.currentReviewItem && state.wrongQueue[0] === state.currentReviewItem) {
+    // Unsolved — push to back
+    const item = state.wrongQueue.shift();
+    if (item) state.wrongQueue.push(item);
+  }
+  goToReviewQuiz();
+}
+
+// ───── Done screen ─────
+function goToDone() {
+  document.getElementById('progress-fill').style.width = '100%';
+  document.getElementById('progress-text').textContent = state.pool.length + ' / ' + state.pool.length;
+  const totalWords = state.pool.reduce((s, f) => s + f.words.length, 0);
+  document.getElementById('stat-families').textContent = state.pool.length;
+  document.getElementById('stat-words').textContent = totalWords;
+  showScreen('screen-done');
+  setTimeout(() => {
+    bigConfetti(window.innerWidth / 2, window.innerHeight / 3);
+    sfxDone();
+  }, 300);
+}
+
+function restart() {
+  state.currentIdx = 0;
+  state.pool = [];
+  state.streak = 0;
+  state.wrongQueue = [];
+  state.inReviewMode = false;
+  state.currentFamilyStats = null;
+  updateStreakUI();
+  document.getElementById('progress-row').classList.add('hidden');
+  updateWeakInfo();
+  showScreen('screen-start');
+}
+
+// ───── Toggles ─────
+function toggleSound() {
+  state.soundOn = !state.soundOn;
+  const btn = document.getElementById('sound-toggle');
+  btn.textContent = state.soundOn ? '🔊' : '🔇';
+  btn.classList.toggle('on', state.soundOn);
+  if (state.soundOn) playTone(880, 0.1, 0);
+}
+function toggleAutoSpeak() {
+  state.autoSpeak = !state.autoSpeak;
+  const btn = document.getElementById('autospeak-toggle');
+  btn.classList.toggle('on', state.autoSpeak);
+}
+
+// ───── Wire up ─────
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('quiz-reveal-btn').addEventListener('click', revealQuizAnswer);
+document.getElementById('quiz-next-btn').addEventListener('click', goToFamily);
+document.getElementById('quiz-skip-btn').addEventListener('click', skipFamily);
+document.getElementById('quiz-tts').addEventListener('click', () => {
+  const fam = state.pool[state.currentIdx];
+  if (fam) speak(fam.root, document.getElementById('quiz-tts'));
+});
+document.getElementById('family-reveal-all').addEventListener('click', revealAllInFamily);
+document.getElementById('family-next-btn').addEventListener('click', nextFamily);
+document.getElementById('done-restart-btn').addEventListener('click', restart);
+document.getElementById('sound-toggle').addEventListener('click', toggleSound);
+document.getElementById('autospeak-toggle').addEventListener('click', toggleAutoSpeak);
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+document.getElementById('order-select').addEventListener('change', updateWeakInfo);
+document.getElementById('summary-next-btn').addEventListener('click', proceedToNextOrDone);
+document.getElementById('review-start-btn').addEventListener('click', startReview);
+document.getElementById('review-skip-btn').addEventListener('click', skipReview);
+
+// Affix popup: click/tap a .aff inside a .wc-word
+document.addEventListener('click', (e) => {
+  const aff = e.target.closest('.wc-word .aff');
+  if (aff) {
+    e.stopPropagation();
+    showAffixPopup(aff, aff.textContent || '');
+    return;
+  }
+  // Click outside → hide popup
+  if (!e.target.closest('#affix-popup')) hideAffixPopup();
+});
+
+// Init theme and family stats
+loadFamilyStats();
+const savedTheme = (() => { try { return localStorage.getItem(THEME_KEY); } catch (_) { return null; } })();
+applyTheme(savedTheme === 'light' ? 'light' : 'dark');
+updateWeakInfo();
+
+// Keyboard shortcuts — Enter/Space는 페이지 이동에 사용하지 않음
+// (학생이 입력창에서 엔터로 답 제출할 때 다음 페이지로 넘어가는 사고 방지).
+// Enter는 입력창 안에서 답 제출에만 사용됨 (각 입력창의 자체 핸들러).
+document.addEventListener('keydown', (e) => {
+  // Skip if the user is typing inside an input
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
+  const active = (document.querySelector('.screen.active') || {}).id;
+  if (e.key === 'p' || e.key === 'P') {
+    if (active === 'screen-quiz') {
+      const fam = state.pool[state.currentIdx];
+      if (fam) speak(fam.root, document.getElementById('quiz-tts'));
+    }
+  } else if (e.key === 'Escape') {
+    if (active !== 'screen-start' && confirm('처음으로 돌아갈까요?')) restart();
+  }
+});
+
+</script>
+</body>
+</html>
