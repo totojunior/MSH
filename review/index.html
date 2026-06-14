@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 기말 복습 도우미</title>
+<style>
+  :root{
+    --bg:#f4f6fb;
+    --card:#ffffff;
+    --ink:#1f2733;
+    --ink-soft:#52607a;
+    --line:#dfe4ee;
+    --brand:#3a6ea5;
+    --brand-dark:#2c5580;
+    --brand-soft:#e8f0fa;
+    --accent:#2e8b6f;
+    --warn-bg:#fff4e0;
+    --warn-line:#f0c36d;
+    --warn-ink:#8a5a00;
+    --radius:14px;
+    --shadow:0 2px 10px rgba(31,39,51,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.6;
+    font-size:16px;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:18px 16px 64px;}
+
+  /* 헤더 */
+  header.app{
+    background:linear-gradient(135deg,var(--brand) 0%,var(--brand-dark) 100%);
+    color:#fff;
+    border-radius:var(--radius);
+    padding:24px 22px;
+    box-shadow:var(--shadow);
+  }
+  header.app h1{margin:0 0 6px;font-size:1.8rem;letter-spacing:-.5px;}
+  header.app p.sub{margin:0 0 16px;font-size:1rem;opacity:.95;}
+  .steps{display:flex;flex-wrap:wrap;gap:8px;}
+  .step-badge{
+    background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.28);
+    border-radius:999px;
+    padding:7px 14px;
+    font-size:.92rem;
+    font-weight:600;
+    white-space:nowrap;
+  }
+
+  /* 경고 배너 */
+  .warn{
+    margin-top:16px;
+    background:var(--warn-bg);
+    border:1px solid var(--warn-line);
+    color:var(--warn-ink);
+    border-radius:var(--radius);
+    padding:14px 16px;
+    font-size:.97rem;
+    font-weight:500;
+  }
+
+  /* 카드 */
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:20px;
+    margin-top:16px;
+  }
+  .card h2{margin:0 0 4px;font-size:1.2rem;}
+  .card .hint{color:var(--ink-soft);font-size:.92rem;margin:0 0 14px;}
+  .section-num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:26px;height:26px;border-radius:50%;
+    background:var(--brand-soft);color:var(--brand-dark);
+    font-weight:700;font-size:.9rem;margin-right:8px;
+  }
+
+  /* 탭(단원) */
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;}
+  .tab{
+    appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:10px 18px;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;
+    transition:all .15s;
+  }
+  .tab:hover{border-color:var(--brand);color:var(--brand-dark);}
+  .tab.active{background:var(--brand);border-color:var(--brand);color:#fff;}
+
+  /* 지문 목록 */
+  .passage-list{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+  .passage-item{
+    display:flex;align-items:center;gap:10px;
+    border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;
+    transition:all .15s;background:#fff;
+  }
+  .passage-item:hover{border-color:var(--brand);background:var(--brand-soft);}
+  .passage-item.selected{border-color:var(--brand);background:var(--brand-soft);box-shadow:0 0 0 1px var(--brand) inset;}
+  .passage-item input{margin:0;width:18px;height:18px;accent-color:var(--brand);flex:none;}
+  .passage-item .ptitle{font-weight:600;}
+  .passage-item .punit{font-size:.82rem;color:var(--ink-soft);}
+
+  .empty{
+    border:1px dashed var(--line);border-radius:10px;padding:18px;text-align:center;
+    color:var(--ink-soft);background:#fafbfe;
+  }
+
+  /* 본문 표시 */
+  .passage-view{margin-top:14px;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .passage-view .pv-head{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    background:#f7f9fd;padding:12px 14px;border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .passage-view .pv-head strong{font-size:1.02rem;}
+  .passage-view .pv-body{
+    padding:16px;white-space:pre-wrap;font-size:.98rem;line-height:1.75;
+    max-height:340px;overflow:auto;background:#fff;
+  }
+  .passage-view.collapsed .pv-body{display:none;}
+  .pv-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* 버튼 */
+  button.btn{
+    appearance:none;cursor:pointer;border-radius:10px;font-size:.95rem;font-weight:600;
+    padding:10px 16px;border:1px solid var(--brand);background:var(--brand);color:#fff;
+    transition:all .15s;
+  }
+  button.btn:hover{background:var(--brand-dark);border-color:var(--brand-dark);}
+  button.btn.ghost{background:#fff;color:var(--brand-dark);}
+  button.btn.ghost:hover{background:var(--brand-soft);}
+  button.btn.small{padding:7px 12px;font-size:.88rem;}
+  button.btn.big{width:100%;padding:14px;font-size:1.05rem;}
+  button.btn.copied{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important;}
+
+  /* 활동 탭 */
+  .act-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .act-tab{
+    flex:1 1 auto;min-width:130px;text-align:center;
+    appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:12px 10px;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:all .15s;
+  }
+  .act-tab:hover{border-color:var(--brand);}
+  .act-tab.active{background:var(--brand-soft);border-color:var(--brand);color:var(--brand-dark);box-shadow:0 0 0 1px var(--brand) inset;}
+
+  .act-panel{display:none;}
+  .act-panel.active{display:block;}
+
+  /* 옵션 행 */
+  .opt-grid{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px;}
+  .opt{display:flex;flex-direction:column;gap:6px;flex:1 1 180px;min-width:160px;}
+  .opt label{font-size:.88rem;font-weight:600;color:var(--ink-soft);}
+  select,input[type=number],textarea{
+    font-family:inherit;font-size:1rem;color:var(--ink);
+    border:1px solid var(--line);border-radius:9px;padding:10px 12px;background:#fff;width:100%;
+  }
+  select:focus,input:focus,textarea:focus{outline:2px solid var(--brand-soft);border-color:var(--brand);}
+
+  /* 체크박스 그룹 */
+  .check-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .check-grid label{
+    display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:9px;
+    padding:9px 12px;cursor:pointer;font-size:.93rem;background:#fff;user-select:none;
+  }
+  .check-grid label:hover{border-color:var(--brand);}
+  .check-grid input{width:17px;height:17px;accent-color:var(--brand);margin:0;}
+  .presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+
+  .field-note{font-size:.85rem;color:var(--ink-soft);margin:-4px 0 12px;}
+
+  /* 프롬프트 출력 */
+  #promptOut{
+    width:100%;min-height:260px;resize:vertical;line-height:1.6;font-size:.95rem;
+    background:#fbfcfe;
+  }
+  .out-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+  .tips{margin-top:12px;background:#f7f9fd;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:.88rem;color:var(--ink-soft);}
+  .tips ul{margin:6px 0 0;padding-left:18px;}
+  .tips li{margin:3px 0;}
+
+  /* 학습 가이드 / 접이식 */
+  .guide{margin-top:14px;background:var(--brand-soft);border:1px solid #cfe0f2;border-radius:10px;padding:14px 16px;}
+  .guide strong{display:block;margin-bottom:6px;color:var(--brand-dark);}
+  .guide ol{margin:0;padding-left:20px;}
+  .guide ol li{margin:4px 0;}
+
+  details.acc{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+  details.acc>summary{
+    cursor:pointer;padding:16px 20px;font-weight:700;font-size:1.08rem;list-style:none;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary::after{content:"▾";color:var(--brand);transition:transform .2s;}
+  details.acc[open]>summary::after{transform:rotate(180deg);}
+  details.acc .acc-body{padding:0 20px 20px;color:var(--ink-soft);}
+  details.acc .acc-body ul{padding-left:18px;}
+  details.acc .acc-body li{margin:6px 0;}
+
+  .selbar{font-size:.9rem;color:var(--ink-soft);margin-bottom:12px;}
+  .selbar b{color:var(--brand-dark);}
+
+  .risknote{margin-top:10px;background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-ink);border-radius:10px;padding:10px 13px;font-size:.88rem;font-weight:500;line-height:1.55;}
+
+  footer.app{margin-top:28px;text-align:center;color:var(--ink-soft);font-size:.82rem;}
+
+  @media (max-width:560px){
+    body{font-size:15px;}
+    header.app h1{font-size:1.45rem;}
+    .opt{flex:1 1 100%;}
+    .act-tab{min-width:100%;}
+    .step-badge{font-size:.82rem;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 1) 헤더 -->
+  <header class="app">
+    <h1>AI 기말 복습 도우미</h1>
+    <p class="sub">지문으로 나만의 복습 문제를 만드는 'AI 프롬프트'를 자동으로 만들어 드려요.</p>
+    <div class="steps">
+      <span class="step-badge">① 지문 고르기</span>
+      <span class="step-badge">② 레벨·유형 설정</span>
+      <span class="step-badge">③ 복사 → 내 AI에 붙여넣기 (지문 포함!)</span>
+    </div>
+  </header>
+
+  <!-- 2) 경고 배너 -->
+  <div class="warn">
+    ⚠️ AI는 가끔 틀린 답이나 지문에 없는 내용을 만들어요. 반드시 지문과 대조해 확인하고, 정답은 <b>먼저 스스로 푼 뒤</b> 확인하세요. 특히 <b>어법·빈칸·순서·문장삽입</b>은 답이 틀리거나 여러 개일 수 있으니 더 꼼꼼히 검증하세요.
+  </div>
+
+  <!-- 3) 단원 탭 + 4) 지문 선택 -->
+  <section class="card">
+    <h2><span class="section-num">1</span>단원과 지문 고르기</h2>
+    <p class="hint">먼저 단원을 누르고, 복습할 지문을 선택하세요. 선택한 지문은 프롬프트에 자동으로 들어갑니다.</p>
+    <div class="tabs" id="unitTabs"></div>
+    <div class="passage-list" id="passageList" style="margin-top:14px;"></div>
+    <div id="passageViewWrap"></div>
+  </section>
+
+  <!-- 5) 활동 + 6) 출력 -->
+  <section class="card">
+    <h2><span class="section-num">2</span>복습 활동 고르기</h2>
+    <p class="hint">원하는 활동을 고르고 옵션만 정하면, 아래 [복사할 프롬프트]에 자동으로 만들어져요.</p>
+
+    <div class="act-tabs">
+      <button class="act-tab active" data-act="q">① 문제 만들기</button>
+      <button class="act-tab" data-act="p">② 패러프레이즈</button>
+    </div>
+
+    <!-- 활동 ① 문제 만들기 -->
+    <div class="act-panel active" id="panel-q">
+      <div class="opt-grid">
+        <div class="opt">
+          <label for="qType">문제 유형</label>
+          <select id="qType">
+            <option value="purpose">글의 목적</option>
+            <option value="claim">필자의 주장</option>
+            <option value="gist">요지</option>
+            <option value="topic">주제</option>
+            <option value="title">제목</option>
+            <option value="implication">함축 의미</option>
+            <option value="match">내용 일치/불일치</option>
+            <option value="grammar">어법</option>
+            <option value="vocab_ctx">어휘 (문맥상 낱말)</option>
+            <option value="blank">빈칸 추론</option>
+            <option value="irrelevant">무관한 문장</option>
+            <option value="order">글의 순서</option>
+            <option value="insert">문장 삽입</option>
+            <option value="summary">요약문 완성</option>
+            <option value="reference">지칭 추론</option>
+            <option value="exam_set">📦 종합 세트 (여러 유형 섞기)</option>
+            <option value="translate">📖 지문 해석 · 구문 분석</option>
+          </select>
+        </div>
+        <div class="opt" id="qSrcOpt">
+          <label for="qSrc">지문 처리</label>
+          <select id="qSrc">
+            <option value="asis">원문 그대로</option>
+            <option value="para">패러프레이즈해서 출제</option>
+          </select>
+        </div>
+        <div class="opt" id="qCountOpt">
+          <label for="qCount">문항 수</label>
+          <input type="number" id="qCount" value="5" min="1" max="30">
+        </div>
+        <div class="opt" id="qDiffOpt">
+          <label for="qDiff">난이도</label>
+          <select id="qDiff">
+            <option value="쉬움">쉬움</option>
+            <option value="보통" selected>보통</option>
+            <option value="어려움">어려움</option>
+          </select>
+        </div>
+      </div>
+      <p class="field-note" style="margin:8px 0 0;"><b>지문 처리</b>를 '패러프레이즈해서 출제'로 하면, AI가 지문을 바꿔 쓴 뒤 그 지문으로 문제를 내요(원문 암기로는 못 풀게 — 실제 시험과 비슷).</p>
+      <p class="field-note" style="margin:6px 0 0;">옵션을 고르면 아래 <b>[복사할 프롬프트]</b>에 자동으로 만들어져요. 바로 복사해서 쓰세요 ⬇️</p>
+    </div>
+
+    <!-- 활동 ② 패러프레이즈 -->
+    <div class="act-panel" id="panel-p">
+      <div class="presets">
+        <button class="btn ghost small" data-preset="easy">쉬움 (A2·동의어만)</button>
+        <button class="btn ghost small" data-preset="mid">보통 (B1·동의어+품사)</button>
+        <button class="btn ghost small" data-preset="hard">어려움 (B2·전부)</button>
+      </div>
+      <div class="opt-grid">
+        <div class="opt">
+          <label for="pLevel">CEFR 난이도</label>
+          <select id="pLevel">
+            <option value="A1">A1 (입문)</option>
+            <option value="A2">A2 (초급)</option>
+            <option value="B1" selected>B1 (중급)</option>
+            <option value="B2">B2 (중상급)</option>
+            <option value="C1">C1 (상급)</option>
+            <option value="C2">C2 (최상급)</option>
+          </select>
+        </div>
+      </div>
+      <label style="font-size:.88rem;font-weight:600;color:var(--ink-soft);">적용할 기법 (복수 선택)</label>
+      <div class="check-grid" id="pTechniques" style="margin-top:6px;">
+        <label><input type="checkbox" value="동의어 치환" checked> 동의어 치환</label>
+        <label><input type="checkbox" value="품사 변환"> 품사 변환</label>
+        <label><input type="checkbox" value="능동↔수동 전환"> 능동↔수동</label>
+        <label><input type="checkbox" value="문장 구조 변경"> 문장 구조 변경</label>
+        <label><input type="checkbox" value="구체↔일반 표현"> 구체↔일반</label>
+        <label><input type="checkbox" value="부정·반의어 활용"> 부정·반의어</label>
+      </div>
+      <div class="opt">
+        <label for="pText">패러프레이즈할 문장/문단</label>
+        <textarea id="pText" rows="4" placeholder="여기에 직접 영어 문장을 붙여넣거나, 비워 두면 위에서 고른 지문 전체를 사용합니다."></textarea>
+      </div>
+      <p class="field-note">비워 두면 위에서 선택한 지문 본문을 사용합니다.</p>
+      <p class="field-note" style="margin:8px 0 0;">옵션·문장을 입력하면 아래 <b>[복사할 프롬프트]</b>에 자동으로 만들어져요 ⬇️</p>
+
+      <div class="guide">
+        <strong>📘 5단계 학습 가이드 (항상 이대로 공부하세요)</strong>
+        <ol>
+          <li>AI에게 paraphrase 결과를 받는다.</li>
+          <li>paraphrase 문장을 내가 직접 한국어로 해석해 본다.</li>
+          <li>새로 나온 어휘·표현·문법을 정리한다.</li>
+          <li>원문과 paraphrase를 나란히 놓고 비교한다.</li>
+          <li>체크: 의미가 유지됐는가? 어떤 기법을 썼는가? 더 쉽게 바꿀 곳은 없는가?</li>
+        </ol>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- 6) 프롬프트 출력 -->
+  <section class="card">
+    <div class="out-head">
+      <h2 style="margin:0;">복사할 프롬프트 <span style="font-size:.8rem;font-weight:600;color:var(--accent);">✅ 지문 포함</span></h2>
+      <button class="btn" id="btnCopyPrompt">📋 이것만 복사</button>
+    </div>
+    <p class="hint" style="margin:-2px 0 8px;">지문이 프롬프트 안에 이미 들어 있어요. <b>이것만 복사해서</b> AI에 붙여넣으면 바로 만들어져요. (지문을 따로 복사할 필요 없어요)</p>
+    <textarea id="promptOut" readonly placeholder="위에서 지문과 활동을 고르면 여기에 프롬프트가 자동으로 나와요. 복사해서 내 AI에 붙여넣으세요."></textarea>
+    <div id="riskNote" class="risknote" style="display:none;"></div>
+    <div class="tips">
+      복사해서 ChatGPT · Gemini · Claude · 뤼튼 등 <b>아무 AI나 새 대화창</b>에 붙여넣으세요.
+      <ul>
+        <li>어떤 AI든 새 대화창에 붙여넣는 것이 가장 깔끔해요.</li>
+        <li>무료 도구는 길이 제한이 있을 수 있으니, 답이 끊기면 <b>"이어서"</b>라고 입력하세요.</li>
+        <li>답이 의심되면 <b>"정답 근거를 지문에서 인용해줘"</b>라고 되물어 보세요.</li>
+        <li>이미지/문서 업로드가 되는 도구라도, <b>텍스트로 붙여넣는 것이 더 정확</b>해요.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 7) AI 똑똑하게 쓰는 법 -->
+  <details class="acc">
+    <summary>🧠 AI 똑똑하게 쓰는 법</summary>
+    <div class="acc-body">
+      <ul>
+        <li><b>정답 먼저 보지 않기.</b> 문제를 받으면 스스로 먼저 풀고, 마지막의 "=== 정답 &amp; 해설 ==="은 나중에 확인하세요.</li>
+        <li><b>답을 지문 문장으로 검증하기.</b> AI의 정답이 지문 어디에 근거하는지 직접 찾아보세요.</li>
+        <li><b>틀린 것 같으면 되묻기.</b> "근거 문장을 지문에서 그대로 인용해줘"라고 요청하면 AI의 실수를 잡을 수 있어요.</li>
+        <li><b>표절이 아니에요.</b> 이 도구는 스스로 풀고 이해하는 '연습'을 돕는 것이지, 답을 베끼는 것이 아닙니다.</li>
+      </ul>
+    </div>
+  </details>
+
+  <footer class="app">
+    이 도구는 프롬프트(공부 방법)만 만들어 줍니다. 문제·정답 데이터는 들어 있지 않으며, 지문은 전교생 배포 유인물과 동일합니다.
+  </footer>
+
+</div>
+
+<script>
+/* ============================================================
+   데이터 (지문 본문 / 단어 / 단어변형). 문제·정답 데이터 없음.
+   ============================================================ */
+const DATA = {"passages":[{"unit":"IB1","id":"nomophobia","title":"Nomophobia: A Rising Trend","english":"Whenever I find myself needing something in order to cope, I always check my lifestyle and my health. This may sound crazy, but my rule is that I don't allow myself to be brought under the control of anything. Outside of food, water and shelter, I guard myself against subjection to any addiction that begins to dictate my behavior. This includes technology. I recognize that technology makes my life easier and it enables me to work more efficiently. My principle, though, is this: Technology should be a servant, not a master!\n\nNomophobia is the fear of being without a mobile device, and it's on the rise among today's high school and college students. Many of them also prefer texting or tweeting to actually talking to others.\n\nThe term Nomophobia is an abbreviation for \"no-mobile-phone phobia,\" which was coined during a 2010 study. They found that about 58 percent of men and 47 percent of women suffer from this phobia, and an additional 9 percent feel stressed when their mobile phones are off. Interestingly, the study found that the stress levels caused by the average cases of Nomophobia are much the same to those of \"wedding day jitters\" and trips to the dentist.\n\nIn the U.S., Nomophobia's gotten worse. Let's review:\n• 65 percent, about two in three teenagers, sleep next to their smart phones.\n• One in five teens would also rather go without shoes for a week than take a break from their phones.\n• About half never switch off their phone.\n\nSo what should we do to achieve a balanced approach?\n• Be sure that there are daily times when you turn off the cell phone and either have face-to-face conversations or be in solitude.\n• Balance screen time and in-person time each week. For every hour you invest in front of a screen, you invest another in human contact.\n• Try a technology fast every month, where you actually go for a day or more without a computer, tablet or phone. This may sound hard, but it's worth trying it from time to time!\n\nDo you see signs of Nomophobia in yourself? What else would you add to my list above? Leave a comment below!"},{"unit":"IB1","id":"indian-meals","title":"Indian Meals and Families","english":"Laurie David, author of The Family Dinner, suggests that the \"art\" of eating together in the United States has been lost, and argues that it is a custom that needs to be revived. David suggests that sitting down with one's family for a meal is important for keeping family history alive and helping children acquire proper manners. Besides, the practice helps them reach higher levels of self-esteem and academic achievement.\n\nUnlike the United States, there is a broader general awareness amongst people of all ages and regions of the importance of a sit-down family meal in India. Namrata Nandakumar, a university student, says, \"Food is important here, and we try to have all meals together as a family. It's the time when we interact and share things about our day.\"\n\nMadhu Gadia, a renowned cuisine expert, says that in India food is something that is simply meant to be eaten with the family. She says, \"it's very rare for people to eat by themselves,\" and adds that cooking is just something that people take huge pride in.\n\nGadia also states that the great value placed by families on a unique, secret spice recipe, which is kept by each and passed down through the generations, is a source of pride for many Indians. She explains, \"Families seem to have their own little mixtures of how they season the food… everybody seems to have their own. Those are your own personal family blends.\" Gadia adds that this unique part of Indian identity seems centred on each family: \"I've never heard anyone say 'this is my in-law's garam masala'.\"\n\nNikhat Aslam, a university professor, explains how cooking has helped her connect with her two sons over the years. \"Often, when there are guests home for larger dinners or gatherings, both my boys will willingly help me put things together in the kitchen…It's easy to bond, talk about problems and even offer words of wisdom when sprinkling dressing over chicken. It's far easier than sitting face-to-face and having that serious talk with 'mother'. Cooking has helped create interesting and long lasting bonds within my family,\" she said.\n\n*garam masala : a mixture of ground spices, such as cumin, coriander and cardamom used in Indian Cuisine"},{"unit":"IB1","id":"online-identity","title":"Protecting Your Online Identity and Reputation","english":"From the first time you log on to a social networking site like Facebook or MySpace, you're creating an online identity. This identity may be different from your real-world identity and some parts of it may be entirely made up. Playing around is part of the fun of an online life. And while the virtual world is full of opportunities to interact and share with people worldwide, it is a place where nothing is temporary and there are no \"take-backs\"; a lot of what you do and say online can be retrieved even if you delete it.\n\nResearch proves that teenage users who had taken certain measures to ensure their privacy online protected their information and photographs from being copied by others and shown to the world. Ashley, a high-school junior, says she's very careful about the information, pictures, and comments she posts even though her profile is private. \"I know teens who have gotten kicked off their sports teams because of pictures they have on their profiles,\" she says.\n\nResearchers believe frequently changing passwords prevents online \"identity trashing\" when a profile is hacked. They also advise picking passwords that are difficult to guess and never sharing them with anyone except parents or trusted adults.\n\nIn addition, teenagers are always advised to be careful of what they post online. Hartley Harris, a researcher at the University of Columbia, states that things that seem funny or cool right now might not seem so cool years from now – or when a teacher, admissions officer, or potential employer sees them.\n\nMr Harris also warns teenagers against responding to inappropriate requests. \"These can be scary, strange, and even embarrassing,\" he says. \"If teens feel harassed by a stranger or a friend online, they should immediately tell an adult they trust.\"\n\nPaula Jenkins, an online education specialist, says teens should also learn about copyright laws and make sure they don't post, share, or distribute copyrighted images, songs, or files.\n\nYour online identity and reputation are shaped in much the same way as your real-life identity, except that when you're online you don't always get a chance to explain your tone or what you mean. Thinking before you post and following the same rules for responsible behavior online as you do offline can help you avoid leaving an online identity trail you regret."},{"unit":"IB1","id":"kids-nature","title":"Why Kids Need to Spend Time in Nature","english":"As the suburbs continue to expand, nature is parcelled off more, and kids seem less inclined to spend time in a fenced-in yard, let alone jump the fence into a neighbor's yard or walk in the woods. Moreover, for kids who are growing up with multiplayer video games and social media accounts, indoor activities can seem more sociable and even safer.\n\nMost studies agree that kids who play outside are happier and more attentive. They appear less anxious than kids who spend more time indoors. While it's unclear how mood improvements occur, there are a few things we do know about why nature is good for your kids' minds.\n\nIt improves personal decision making. The way that kids play outdoors has a lot less structure than most types of indoor play. There are infinite ways to interact with nature and letting your child choose how they treat nature means they have the power to control their own actions. It stimulates creativity. This unstructured style of play will soon have kids responding to their surroundings. They will be able to use their imagination, improvise their own activities, and approach the world in more inventive ways. It teaches responsible behavior. Living things die if mistreated or not taken care of properly and entrusting a child to take care of the living parts of the environment means they'll learn what happens when they forget to water a plant or pull a flower out by its roots. It presents new possibilities. Nature may seem less inspiring than your child's violent video game, but in reality, it activates more senses—they can see, hear, smell, and touch outdoor environments. As the young spend less and less of their lives in natural surroundings, their senses narrow, and this reduces the richness of human experience. It aids well-being. Most ways of interacting with nature involve more exercise than sitting on the couch. Your kid doesn't have to be joining the local soccer team or riding a bike through the park—even going for a walk will get their blood pumping. It generates curiosity. Nature creates a unique sense of wonder for kids that no other environment can provide. The phenomena that occur naturally in backyards and parks every day make kids ask questions. It replaces indifference with serenity. In natural environments, we practice an effortless type of attention known as \"soft fascination\" that creates feelings of pleasure and peacefulness, not tiredness and boredom.\n\nSo, while screen time might be the easier, more popular choice for your children, it's important to set aside time for outdoor play."},{"unit":"IB3","id":"should-thin-be-in","title":"Should Thin Be \"In\"?","english":"IMAGES OF female bodies are everywhere. Women – and their body parts – sell everything from food to cars. Popular film and television actresses are becoming younger, taller, and thinner. Some have even been known to faint on the set from lack of food. Women's magazines are full of articles urging that if they can just lose those last twenty pounds, they'll have it all – the perfect marriage, loving children, great relationships, and a rewarding career.\n\nWhy are standards of beauty being imposed on women, the majority of whom are naturally larger and more mature than any of the models? The roots, some analysts say, are economic. By presenting an ideal difficult to achieve and maintain, the cosmetic and diet product industries are assured of growth and profits. And it's no accident that youth is increasingly promoted, along with thinness, as an essential criterion of beauty.\n\nThe stakes are huge. On the one hand, women who are insecure about their bodies are more likely to buy beauty products, new clothes, and diet aids. It is estimated that the diet industry alone is worth anywhere from 40 to 100 billion dollars (US) a year selling temporary weight loss (90 to 95% of dieters regain the lost weight). On the other hand, research indicates that exposure to images of thin, young, air-brushed female bodies is linked to depression, loss of self-esteem and the development of unhealthy eating habits in women and girls.\n\nMedia activist Jean Kilbourne concludes that, 'Women are sold to the diet industry by the magazines we read and the television programs we watch, almost all of which make us feel anxious about our weight.'\n\nThe Culture of Thinness\n\nResearchers report that women's magazines have ten and one-half times more ads and articles promoting weight loss than men's magazines do, and over three-quarters of the covers of women's magazines include at least one message about how to change a woman's bodily appearance – by diet, exercise or cosmetic surgery.\n\nTelevision and movies reinforce the importance of a thin body as a measure of a woman's worth. Canadian researcher Gregory Fouts reports that over three-quarters of the female characters in TV situation comedies are underweight, and only one in twenty is above average in size. Heavier actresses tend to receive negative comments from male characters about their bodies, and 80per cent of these negative comments are followed by canned audience laughter.\n\nAdvertising rules the marketplace and in advertising thin is 'in.' Twenty years ago, the average model weighed 8 per cent less than the average woman – but today's models weigh 23 per cent less. Advertisers believe that thin models sell products. When the Australian magazine New Woman recently included a picture of a heavy-set model on its cover, it received a truckload of letters from grateful readers praising the move. But its advertisers complained and the magazine returned to featuring bone-thin models. Advertising Age International concluded that the incident \"made clear the influence wielded by advertisers who remain convinced that only thin models spur the sales of beauty products.\"\n\nSelf-Improvement or Self-Destruction?\n\nThe barrage of messages about thinness, dieting and beauty tells 'ordinary' women that they are always in need of adjustment – and that the female body is an object to be perfected.\n\nJean Kilbourne argues that the overwhelming presence of media images of painfully thin women means that real women's bodies have become invisible in the mass media. The real tragedy, Kilbourne concludes, is that many women internalize these stereotypes, and judge themselves by the beauty industry's standards. Women learn to compare themselves to other women, and compete with them for male attention. This focus on beauty and desirability 'effectively destroys any awareness and action that might help to change that climate."},{"unit":"IB3","id":"australian-fashion-exploitation","title":"Damning Report on Exploitation in the Australian Fashion Industry","english":"Nine out of 10 companies supplying clothes to Australian consumers do not know where their cotton is sourced and most fail to pay overseas workers enough to meet their basic needs, an investigation into the fashion industry shows.\n\nNext week marks the two-year anniversary since Bangladesh's Rana Plaza factory collapse in which more than 1100 workers died, but a report card on the industry notorious for poverty-level wages has revealed many brands still exploit their workers.\n\nThe Australian Fashion Report, to be released on Friday by Baptist World Aid, points to the increased risk of child and forced labour in the garment industry because most local companies are unable to trace or fail to monitor their supply chains.\n\nCo-author Gershon Nimbalker said while there had been improvements at the final stages of production in the two years since the organisation's first audit of the fashion industry, very little had been done to address working conditions earlier in the supply chain, where some of the worst abuses often occur.\n\n\"Most of us are at risk of being connected to slavery in the cotton fields because companies who we're buying from haven't traced their cotton to make sure that there is no forced labour and child labour,\" he said. \"We don't want to see another Rana Plaza equivalent deeper in the supply chain before fashion companies start taking action.\"\n\nResearchers examined 59 apparel companies collectively supplying more than 200 clothing brands in Australia and graded them on their policies, transparency, supply chain traceability and worker rights. About 75 per cent of companies responded to a survey about their business practices, with the remaining businesses graded solely on publicly available information.\n\nThe report said 91 per cent of companies did not know where all their cotton comes from and 75 per cent did not know the source of all their fabrics. Most companies do not carry out regular random inspections or have a system in place for workers to raise complaints. And while eight companies had taken steps to improve low wages for overseas workers only two proved they paid a full living wage.\n\nAccording to the report, the production cost of a T-shirt in Bangladesh would increase from about 50c to 80c if workers were paid a living wage. The minimum wage in Bangladesh is currently US$68 ($88) a month.\n\nCarolyn Kitto, spokeswoman for anti-slavery group Stop The Traffik, said the cost of paying workers enough to live on would make little difference to the end cost to Australian consumers because they were being paid so little.\n\nMs Kitto said she had met women in India who had been coerced into working in spinning, weaving and dyeing mills and forced to labour under appalling conditions.\n\n\"I've seen photos of rooms that would be about the size of my bedroom where 50 girls have lived,\" she said. \"They don't have any safety equipment so they inhale and ingest cotton fibre. Their food is sometimes laced with hormones to stop them from menstruating because they're regarded as less productive when they're menstruating.\"\n\nTwo thirds of companies graded in the 2013 report have improved their practices and more than a dozen have now signed the Accord on Fire and Building Safety in Bangladesh, pledging a safe work environment in the ready-made garment industry."},{"unit":"IB4","id":"language-word-use","title":"Changes in Language and Word Use Reflect Our Shifting Values","english":"A new UCLA analysis of words used in more than 1.5 million American and British books published between 1800 and 2000 shows how our cultural values have changed.\n\nThe increase or decrease in the use of certain words over the past two centuries – a period marked by growing urbanization, greater reliance on technology and the widespread availability of formal education – reveals how human psychology has evolved in response to major historical shifts, said Patricia Greenfield, a distinguished professor of psychology at UCLA and the author of the study.\n\nFor instance, the words \"choose\" and \"get\" rose significantly in frequency between 1800 and 2000, while \"obliged\" and \"give\" decreased significantly over these two centuries. \"Choose\" and \"get\" indicate the individualism and materialistic values that are adaptive in wealthier urban settings, while \"obliged\" and \"give\" reflect the social responsibilities that are adaptive in rural settings,\" Greenfield said.\n\nUsage of \"get\" declined between 1940 and the 1960s before rising again in the 1970s, perhaps reflecting a decline in self-interest during World War II and the civil rights movement, she noted.\n\nGreenfield also observed a gradual rise in the use of \"feel\" and a decline in the use of \"act,\" suggesting a turn toward inner mental life and away from outward behavior. She found a growing focus on the self, with the use of \"child,\" \"unique,\" \"individual\" and \"self\" all increasing from 1800 to 2000.\n\nOver the two centuries, the importance of obedience to authority, social relationships and religion in everyday life seems to have waned, as reflected in the decline of \"obedience,\" \"authority,\" \"belong\" and \"pray.\"\n\n\"This research shows that there has been a two-century-long historical shift toward individualistic psychological functioning adapted to an urban environment and away from psychological functioning adapted to a rural environment,\" Greenfield said. \"The currently discussed rise in individualism is not something recent but has been going on for centuries as we moved from a predominantly rural, low-tech society to a predominantly urban, high-tech society.\""},{"unit":"IB4","id":"earth-day-environmental-issues","title":"Happy Earth Day: The World's 6 Most Pressing Environmental Issues","english":"At Inhabitat, every day is Earth Day. We work each and every day to bring the latest news on the many exciting ways to inhabit the Earth in a smarter, greener, more sustainable way. So this Earth Day, we're considering the most important environmental issues, and a few of the steps we can take to create a healthier future for ourselves, our communities and of course, the Earth.\n\n1. Water Shortages\nWe can't live without it, and thankfully much of the Earth is made up of it. Yet we face major problems where the life-sustaining liquid is concerned. While there is technically enough available for all 6.8 billion of us, one-fifth of the world's population live in areas of scarcity. Poor quality not only poses supply problems, but also has a huge, inevitable impact on marine life. Whether it's through pollution from industry, or ill-regulated efforts to drill for yet more oil, we're increasingly filling our rivers, seas and oceans with toxic waste. Life in our seas is suffering tremendously.\n\n2. Deforestation\nThis has long posed a threat to our Earth. Trees cover 30 percent of the planet's land, and give vital protection from sandstorms and flooding, as well as provide natural habitats for wildlife. They are one of our greatest resources for offsetting some of our carbon emissions, and without the tree canopy we leave areas vulnerable to intense heat. This drives further climate change. Yet every single year we lose an area the size of Panama, cleared to make way for farmland.\n\n3. Food Policies\nAgricultural production comes with a hefty carbon footprint. Damage is caused by the loss of trees. Fertilizers pollute our water, and pesticides kill our bees. However, demand is expected to rise sharply — by 2050 a population of 8.9 billion will eat, on average, a diet with 340 calories more than the 2001 average of 2790 calories. Other studies show that demand will double by that same date. Some of this projected increase is attributed to an expectation that populations, which currently have inadequate access to nutrition, will see improvements in the coming decades.\n\n4. Energy Production\nIn the US alone we've made the Gulf of Mexico toxic with oil, we've caused earthquakes in the Midwest while fracking for natural gas, and we've blasted the tops off mountains in Virginia looking for coal. In the course of harvesting non-renewable resources we're releasing all manner of toxic gases into the atmosphere, driving climate change and creating a hazardous environment for all living beings. The fact that we're destroying the planet is a pretty good reason to give pause and change course. Yet massive corporations continue to look for fossil fuels.\n\n5. Transportation Policies\nStudies show young people are driving less, but we aren't going to be doing without cars any time soon. As long as urban developments are built to be unwalkable, we're going to have to find a way for everyone to be able to get from A to B and back again without destroying the planet. As it stands, a full 20 percent of US greenhouse gas emissions come directly from cars.\n\n6. Unnecessary Waste\nAs a growing population, we have a lot of stuff. From consumer electronics to clothing to diapers, a worrying proportion of our \"stuff\" is made using finite resources, and only to be used for a relatively short amount of time before being tossed into landfill.\n\nEverything on this list is a contributing factor to the problem and yet we still have elected officials who argue that it isn't 'real.' A poll by Yale University said the majority of participants agreed that a rise in temperatures was causing an increasing number of extreme weather events and natural disasters. Earlier this year sea levels were predicted to rise 20-80 inches by 2100. As a result, 3.7 million residents are at risk from floodwaters. It's time for climate change deniers to finally give in to the evidence.\n\nHappy Earth Day!"},{"unit":"IB4","id":"long-term-stress","title":"The Dangers of Long-Term Stress","english":"What happens when you live with stress constantly? When your life is full of tigers that never go away? You gradually adapt to higher and higher stress levels, and you may never find the time to calm down, rest, and recuperate. Soon you're living with an unhealthy amount of stress and calling it normal. Long-term stress can be dangerous because you may not be aware of the physical and emotional toll it is taking on you.\n\nWhy is long-term stress such a problem for so many people? We aren't taught about stress, so we don't recognize it even when we are up to our eyeballs in it. We all have stress factors in our lives that we're powerless to do anything about (parental decisions, school rules, homework, problems with friends, feeling unsafe). We face so many challenges that it isn't practical or possible to rest after each one.\n\nWe're the products of a driven culture. We're taught from an early age that it's good to compete, win, stay busy, and always be productive. Most of us don't know how to relax. Relaxation skills aren't valued by our culture. It's more common (and accepted) to hurry and always do too much than it is to relax and be quiet for a period of time.\n\nEven our attempts at play can be filled with competition and pressures to be great at everything we do. Recreation is supposed to be re-creation – a chance to renew ourselves. Instead, it turns into wreckreation. We end up feeling more strung out and wrung out than when we started. We all do our best to live in our world full of tigers. We try to be responsible and handle everything that comes our way.\n\nHere are some of the things young people do in an effort to keep it all together: skipping meals, sleeping less, spending excessive time with friends and family, never talking about feelings and toughing it out by pretending to cope independently. When you try harder to keep up as the stress in your life increases, you may forget to take time for rest and recuperation. Without realizing it, you gradually lose your energy, positive attitude, and performance edge.\n\nHere are some of the symptoms young people have reported: more trouble with teachers, needing a lot of sleep or not sleeping well, wanting to eat all the time or never eating, headaches, stomach aches, colds, infections, sore muscles, escapist behaviour – overdoing one thing (TV, music, studying, sleeping) and ignoring other things, withdrawing from friends and family (\"Just leave me alone! \"), crying for no apparent reason, feeling like an idiot, restlessness, anxiety, worrying all the time, feeling like everything is out of control (\"like I'm out of control\"), depression, sadness, and irritability.\n\nYou may be too busy adapting and coping with your stress factors to notice how you are changing. Unconsciously, you keep modifying your definition of what constitutes an acceptable level of stress. Suddenly the symptoms of overload seem to come out of nowhere. One minute you think you're fine, and the next you find yourself doubling over with cramps, tossing and turning at night, yelling at your mom, having two-day headaches, biting your nails, or gobbling whole crates of chips."},{"unit":"Lesson6","id":"citizen-science-project-budburst","title":"Citizen Science: Be Part of the Solution — Project Budburst","english":"A common misconception in science is that only highly trained experts can participate in research and data analysis. However, with the right opportunity, anyone can become a scientist, and yes, that means even you! Dealing with a vast amount of data can take scientists decades, but with the eyes, ears, and perspectives of citizen scientists, this job can be completed in a few years or even just a few months. Citizen scientists collect, classify, or analyze data so that scientists can use it for research. By making observations of their surrounding environments or even by playing a simple mobile game, they can help the professional scientific community expand knowledge and speed up new discoveries and innovations.\n\nProject Budburst\nMost flowers bloom in spring, and many leaves change color in autumn. Due to global warming, however, the timing of seasonal cycles is changing. Scientists have been trying to find out exactly how and where these cycles are changing, as well as how fast the changes are occurring. The problem is that it is impossible for them to keep track of every single plant in the country. This is where citizen science comes in. Project Budburst is a program that engages citizens across the nation to observe and record details about nearby plants.\n\nHow It Works\nProject Budburst can be easily accessed anywhere you have an internet connection. To get involved, you first need to go through a simple tutorial that helps you understand what to look for when you observe a plant. Next, you choose a particular plant to observe, such as a tree in your backyard or a bush in a neighborhood park. As you conduct your observations, you will fill out a form to record the plant's location and track its changes throughout the seasons. You will record when it grows leaves, flowers, and fruit, and when its leaves change color and fall off in the autumn. You can submit these observation notes on the website or the app.\n\nBenefits and Outcomes\nProject Budburst is beneficial to scientists, educators, and participating individuals. With the information you provide, scientists and researchers can better understand how plant species respond to climate change at local, national, and international levels. They can compare the data you record with what they already have in order to forecast future changes in climates and ecosystems. The information on the project's website can be used as educational material by educators as well. By collecting and utilizing real-world data, participants can both improve their science literacy and help tackle significant environmental questions. Moreover, the project is a fun and rewarding outdoor activity for participants of all ages.\n\nReviews\nOne of my favorite parts of this project is that I don't need to be an expert to take part. — Mattew, May 23\n\nI've always been fascinated by the diverse range of flowers in the local garden. Thanks to this project, now I know them all by name. — YCL_04, March 21"},{"unit":"Lesson6","id":"citizen-science-feature-hunter","title":"Citizen Science: Be Part of the Solution — Feature Hunter","english":"Feature Hunter\nNASA has more than three million photos of Earth taken from space. These photos can be invaluable to researchers in fields such as geology, environmental science, and urban planning. However, many of the photos are difficult to use because they lack labels for common features like islands, glaciers, volcanoes, and cities. With such a vast amount of photographic data, it can be challenging for scientists to search for specific features and analyze them in detail. In response to this challenge, a group of students came up with the Feature Hunter project for NASA. Participants of this project examine images and label previously uncategorized photos for a more comprehensive and searchable database.\n\nHow It Works\nAs a Feature Hunter participant, you will be provided with a collection of images and asked to identify specific features. You begin by selecting the kind of feature you want to search for, such as islands, volcanoes, or cities. You then examine the displayed image and determine whether the feature you are looking for is visible. If you can see the feature in the image, select the Yes option. This will bring you to a page where you will be asked to identify the feature's location by moving and resizing the boxes around it. If you cannot see the feature, or if it is not clear, click the No or Not Sure option. Both of these options will contribute to the creation of the best data possible.\n\nBenefits and Outcomes\nThe data gathered from Feature Hunter plays a crucial role in training and improving machine learning models, which will automatically label raw photographs with geographical features. Machine learning requires large sets of training data to produce accurate results, and Feature Hunter users can help develop this training data by simply viewing images and identifying features. The more data the citizen scientists label, the higher the accuracy of the machine learning models can be. Ultimately, this project will enhance the searchability and usefulness of the images for both the scientific community and the general public.\n\nReviews\nI didn't realize it was this easy to participate in such a big science project. I made a difference in the world and had fun doing it! — Aurora, October 1\n\nIt's amazing that people from different countries can work together when they don't speak the same language. — My_Universe, February 19"}]};
+
+/* ============================================================
+   상태 & 단원 메타
+   ============================================================ */
+const UNITS = [
+  {key:"IB1", label:"IB1"},
+  {key:"IB3", label:"IB3"},
+  {key:"IB4", label:"IB4"},
+  {key:"Lesson6", label:"Lesson 6"}
+];
+
+const state = {
+  unit: "IB1",
+  passageId: null,
+  activity: "q"
+};
+
+/* ============================================================
+   유틸
+   ============================================================ */
+function $(sel){ return document.querySelector(sel); }
+function $all(sel){ return Array.from(document.querySelectorAll(sel)); }
+
+function passagesOf(unit){
+  return DATA.passages.filter(function(p){ return p.unit === unit; });
+}
+function currentPassage(){
+  if(!state.passageId) return null;
+  return DATA.passages.find(function(p){ return p.id === state.passageId; }) || null;
+}
+function unitLabel(key){
+  const u = UNITS.find(function(x){ return x.key === key; });
+  return u ? u.label : key;
+}
+
+/* Fisher-Yates 셔플 후 앞 n개 */
+function pickRandom(arr, n){
+  const a = arr.slice();
+  for(let i=a.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    const t=a[i]; a[i]=a[j]; a[j]=t;
+  }
+  if(n==null || n>=a.length) return a;
+  return a.slice(0, n);
+}
+
+/* ============================================================
+   렌더링: 단원 탭
+   ============================================================ */
+function renderUnitTabs(){
+  const host = $("#unitTabs");
+  host.innerHTML = "";
+  UNITS.forEach(function(u){
+    const b = document.createElement("button");
+    b.className = "tab" + (u.key === state.unit ? " active" : "");
+    b.textContent = u.label;
+    b.addEventListener("click", function(){
+      state.unit = u.key;
+      state.passageId = null;
+      renderUnitTabs();
+      renderPassageList();
+      renderPassageView();
+      updatePrompt();
+    });
+    host.appendChild(b);
+  });
+}
+
+/* ============================================================
+   렌더링: 지문 목록
+   ============================================================ */
+function renderPassageList(){
+  const host = $("#passageList");
+  host.innerHTML = "";
+  const list = passagesOf(state.unit);
+  if(list.length === 0){
+    const div = document.createElement("div");
+    div.className = "empty";
+    div.textContent = "이 단원에는 등록된 지문이 없어요. 다른 단원을 선택해 주세요.";
+    host.appendChild(div);
+    return;
+  }
+  list.forEach(function(p){
+    const item = document.createElement("label");
+    item.className = "passage-item" + (state.passageId === p.id ? " selected" : "");
+
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "passage";
+    radio.value = p.id;
+    radio.checked = (state.passageId === p.id);
+    radio.addEventListener("change", function(){
+      state.passageId = p.id;
+      renderPassageList();
+      renderPassageView();
+      updatePrompt();
+    });
+
+    const txt = document.createElement("div");
+    const t = document.createElement("div");
+    t.className = "ptitle";
+    t.textContent = p.title;
+    const u = document.createElement("div");
+    u.className = "punit";
+    u.textContent = unitLabel(p.unit);
+    txt.appendChild(t);
+    txt.appendChild(u);
+
+    item.appendChild(radio);
+    item.appendChild(txt);
+    host.appendChild(item);
+  });
+}
+
+/* ============================================================
+   렌더링: 선택 지문 본문 (접기/펼치기 + 복사)
+   ============================================================ */
+function renderPassageView(){
+  const host = $("#passageViewWrap");
+  host.innerHTML = "";
+  const p = currentPassage();
+  if(!p) return;
+
+  const box = document.createElement("div");
+  box.className = "passage-view";
+
+  const head = document.createElement("div");
+  head.className = "pv-head";
+  const strong = document.createElement("strong");
+  strong.textContent = p.title;
+  const actions = document.createElement("div");
+  actions.className = "pv-actions";
+
+  const toggle = document.createElement("button");
+  toggle.className = "btn ghost small";
+  toggle.textContent = "접기";
+  toggle.addEventListener("click", function(){
+    box.classList.toggle("collapsed");
+    toggle.textContent = box.classList.contains("collapsed") ? "펼치기" : "접기";
+  });
+
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "btn small";
+  copyBtn.textContent = "📋 지문 복사";
+  copyBtn.addEventListener("click", function(){
+    copyText(p.english, copyBtn, "📋 지문 복사");
+  });
+
+  actions.appendChild(toggle);
+  actions.appendChild(copyBtn);
+  head.appendChild(strong);
+  head.appendChild(actions);
+
+  const body = document.createElement("div");
+  body.className = "pv-body";
+  body.textContent = p.english;
+
+  box.appendChild(head);
+  box.appendChild(body);
+  host.appendChild(box);
+}
+
+/* ============================================================
+   활동 탭 전환
+   ============================================================ */
+function setupActivityTabs(){
+  $all(".act-tab").forEach(function(tab){
+    tab.addEventListener("click", function(){
+      state.activity = tab.getAttribute("data-act");
+      $all(".act-tab").forEach(function(t){ t.classList.remove("active"); });
+      tab.classList.add("active");
+      $all(".act-panel").forEach(function(pn){ pn.classList.remove("active"); });
+      const panel = $("#panel-" + state.activity);
+      if(panel) panel.classList.add("active");
+      updatePrompt();
+    });
+  });
+}
+
+/* ============================================================
+   복사 기능 (clipboard + textarea 폴백)
+   ============================================================ */
+function copyText(text, btn, original){
+  function feedback(){
+    if(!btn) return;
+    const prev = original || btn.textContent;
+    btn.textContent = "복사됨!";
+    btn.classList.add("copied");
+    setTimeout(function(){
+      btn.textContent = prev;
+      btn.classList.remove("copied");
+    }, 2000);
+  }
+  function fallback(){
+    try{
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      feedback();
+    }catch(e){
+      alert("복사에 실패했어요. 텍스트를 직접 선택해 복사해 주세요.");
+    }
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(feedback, fallback);
+  }else{
+    fallback();
+  }
+}
+
+/* ============================================================
+   활동 ① 문제 만들기 — 유형별 메타 (발문/규칙)
+   ============================================================ */
+const MCQ_TYPES = {
+  purpose:     { name:"글의 목적",      prompt:"다음 글의 목적으로 가장 적절한 것은?",                     choiceLang:"한국어", extra:"편지·안내성 글에 적합합니다." },
+  claim:       { name:"필자의 주장",    prompt:"다음 글에서 필자가 주장하는 바로 가장 적절한 것은?",       choiceLang:"한국어" },
+  gist:        { name:"요지",          prompt:"다음 글의 요지로 가장 적절한 것은?",                       choiceLang:"한국어" },
+  topic:       { name:"주제",          prompt:"다음 글의 주제로 가장 적절한 것은?",                       choiceLang:"영어" },
+  title:       { name:"제목",          prompt:"다음 글의 제목으로 가장 적절한 것은?",                     choiceLang:"영어" },
+  implication: { name:"함축 의미",      prompt:"밑줄 친 부분이 다음 글에서 의미하는 바로 가장 적절한 것은?", choiceLang:"영어",
+                 extra:"지문에서 비유적·함축적 표현 1곳에 밑줄을 긋고, 문항당 밑줄은 1개만 사용하세요." },
+  match:       { name:"내용 일치/불일치", prompt:"다음 글의 내용과 일치하지 않는 것은?",                   choiceLang:"한국어",
+                 extra:"선택지는 한국어 5개. 여러 문항을 요청하면 매번 다른 세부정보로 출제하세요." },
+  grammar:     { name:"어법",          prompt:"다음 글의 밑줄 친 부분 중, 어법상 틀린 것은?",             choiceLang:"-",
+                 extra:"지문 5곳에 ①~⑤ 밑줄을 긋고 그중 1곳만 오류로 만드세요. 가능하면 이 시험의 문법 포인트(분사 후치수식: 능동 -ing / 수동 p.p., so that ~ can, 관계사)를 포함하세요." },
+  vocab_ctx:   { name:"어휘 (문맥상 낱말)", prompt:"다음 글의 밑줄 친 부분 중, 문맥상 낱말의 쓰임이 적절하지 않은 것은?", choiceLang:"-",
+                 extra:"지문 5곳에 밑줄을 긋고, 그중 1곳을 반의어/문맥상 부적합한 단어로 바꿔 오류를 만드세요." },
+  blank:       { name:"빈칸 추론",      prompt:"다음 빈칸에 들어갈 말로 가장 적절한 것은?",               choiceLang:"영어",
+                 extra:"핵심 문장 1곳을 빈칸(단어/구/절)으로 만드세요. 난이도가 높으면 요지 문장의 추상적인 절을 빈칸으로." },
+  irrelevant:  { name:"무관한 문장",    prompt:"다음 글에서 전체 흐름과 관계 없는 문장은?",               choiceLang:"-",
+                 extra:"지문 흐름에 어울리지 않는 문장 1개를 삽입하고 ①~⑤로 표시하세요." },
+  order:       { name:"글의 순서",      prompt:"주어진 글 다음에 이어질 순서로 가장 적절한 것은?",         choiceLang:"순서 조합",
+                 extra:"도입부를 먼저 제시한 뒤 본문을 (A)(B)(C)로 나누세요. 선택지는 순서 조합입니다." },
+  insert:      { name:"문장 삽입",      prompt:"글의 흐름으로 보아, 주어진 문장이 들어가기에 가장 적절한 곳은?", choiceLang:"-",
+                 extra:"한 문장을 빼서 [주어진 문장]으로 제시하고, 본문에 ①~⑤ 위치를 표시하세요." },
+  summary:     { name:"요약문 완성",    prompt:"다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A),(B)에 들어갈 말로 가장 적절한 것은?", choiceLang:"(A)/(B) 짝",
+                 extra:"요약문을 한 문장으로 제시하고 (A),(B) 두 빈칸을 만드세요. 선택지는 (A)/(B)의 짝입니다." },
+  reference:   { name:"지칭 추론",      prompt:"다음 글의 밑줄 친 부분 중, 가리키는 대상이 나머지 넷과 다른 것은?", choiceLang:"-",
+                 extra:"대명사 5곳에 밑줄을 긋고 ①~⑤로 표시하세요. 인물이 여럿 등장하는 글에 적합합니다." }
+};
+
+/* 공통 난이도 문구 */
+function difficultyLine(diff){
+  let s = "- 난이도: " + diff;
+  if(diff === "어려움") s += "  (수능 3점급, 매력적인 오답)";
+  return s;
+}
+function difficultyExtra(diff){
+  if(diff === "어려움") return "- 선택지 간 변별을 높이고, 단순 단어 매칭으로는 못 풀게 하라.";
+  if(diff === "쉬움")   return "- 지문에 직접 드러난 정보 위주로 출제하라.";
+  return "- 지문의 핵심 내용을 한 번 더 생각해야 풀리는 수준(수능 2점급)으로 출제하라.";
+}
+
+/* 지문당 보통 1문항이 자연스러운 유형 (여러 개 요청 시 안내) */
+const SINGLE_Q = ["purpose","claim","gist","topic","title","implication","order","insert","summary","reference"];
+
+/* AI가 자주 틀리는(복수 정답 위험) 유형 — 검증 강조 */
+const RISKY_Q = ["grammar","vocab_ctx","blank","order","insert"];
+
+/* 지문 변형(paraphrase) 출제 지시 */
+function srcNote(paraphrase){
+  return paraphrase ? "- ★ 지문 변형(중요): 위 지문을 그대로 쓰지 말고, 의미·정보는 똑같이 유지하되 어휘·표현·문장 구조를 바꿔 새 영어 지문으로 다시 써줘(paraphrase, 난이도는 비슷하게). 새로 쓴 지문을 맨 위에 [변형 지문]으로 먼저 보여준 뒤, 그 변형 지문을 바탕으로 문제를 출제해줘. (원문을 그대로 베끼지 말 것)" : null;
+}
+
+/* 문제 만들기 프롬프트 생성 */
+function generateQuestionPrompt(type, count, difficulty, passage, paraphrase){
+  const passageText = passage ? passage.english : "(여기에 지문을 붙여넣으세요.)";
+  const variationLine = srcNote(paraphrase);
+
+  // 특수 유형 ① 종합 세트 (여러 유형 섞기)
+  if(type === "exam_set"){
+    let L = [];
+    L.push("너는 한국 고등학교 영어 내신·수능 출제 전문가야. 아래 영어 지문으로 여러 유형을 섞은 [종합 문제 세트]를 만들어줘.");
+    L.push(""); L.push("[지문] (아래에 지문이 이미 포함되어 있습니다)"); L.push(passageText); L.push("");
+    L.push("[조건]");
+    if(variationLine) L.push(variationLine);
+    L.push("- 총 " + count + "문항. 수능 유형을 골고루 섞어줘: 주제/제목, 내용 일치, 빈칸 추론, 어법, 어휘, 글의 순서, 문장 삽입, 함축 의미 등.");
+    L.push("- 각 문항 맨 앞에 [유형] 라벨을 달아줘.");
+    L.push("- 객관식은 5지선다(①②③④⑤), 발문은 수능식 한국어로. (주제·제목·빈칸·함축은 영어 선택지)");
+    L.push("- 난이도: " + difficulty + " 중심으로 하되, 1~2문항은 어려운 3점급으로 변별력 있게.");
+    L.push("- 어법 문항에는 이 시험 포인트(분사 후치수식 -ing/p.p., so that ~ can, 관계사)를 가급적 포함.");
+    L.push("- 오답은 지문 근거로 그럴듯하게 만들되, 지문에 없는 사실은 지어내지 말 것.");
+    L.push("- 각 문항의 정답은 1개만 분명히 성립하도록 만들고, 애매하면 출제하지 말 것.");
+    L.push('- 아주 중요: 먼저 문제만 모두 보여주고, 정답과 해설은 맨 마지막에 "=== 정답 & 해설 ===" 아래 따로 모아줘 (내가 먼저 풀어볼 수 있게).');
+    L.push("- 해설은 정답의 근거가 되는 지문 문장을 인용하며 한국어로.");
+    return L.join("\n");
+  }
+
+  // 특수 유형 ② 지문 해석·구문 분석 (학습 도우미)
+  if(type === "translate"){
+    let L = [];
+    L.push("너는 영어 독해를 돕는 선생님이야. 아래 영어 지문을 학습용으로 분석해줘.");
+    L.push(""); L.push("[지문]"); L.push(passageText); L.push("");
+    L.push("[요청]");
+    L.push("1) 문단별로 자연스러운 한국어 해석을 제시해줘.");
+    L.push("2) 어렵거나 시험에 나올 만한 어휘·숙어를 표로 정리해줘 (영어 | 한국어 뜻).");
+    L.push("3) 핵심 구문·문법을 2~4개 골라(예: 분사 후치수식, so that, 관계사) 한국어로 쉽게 설명해줘.");
+    L.push("4) 글의 주제를 한 문장으로 정리해줘.");
+    L.push("(학습용이라 정답을 숨기지 않고 바로 보여줘도 괜찮아.)");
+    return L.join("\n");
+  }
+
+  const meta = MCQ_TYPES[type];
+  if(!meta) return "유형 정보를 찾을 수 없습니다.";
+
+  const typeName = meta.name;
+
+  let lines = [];
+  lines.push("너는 한국 고등학교 영어 내신·수능 출제 전문가야. 아래 영어 지문으로 [" + typeName + "] 문제를 만들어줘.");
+  lines.push("");
+  lines.push("[지문] (아래에 지문이 이미 포함되어 있습니다)");
+  lines.push(passageText);
+  lines.push("");
+  lines.push("[조건]");
+  if(variationLine) lines.push(variationLine);
+  lines.push("- 문항 수: " + count + "개");
+  lines.push(difficultyLine(difficulty));
+  lines.push("- 형식: 5지선다(①②③④⑤)");
+  if(meta.choiceLang === "한국어"){
+    lines.push("- 선택지는 한국어로 작성");
+  }else if(meta.choiceLang === "영어"){
+    lines.push("- 선택지는 영어로 작성");
+  }else if(meta.choiceLang === "순서 조합"){
+    lines.push("- 선택지는 순서 조합(예: (A)-(C)-(B))으로 제시");
+  }else if(meta.choiceLang === "(A)/(B) 짝"){
+    lines.push("- 선택지는 (A)와 (B)에 들어갈 말의 짝으로 제시");
+  }else if(meta.choiceLang === "-"){
+    lines.push("- 선택지는 지문에 표시한 ①~⑤(밑줄/위치)로 한다");
+  }
+  lines.push('- 발문은 정확히: "' + meta.prompt + '"');
+  if(meta.extra) lines.push("- " + meta.extra);
+  if(SINGLE_Q.indexOf(type) !== -1 && count > 1) lines.push("- 참고: 이 유형은 보통 지문당 1문항이야. 여러 개면 서로 다른 선택지 구성으로 변형해 출제해줘.");
+  if(RISKY_Q.indexOf(type) !== -1) lines.push("- 정답은 반드시 1개만 성립하도록 출제하고, 나머지 선택지가 왜 답이 아닌지 해설에 분명히 밝혀줘. 애매하면 출제하지 말 것.");
+  lines.push("- 오답은 지문 근거로 그럴듯하게 만들되, 지문에 없는 사실을 지어내지 말 것");
+  const de = difficultyExtra(difficulty);
+  if(de) lines.push(de);
+  lines.push('- 아주 중요: 먼저 문제만 모두 보여주고, 정답과 해설은 맨 마지막에 "=== 정답 & 해설 ===" 아래 따로 모아줘 (내가 먼저 풀어볼 수 있게)');
+  lines.push("- 해설은 정답의 근거가 되는 지문 문장을 인용하며 한국어로 작성");
+
+  return lines.join("\n");
+}
+
+/* ============================================================
+   활동 ② 패러프레이즈 프롬프트 생성
+   ============================================================ */
+function getCheckedTechniques(){
+  return $all("#pTechniques input:checked").map(function(c){ return c.value; });
+}
+function generateParaphrasePrompt(level, techniques, text){
+  const techList = (techniques && techniques.length) ? techniques.join(", ") : "동의어 치환";
+  const target = (text && text.trim()) ? text.trim() : "(여기에 패러프레이즈할 영어 문장/문단을 붙여넣으세요.)";
+
+  let lines = [];
+  lines.push("너는 영어 학습을 돕는 paraphrase 전문가야.");
+  lines.push("아래 영어를 CEFR " + level + " 수준으로, 아래에 선택된 기법만 적용해서 paraphrase 해줘. 원래 의미는 반드시 유지할 것.");
+  lines.push("");
+  lines.push("[적용할 기법]");
+  lines.push("- " + techList);
+  lines.push("");
+  lines.push("[원문]");
+  lines.push(target);
+  lines.push("");
+  lines.push("[요청]");
+  lines.push("1) 먼저 paraphrase한 영어 문장을 보여줘.");
+  lines.push("2) 그다음, 어떤 기법을 문장의 어디에 어떻게 적용했는지 '원래 표현 → 바꾼 표현 | 사용한 기법' 형태의 표로 정리해줘.");
+  lines.push("3) 원래 의미가 그대로 유지되는지 한 줄로 확인해줘.");
+  lines.push("4) 표·확인은 맨 끝에 \"=== 해설 ===\" 아래 따로 모아줘. 그래야 내가 paraphrase 문장을 먼저 직접 해석해 본 뒤 확인할 수 있어.");
+  return lines.join("\n");
+}
+
+/* ============================================================
+   출력 헬퍼
+   ============================================================ */
+function showPrompt(text){
+  const out = $("#promptOut");
+  out.value = text;
+  out.scrollTop = 0;
+}
+
+/* 위험 유형(어법·빈칸·순서·삽입) 검증 경고 표시 */
+function updateRiskNote(){
+  const el = $("#riskNote"); if(!el) return;
+  const t = $("#qType").value;
+  const show = (state.activity === "q") && (RISKY_Q.indexOf(t) !== -1 || t === "exam_set");
+  el.style.display = show ? "" : "none";
+  if(show) el.innerHTML = "⚠️ <b>어법·빈칸·순서·문장삽입</b>은 AI가 정답을 틀리거나 <b>복수 정답</b>을 낼 때가 많아요. 받은 문제는 꼭 <b>지문으로 검증</b>하고, 이상하면 \"근거를 지문에서 인용해줘\"라고 되물으세요.";
+}
+
+/* 현재 활동에 맞춰 프롬프트 자동 생성 (옵션이 바뀔 때마다 호출) */
+function updatePrompt(){
+  updateRiskNote();
+  if(state.activity === "q"){
+    const p = currentPassage();
+    if(!p){
+      showPrompt("⚠️ 먼저 위에서 지문을 고르세요.\n(단원 탭을 누르고 지문을 선택하면 프롬프트가 자동으로 만들어져요.)");
+      return;
+    }
+    let count = parseInt($("#qCount").value, 10);
+    if(isNaN(count) || count < 1) count = 5;
+    const para = !!($("#qSrc") && $("#qSrc").value === "para");
+    showPrompt(generateQuestionPrompt($("#qType").value, count, $("#qDiff").value, p, para));
+  }else if(state.activity === "p"){
+    let text = $("#pText").value;
+    if(!text || !text.trim()){
+      const p = currentPassage();
+      if(p) text = p.english;
+    }
+    showPrompt(generateParaphrasePrompt($("#pLevel").value, getCheckedTechniques(), text));
+  }
+}
+
+/* ============================================================
+   이벤트 바인딩
+   ============================================================ */
+function bindButtons(){
+  // 옵션이 바뀌면 프롬프트 자동 갱신 (버튼 없이)
+  ["#qDiff","#qSrc","#pLevel"].forEach(function(sel){
+    const el = $(sel); if(el) el.addEventListener("change", updatePrompt);
+  });
+  ["#qCount","#pText"].forEach(function(sel){
+    const el = $(sel); if(el) el.addEventListener("input", updatePrompt);
+  });
+  $all("#pTechniques input").forEach(function(c){ c.addEventListener("change", updatePrompt); });
+
+  // 문제 유형 변경: 일부 유형은 문항수/난이도 UI를 조정
+  $("#qType").addEventListener("change", function(){
+    const t = $("#qType").value;
+    const isTranslate = (t === "translate");
+    const co = $("#qCountOpt"), dio = $("#qDiffOpt"), so = $("#qSrcOpt");
+    if(co) co.style.display = isTranslate ? "none" : "";
+    if(dio) dio.style.display = isTranslate ? "none" : "";
+    if(so) so.style.display = isTranslate ? "none" : "";
+    if(t === "exam_set") $("#qCount").value = 8;
+    updatePrompt();
+  });
+
+  // 패러프레이즈 프리셋
+  $all("[data-preset]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      const preset = btn.getAttribute("data-preset");
+      const boxes = $all("#pTechniques input");
+      function setChecked(values){
+        boxes.forEach(function(b){ b.checked = values.indexOf(b.value) !== -1; });
+      }
+      if(preset === "easy"){ $("#pLevel").value = "A2"; setChecked(["동의어 치환"]); }
+      else if(preset === "mid"){ $("#pLevel").value = "B1"; setChecked(["동의어 치환","품사 변환"]); }
+      else if(preset === "hard"){ $("#pLevel").value = "B2"; boxes.forEach(function(b){ b.checked = true; }); }
+      updatePrompt();
+    });
+  });
+
+  // 프롬프트 복사 (지문 포함 — 이것만 복사하면 됨)
+  $("#btnCopyPrompt").addEventListener("click", function(){
+    const out = $("#promptOut");
+    if(!out.value || !out.value.trim()){
+      alert("먼저 위에서 지문과 활동을 골라 주세요. 프롬프트가 자동으로 만들어져요.");
+      return;
+    }
+    copyText(out.value, $("#btnCopyPrompt"), "📋 이것만 복사");
+  });
+}
+
+/* ============================================================
+   초기화
+   ============================================================ */
+function init(){
+  renderUnitTabs();
+  renderPassageList();
+  renderPassageView();
+  setupActivityTabs();
+  bindButtons();
+  updatePrompt();
+}
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
