@@ -622,15 +622,15 @@ function copyText(text, btn, original){
    활동 ① 문제 만들기 — 유형별 메타 (발문/규칙)
    ============================================================ */
 const MCQ_TYPES = {
-  purpose:     { name:"글의 목적",      prompt:"다음 글의 목적으로 가장 적절한 것은?",                     choiceLang:"한국어", extra:"편지·안내성 글에 적합합니다." },
-  claim:       { name:"필자의 주장",    prompt:"다음 글에서 필자가 주장하는 바로 가장 적절한 것은?",       choiceLang:"한국어" },
-  gist:        { name:"요지",          prompt:"다음 글의 요지로 가장 적절한 것은?",                       choiceLang:"한국어" },
+  purpose:     { name:"글의 목적",      prompt:"다음 글의 목적으로 가장 적절한 것은?",                     choiceLang:"영어", extra:"편지·안내성 글에 적합합니다." },
+  claim:       { name:"필자의 주장",    prompt:"다음 글에서 필자가 주장하는 바로 가장 적절한 것은?",       choiceLang:"영어" },
+  gist:        { name:"요지",          prompt:"다음 글의 요지로 가장 적절한 것은?",                       choiceLang:"영어" },
   topic:       { name:"주제",          prompt:"다음 글의 주제로 가장 적절한 것은?",                       choiceLang:"영어" },
   title:       { name:"제목",          prompt:"다음 글의 제목으로 가장 적절한 것은?",                     choiceLang:"영어" },
   implication: { name:"함축 의미",      prompt:"밑줄 친 부분이 다음 글에서 의미하는 바로 가장 적절한 것은?", choiceLang:"영어",
                  extra:"지문에서 비유적·함축적 표현 1곳에 밑줄을 긋고, 문항당 밑줄은 1개만 사용하세요." },
-  match:       { name:"내용 일치/불일치", prompt:"다음 글의 내용과 일치하지 않는 것은?",                   choiceLang:"한국어",
-                 extra:"선택지는 한국어 5개. 여러 문항을 요청하면 매번 다른 세부정보로 출제하세요." },
+  match:       { name:"내용 일치/불일치", prompt:"다음 글의 내용과 일치하지 않는 것은?",                   choiceLang:"영어",
+                 extra:"선택지는 영어 5개. 여러 문항을 요청하면 매번 다른 세부정보로 출제하세요." },
   grammar:     { name:"어법",          prompt:"다음 글의 밑줄 친 부분 중, 어법상 틀린 것은?",             choiceLang:"-",
                  extra:"지문 5곳에 ①~⑤ 밑줄을 긋고 그중 1곳만 오류로 만드세요. 가능하면 이 시험의 문법 포인트(분사 후치수식: 능동 -ing / 수동 p.p., so that ~ can, 관계사)를 포함하세요." },
   vocab_ctx:   { name:"어휘 (문맥상 낱말)", prompt:"다음 글의 밑줄 친 부분 중, 문맥상 낱말의 쓰임이 적절하지 않은 것은?", choiceLang:"-",
@@ -697,7 +697,7 @@ function generateQuestionPrompt(type, count, difficulty, passage, paraphrase){
     if(variationLine) L.push(variationLine);
     L.push("- 총 " + count + "문항. 수능 유형을 골고루 섞어줘: 주제/제목, 내용 일치, 빈칸 추론, 어법, 어휘, 글의 순서, 문장 삽입, 함축 의미 등.");
     L.push("- 각 문항 맨 앞에 [유형] 라벨을 달아줘.");
-    L.push("- 객관식은 5지선다(①②③④⑤), 발문은 수능식 한국어로. (주제·제목·빈칸·함축은 영어 선택지)");
+    L.push("- 객관식은 5지선다(①②③④⑤), 발문은 수능식 한국어로. 단, 보기(선택지)는 한국어를 쓰지 말고 모두 영어로 작성해 (글의 순서는 (A)-(B)-(C) 조합, 어법·어휘·문장삽입·지칭은 지문 속 ①~⑤ 위치로 표시).");
     L.push("- 난이도: " + difficulty + " 중심으로 하되, 1~2문항은 어려운 3점급으로 변별력 있게.");
     L.push("- 어법 문항에는 이 시험 포인트(분사 후치수식 -ing/p.p., so that ~ can, 관계사)를 가급적 포함.");
     L.push("- 오답은 지문 근거로 그럴듯하게 만들되, 지문에 없는 사실은 지어내지 말 것.");
@@ -736,9 +736,7 @@ function generateQuestionPrompt(type, count, difficulty, passage, paraphrase){
   lines.push("- 문항 수: " + count + "개");
   lines.push(difficultyLine(difficulty));
   lines.push("- 형식: 5지선다(①②③④⑤)");
-  if(meta.choiceLang === "한국어"){
-    lines.push("- 선택지는 한국어로 작성");
-  }else if(meta.choiceLang === "영어"){
+  if(meta.choiceLang === "영어"){
     lines.push("- 선택지는 영어로 작성");
   }else if(meta.choiceLang === "순서 조합"){
     lines.push("- 선택지는 순서 조합(예: (A)-(C)-(B))으로 제시");
@@ -747,6 +745,7 @@ function generateQuestionPrompt(type, count, difficulty, passage, paraphrase){
   }else if(meta.choiceLang === "-"){
     lines.push("- 선택지는 지문에 표시한 ①~⑤(밑줄/위치)로 한다");
   }
+  lines.push("- ★ 보기(선택지)에는 한국어를 절대 쓰지 마 — 글로 된 보기는 모두 영어로 작성해. (발문·지시문은 한국어 그대로)");
   lines.push('- 발문은 정확히: "' + meta.prompt + '"');
   if(meta.extra) lines.push("- " + meta.extra);
   if(SINGLE_Q.indexOf(type) !== -1 && count > 1) lines.push("- 참고: 이 유형은 보통 지문당 1문항이야. 여러 개면 서로 다른 선택지 구성으로 변형해 출제해줘.");
