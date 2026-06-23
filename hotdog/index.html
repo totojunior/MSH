@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>🌭 핫도그 레이스 — 2학년 1반</title>
+  <title>🌭 핫도그 레이스 — 2학년</title>
   <style>
 /* ============================================================
    🌭 핫도그 레이스 — style.css  (Designer)
@@ -389,6 +389,81 @@ body::after {
   filter: brightness(1.12);          /* 음소거 상태 유지하며 호버 피드백만 */
 }
 .btn.is-muted::before { content: "🔇 "; }
+
+/* ---------- 4b. 반 선택: .class-select / .class-btn ---------- */
+.class-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--panel-edge);
+}
+.class-label {
+  font-weight: 800;
+  font-size: clamp(0.8rem, 1.05vw, 0.95rem);
+  letter-spacing: 0.2px;
+  color: var(--ink);
+}
+.class-label::before { content: "🏫 "; }
+.class-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.class-btn {
+  appearance: none;
+  cursor: pointer;
+  flex: 1 1 auto;
+  min-width: 56px;
+  padding: 9px 14px;
+  font-family: var(--font-kr);
+  font-size: clamp(0.92rem, 1.25vw, 1.1rem);
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  color: var(--ink-dim);
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: transform 0.08s ease, background 0.15s, color 0.15s,
+              border-color 0.15s, box-shadow 0.15s, filter 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.class-btn::before { content: "🌭 "; }
+.class-btn:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--neon-cyan);
+  transform: translateY(-1px);
+}
+.class-btn:active { transform: translateY(1px); }
+.class-btn:focus-visible {
+  outline: 3px solid var(--neon-cyan);
+  outline-offset: 2px;
+}
+/* 활성(시안 그라데이션) 버튼은 포커스 링을 흰색으로 → 자기 시안 가장자리와 대비 확보 */
+.class-btn.active:focus-visible { outline-color: #fff; }
+/* 선택된 반 — 네온 그라데이션 + 글로우(시작 버튼과 색을 달리해 '탭 선택'으로 읽히게) */
+.class-btn.active {
+  color: #160a2a;
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-violet) 90%);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 0 16px rgba(46, 230, 255, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.class-btn.active:hover { filter: brightness(1.08); }
+/* 레이스 진행 중 잠금 (UI 가 .class-btn[disabled] 설정) */
+.class-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: grayscale(0.4);
+  transform: none;
+  box-shadow: none;
+}
 
 /* ---------- 5. 명단: .roster / .roster-item / .absent ---------- */
 .roster {
@@ -1014,6 +1089,8 @@ body::after {
     align-items: flex-start;
     max-height: 42vh;
   }
+  /* 반 선택은 좁은/세로 화면에서도 한 줄 전체 띠로(제목·부제·명단과 안 섞이게) */
+  .class-select { flex-basis: 100%; }
   .roster { max-height: 22vh; }
 }
 
@@ -1055,9 +1132,24 @@ body::after {
     <aside id="panel"></aside>
   </div>
   <script>
-// 2-1반 학생 명단 (이름만, 학번 제외) — 명렬표에서 자동 추출. 수정 금지(build에서 재생성됨).
+/* names.js — 🌭 핫도그 레이스 학생 명단 (이름만, 학번 제외)
+ * 명렬표(2026학년도 2학년 명렬표(최종).xlsx)에서 자동 추출. 수정 금지(build에서 재생성됨).
+ *
+ * 다반 지원: HD.classes = 반별 { id, label, winners, names[] }.
+ *   winners = 구매 제안서의 '추가(비례)' 칸(전원 1개씩 후 남는 핫도그 수) = 당첨 인원 기본값.
+ *   앱에서 반을 골라 진행하며, 당첨 인원은 화면에서 조절 가능.
+ * 하위호환: HD.names = 기본 반(2-1)의 이름 배열.
+ */
 window.HD = window.HD || {};
-window.HD.names = ["김가윤", "김도윤", "김도희", "김선아", "김지원", "김태훈", "류정훈", "문승현", "문유빈", "박가연", "성은찬", "심정혁", "심주은", "안하은", "오상엽", "원재민", "유단아", "윤주환", "윤혜리", "이도연", "이서윤", "이재현", "이하민", "이효원", "장연우", "정교찬", "정송현", "정시아", "조민성", "최유나", "한아연", "한은채", "황윤채"];
+window.HD.classes = [
+  { id: "2-1", label: "2학년 1반", winners: 10, names: ["김가윤", "김도윤", "김도희", "김선아", "김지원", "김태훈", "류정훈", "문승현", "문유빈", "박가연", "성은찬", "심정혁", "심주은", "안하은", "오상엽", "원재민", "유단아", "윤주환", "윤혜리", "이도연", "이서윤", "이재현", "이하민", "이효원", "장연우", "정교찬", "정송현", "정시아", "조민성", "최유나", "한아연", "한은채", "황윤채"] },
+  { id: "2-2", label: "2학년 2반", winners: 8, names: ["고다은", "권태우", "권현서", "김도연", "김륜하", "김윤아", "김주혁", "김지섭", "김평안", "문예영", "변윤하", "서도현", "서두영", "서정원", "신규진", "신지우", "안인의", "양예진", "오서희", "오유나", "이선빈", "이정현", "이채윤", "장재겸", "전태웅", "전하경", "정민건", "정민주", "조연수", "조유빈", "조은채", "채예림", "최시영", "하예린", "한수현"] },
+  { id: "2-6", label: "2학년 6반", winners: 8, names: ["강초은", "강태윤", "김경환", "김도현", "김리후", "김민석", "김보빈", "김봄", "김서진", "김선명", "김솔민", "김안나", "김유림", "김정찬", "김형준", "나혜림", "노현태", "박예담", "박정현", "박지현", "방준기", "서동연", "신서연", "양지현", "엄은진", "이수민", "이수아", "임수빈", "정주언", "조예빈", "채지완", "최서연"] },
+  { id: "2-9", label: "2학년 9반", winners: 7, names: ["김남율", "김대연", "김지현", "김태현", "박수민", "박주완", "백서하", "서다연", "송준의", "양승준", "이강민", "이다윤", "이동건", "이소원", "이재영", "이태헌", "임선우", "장동건", "장세은", "장준우", "정준영", "정지율", "제라온", "조서찬", "차준혁", "최성웅", "최지우", "황지후"] },
+];
+window.HD.defaultClassId = "2-1";
+// 하위호환(기존 코드/계약): 기본 반의 이름 배열을 HD.names 로도 노출
+window.HD.names = (window.HD.classes[0] && window.HD.classes[0].names) || [];
 
 </script>
   <script>
@@ -3083,10 +3175,113 @@ window.HD.names = ["김가윤", "김도윤", "김도희", "김선아", "김지�
     runId: 0,                     // 실행 세대(초기화/중단 시 +1 → 진행중 흐름 무효화)
     raceInited: false,
     waitResolve: null,            // Space '다음' 대기용 resolver
-    winnerCount: 10
+    winnerCount: 10,
+    classes: [],                  // 반 목록(initClasses 가 채움)
+    cls: null                     // 현재 선택 반
   };
 
   var dom = {}; // 자주 쓰는 DOM 캐시
+
+  // ---------------------------------------------------------------------------
+  // 반(class) 관리 — HD.classes 다반 지원 (+ 하위호환: HD.names 단일 반)
+  // ---------------------------------------------------------------------------
+  function initClasses() {
+    var cs = [];
+    if (Array.isArray(HD.classes)) {
+      cs = HD.classes.filter(function (c) {
+        return c && Array.isArray(c.names) && c.names.length;
+      });
+    }
+    if (!cs.length) {
+      // HD.classes 없거나 비면 HD.names 로 단일 반 구성(구버전 호환)
+      cs = [{ id: '2-1', label: '2학년 1반', winners: 10,
+              names: Array.isArray(HD.names) ? HD.names.slice() : [] }];
+    }
+    state.classes = cs;
+    var def = null;
+    if (HD.defaultClassId) {
+      for (var i = 0; i < cs.length; i++) {
+        if (cs[i].id === HD.defaultClassId) { def = cs[i]; break; }
+      }
+    }
+    state.cls = def || cs[0];
+    state.winnerCount = curWinners();
+  }
+
+  function curNames() {
+    return (state.cls && Array.isArray(state.cls.names)) ? state.cls.names : [];
+  }
+
+  // 반 기본 당첨 인원(구매 제안서 '추가' 칸). 기형값/명단초과는 1~명단수로 보정.
+  function curWinners() {
+    var w = parseInt(state.cls && state.cls.winners, 10);
+    if (!isFinite(w) || w < 1) w = 1;
+    var n = curNames().length;
+    if (n > 0 && w > n) w = n;
+    return w;
+  }
+
+  // "2학년 1반" → "1반" (버튼용 짧은 라벨). 폴백: label/id.
+  function classShort(c) {
+    var m = /(\d+)\s*반/.exec((c && c.label) || '');
+    return m ? (m[1] + '반') : ((c && (c.label || c.id)) || '반');
+  }
+
+  // 현재 반 명단으로 명단 칩 다시 그리기(반 전환 시 재호출).
+  function rebuildRoster() {
+    if (!dom.roster) return;
+    clear(dom.roster);
+    curNames().forEach(function (name) {
+      var chip = el('button', 'roster-item', name);
+      chip.type = 'button';
+      chip.setAttribute('data-name', name);
+      chip.setAttribute('aria-pressed', 'false');
+      chip.setAttribute('aria-label', name + ' — 출전');
+      chip.addEventListener('click', function () {
+        if (state.running) return; // 진행 중엔 명단 잠금
+        toggleAbsent(name, chip);
+        Snd.sfx('click');
+      });
+      dom.roster.appendChild(chip);
+    });
+  }
+
+  // 부제: "2학년 N반 · 남는 핫도그 W개 추첨" (반 전환 시 갱신).
+  function updateSubtitle() {
+    if (!dom.sub) return;
+    var label = (state.cls && state.cls.label) || '';
+    dom.sub.textContent = label + ' · 남는 핫도그 ' + curWinners() + '개 추첨';
+  }
+
+  function updateClassButtons() {
+    if (!dom.classBtns) return;
+    var btns = dom.classBtns.querySelectorAll('.class-btn');
+    for (var i = 0; i < btns.length; i++) {
+      var id = btns[i].getAttribute('data-class-id');
+      var on = !!(state.cls && id === state.cls.id);
+      btns[i].classList.toggle('active', on);
+      btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+  }
+
+  // 반 전환: 진행 중이면 정리 → 명단/부제/당첨 기본값 교체.
+  function selectClass(c) {
+    if (!c || c === state.cls) return;
+    resetAll();                          // 레이스/사운드/오버레이/캔버스 정리(멱등)
+    Snd.sfx('click');                    // resetAll 뒤에 재생 → 진행 중 전환의 stopAll 에도 안 잘림(경로 일관)
+    state.cls = c;
+    state.absent = Object.create(null);  // 반마다 명단 다르므로 결석표 초기화
+    updateClassButtons();
+    rebuildRoster();
+    var present = curNames().length;
+    if (dom.winnerCount) {
+      dom.winnerCount.value = String(Math.min(curWinners(), Math.max(1, present)));
+      dom.winnerCount.max = String(Math.max(1, present));
+    }
+    state.winnerCount = curWinners();
+    updateSubtitle();
+    updateRosterCount();
+  }
 
   // ---------------------------------------------------------------------------
   // 패널(컨트롤) 생성
@@ -3096,7 +3291,31 @@ window.HD.names = ["김가윤", "김도윤", "김도희", "김선아", "김지�
     clear(panel);
 
     panel.appendChild(el('h1', 'panel-title', '🌭 핫도그 레이스'));
-    panel.appendChild(el('p', 'panel-sub', '2학년 1반 · 남는 핫도그 10개 추첨'));
+
+    // 반 선택(반이 2개 이상일 때만). 선택 시 명단·부제·당첨 기본값 갱신.
+    if (state.classes.length > 1) {
+      var classWrap = el('div', 'class-select');
+      classWrap.setAttribute('role', 'group');
+      classWrap.setAttribute('aria-label', '반 선택');
+      classWrap.appendChild(el('span', 'class-label', '반 선택'));
+      dom.classBtns = el('div', 'class-btns');
+      state.classes.forEach(function (c) {
+        var cb = el('button', 'class-btn', classShort(c));
+        cb.type = 'button';
+        cb.setAttribute('data-class-id', c.id);
+        cb.setAttribute('aria-label', (c.label || c.id) + ' 선택');
+        cb.setAttribute('aria-pressed', c === state.cls ? 'true' : 'false');
+        if (c === state.cls) cb.classList.add('active');
+        cb.addEventListener('click', function () { selectClass(c); });
+        dom.classBtns.appendChild(cb);
+      });
+      classWrap.appendChild(dom.classBtns);
+      panel.appendChild(classWrap);
+    }
+
+    // 부제(선택 반 · 남는 핫도그 수) — 반 전환 시 갱신되도록 캐시.
+    dom.sub = el('p', 'panel-sub', '');
+    panel.appendChild(dom.sub);
 
     // 명단 헤더 + 카운트
     var rosterHead = el('div', 'roster-head');
@@ -3109,22 +3328,8 @@ window.HD.names = ["김가윤", "김도윤", "김도희", "김선아", "김지�
     dom.roster = el('div', 'roster');
     dom.roster.setAttribute('role', 'group');
     dom.roster.setAttribute('aria-label', '학생 명단 — 클릭하면 결석/출전 토글');
-    var names = Array.isArray(HD.names) ? HD.names : [];
-    names.forEach(function (name) {
-      var chip = el('button', 'roster-item', name);
-      chip.type = 'button';
-      chip.setAttribute('data-name', name);
-      // 접근성: 토글 버튼 의미 부여. aria-pressed=true → '결석' 눌림 상태.
-      chip.setAttribute('aria-pressed', 'false');
-      chip.setAttribute('aria-label', name + ' — 출전');
-      chip.addEventListener('click', function () {
-        if (state.running) return; // 진행 중엔 명단 잠금
-        toggleAbsent(name, chip);
-        Snd.sfx('click');
-      });
-      dom.roster.appendChild(chip);
-    });
     panel.appendChild(dom.roster);
+    rebuildRoster(); // 현재 반 명단으로 칩 생성(반 전환 시 재호출)
 
     // 당첨 인원 입력
     // Designer CSS(#panel label{display:flex;justify-content:space-between})에 맞춰
@@ -3138,8 +3343,10 @@ window.HD.names = ["김가윤", "김도윤", "김도희", "김선아", "김지�
     dom.winnerCount.id = 'winnerCount';
     dom.winnerCount.type = 'number';
     dom.winnerCount.min = '1';
-    dom.winnerCount.max = String(Math.max(1, (HD.names || []).length));
-    dom.winnerCount.value = '10';
+    var present0 = curNames().length;
+    dom.winnerCount.max = String(Math.max(1, present0));
+    dom.winnerCount.value = String(Math.min(curWinners(), Math.max(1, present0)));
+    state.winnerCount = curWinners();
     // 타이핑 중(input)엔 표시/max 만 갱신(자유 입력). 확정(change/blur) 시 값 클램프.
     dom.winnerCount.addEventListener('input', updateRosterCount);
     dom.winnerCount.addEventListener('change', function () { updateRosterCount(); clampWinnerCount(); });
@@ -3170,6 +3377,7 @@ window.HD.names = ["김가윤", "김도윤", "김도희", "김선아", "김지�
       });
     panel.appendChild(hint);
 
+    updateSubtitle();
     updateRosterCount();
     syncMuteLabel();
   }
@@ -3193,13 +3401,12 @@ window.HD.names = ["김가윤", "김도윤", "김도희", "김선아", "김지�
   }
 
   function presentNames() {
-    var names = Array.isArray(HD.names) ? HD.names : [];
-    return names.filter(function (n) { return !state.absent[n]; });
+    return curNames().filter(function (n) { return !state.absent[n]; });
   }
 
   // 표시(출전/결석 배지)와 input max 만 갱신 — 매 키입력에도 안전(값은 안 건드림).
   function updateRosterCount() {
-    var total = (HD.names || []).length;
+    var total = curNames().length;
     var absentCount = Object.keys(state.absent).length;
     var present = total - absentCount;
     if (dom.rosterCount) {
@@ -3214,7 +3421,7 @@ window.HD.names = ["김가윤", "김도윤", "김도희", "김선아", "김지�
   // (R2-F2: 매 키입력 클램프하면 '25' 입력 중 '2'에서 잘림. 입력 중엔 자유 허용.)
   function clampWinnerCount() {
     if (!dom.winnerCount) return;
-    var present = (HD.names || []).length - Object.keys(state.absent).length;
+    var present = curNames().length - Object.keys(state.absent).length;
     if (present < 1) return; // 출전 0명이면 시작 시 막힘 — 값은 그대로 둠
     var cur = parseInt(dom.winnerCount.value, 10);
     if (isFinite(cur) && cur > present) dom.winnerCount.value = String(present);
@@ -3995,6 +4202,11 @@ window.HD.names = ["김가윤", "김도윤", "김도희", "김선아", "김지�
       dom.roster.classList.toggle('locked', busy);
       dom.roster.setAttribute('aria-disabled', busy ? 'true' : 'false'); // R2-F3 접근성
     }
+    // 진행 중엔 반 전환 잠금(중간에 반 바뀌어 흐름이 깨지는 것 방지). 초기화(R) 후 가능.
+    if (dom.classBtns) {
+      var cbtns = dom.classBtns.querySelectorAll('.class-btn');
+      for (var i = 0; i < cbtns.length; i++) cbtns[i].disabled = busy;
+    }
   }
 
   // 짧은 토스트성 메시지(오버레이)
@@ -4017,6 +4229,7 @@ window.HD.names = ["김가윤", "김도윤", "김도희", "김선아", "김지�
   // 부팅
   // ---------------------------------------------------------------------------
   function boot() {
+    initClasses();
     buildPanel();
     hideOverlay();
     // R2-F3 접근성: 오버레이(라운드 배너/우승자 공개)를 스크린리더가 읽도록 live region.
