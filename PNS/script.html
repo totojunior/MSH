@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 협업을 통한 개인 서사 구술 — 발표 구조 템플릿 · 예시 대본</title>
+<style>
+  :root{
+    --teal-900:#134e4a; --teal-700:#0f766e; --teal-500:#14b8a6; --teal-100:#ccfbf1; --teal-50:#f0fdfa;
+    --seg:#b45309; --seg-bg:#fef3c7; --seg-bd:#fcd34d;
+    --ink:#12332f; --muted:#5b6b7c; --line:#e2e8f0; --page:#f4f7f8; --card:#fff;
+    --shadow:0 1px 2px rgba(15,23,42,.06), 0 6px 18px rgba(15,23,42,.06);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0; background:var(--page); color:var(--ink);
+    font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo","Segoe UI",system-ui,sans-serif; line-height:1.6;}
+  .wrap{max-width:880px; margin:0 auto; padding:0 18px;}
+
+  .hero{background:linear-gradient(135deg,var(--teal-700),var(--teal-900)); color:#fff; padding:30px 0 26px;}
+  .hero .kicker{font-size:13px; font-weight:800; letter-spacing:.05em; color:var(--teal-100); margin:0 0 6px;}
+  .hero h1{font-size:26px; margin:0 0 8px; font-weight:800;}
+  .hero p{margin:0; color:#e6fffb; font-size:15px; max-width:66ch;}
+
+  main{padding:24px 0 60px;}
+  .legend{background:#fff; border:1px solid var(--line); border-left:5px solid var(--seg-bd); border-radius:12px;
+    padding:12px 15px; font-size:14px; color:#475569; margin-bottom:22px;}
+  .legend b{color:var(--seg);}
+  .seg-demo{background:var(--seg-bg); color:var(--seg); border:1px solid var(--seg-bd); border-radius:6px; padding:1px 7px; font-weight:700; font-size:13px;}
+
+  .flow{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0 0 22px;}
+  .flow .st{background:#fff; border:1px solid var(--line); border-radius:999px; padding:6px 13px; font-size:13px; font-weight:700; color:var(--teal-900); box-shadow:var(--shadow);}
+  .flow .st b{color:var(--teal-700);}
+  .flow .ar{color:#94a3b8; font-weight:800;}
+
+  h2.sec{font-size:20px; color:var(--teal-900); margin:30px 0 6px; font-weight:800;}
+  .sec-note{color:var(--muted); font-size:13.5px; margin:0 0 14px;}
+
+  .scene{background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); padding:16px 18px; margin:0 0 14px;}
+  .scene-head{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:11px; padding-bottom:9px; border-bottom:1px dashed var(--line);}
+  .slide-chip{background:var(--teal-700); color:#fff; font-size:12.5px; font-weight:800; padding:4px 11px; border-radius:999px;}
+  .role{color:var(--muted); font-size:13px; font-weight:700;}
+  .wc{margin-left:auto; background:var(--teal-50); color:var(--teal-700); border:1px solid var(--teal-100);
+    font-size:11.5px; font-weight:800; padding:2px 9px; border-radius:999px;}
+  .en{font-size:16px; color:#0b2b29; margin:0 0 7px; line-height:1.62;}
+  .ko{font-size:13.5px; color:var(--muted); margin:0; line-height:1.55;}
+  mark.segue{background:var(--seg-bg); color:var(--seg); border-radius:5px; padding:1px 5px; font-weight:600; box-decoration-break:clone; -webkit-box-decoration-break:clone;}
+  .part-tag{display:inline-block; font-size:11px; font-weight:800; color:#fff; border-radius:5px; padding:1px 7px; margin-right:5px; vertical-align:1px;}
+  .pt-open{background:#6366f1;} .pt-ans{background:#16a34a;} .pt-close{background:#db2777;}
+  .segko{color:var(--seg); font-weight:600;}
+
+  .usedbar{background:var(--teal-50); border:1px solid var(--teal-100); border-radius:11px; padding:12px 15px; font-size:14px; color:#134e4a; margin:6px 0 4px;}
+  .usedbar b{color:var(--teal-700);}
+
+  .tpl{background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:15px 17px; margin:0 0 12px;}
+  .tpl h3{margin:0 0 10px; font-size:15.5px; color:var(--teal-900);}
+  .tpl h3 .ki{font-size:12px; font-weight:700; color:var(--muted); margin-left:6px;}
+  .tpl h3 .fix{font-size:11px; font-weight:800; color:#fff; background:var(--teal-700); padding:1px 8px; border-radius:99px; margin-left:6px; vertical-align:1px;}
+  .tpl ol{margin:0; padding:0; list-style:none; counter-reset:opt; display:flex; flex-direction:column; gap:9px;}
+  .tpl li{counter-increment:opt; padding-left:26px; position:relative;}
+  .tpl li::before{content:counter(opt); position:absolute; left:0; top:1px; width:19px; height:19px; border-radius:6px;
+    background:var(--teal-100); color:var(--teal-700); font-size:11.5px; font-weight:800; display:flex; align-items:center; justify-content:center;}
+  .tpl li .lt{font-size:14.5px; color:#123; line-height:1.5;}
+  .tpl li .lk{display:block; font-size:12.5px; color:var(--muted); margin-top:1px;}
+  .tpl .blank{color:#0ea5e9; font-weight:800;}
+  .notebar{background:var(--teal-50); border:1px solid var(--teal-100); border-radius:10px; padding:11px 14px; font-size:13.5px; color:#134e4a; margin-top:8px;}
+
+  @media (max-width:600px){ .hero h1{font-size:21px;} .en{font-size:15px;} }
+  @media print{ body{background:#fff;} .scene,.tpl{box-shadow:none; break-inside:avoid;} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">AI 협업을 통한 개인 서사 구술 · 4차시 발표 대본</p>
+    <h1>발표 구조 템플릿 &amp; 예시 대본</h1>
+    <p>발표의 <b>앞뒤는 고정 문장</b>입니다 — 오프닝 한 문장과 마무리 한 문장은 <b>어떤 주제를 골라도 그대로</b> 쓰고, 빈칸만 채워 말하면 됩니다. 가운데는 <b>이음구(고정) + 한 문장 답변(10단어 이상)</b>이 세 번 반복됩니다. 먼저 <b>김토토</b> 학생의 예시(할머니)를 보고, 아래 템플릿으로 내 것을 만들어 보세요.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="legend">
+    🔗 <b>노란 하이라이트</b> = <b>이음구(고정 문장)</b>입니다. 각 공통질문 답변을 시작하기 전에 그대로 말해서 흐름을 이어 줍니다 — 예: <span class="seg-demo">Now, let me tell you how this changed me.</span>
+    &nbsp;|&nbsp; 모든 답변은 <b>영어 한 문장(10단어 이상)</b>.
+  </div>
+
+  <div class="flow">
+    <span class="st"><b>표지</b> 오프닝 한 문장</span><span class="ar">→</span>
+    <span class="st"><b>공통1</b> 대상</span><span class="ar">→</span>
+    <span class="st"><b>공통2</b> 변화</span><span class="ar">→</span>
+    <span class="st"><b>공통3</b> 교훈</span><span class="ar">→</span>
+    <span class="st"><b>Thank You</b> 마무리 한 문장</span>
+  </div>
+
+  <h2 class="sec">🎤 예시 대본 — 20100 김토토 (주제: 할머니)</h2>
+  <p class="sec-note">아래 예시는 <b>템플릿의 고정 문장에 빈칸만 채운 것</b>입니다. 각 답변이 <b>정확히 한 문장</b>인 것을 확인해 보세요.</p>
+
+  <div class="scene">
+    <div class="scene-head"><span class="slide-chip">🖥️ 슬라이드 1 · 표지</span><span class="role">오프닝 (인사+자기소개+인트로, 한 문장)</span><span class="wc">한 문장</span></div>
+    <p class="en"><span class="part-tag pt-open">오프닝</span>Hello everyone, my name is Kim Toto, and today I'm going to talk about my grandmother.</p>
+    <p class="ko">안녕하세요 여러분, 제 이름은 김토토이고, 오늘 저는 제 할머니에 대해 이야기하려고 합니다.</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-head"><span class="slide-chip">🖥️ 슬라이드 2 · 공통질문 1</span><span class="role">대상 + 이유</span><span class="wc">한 문장 · 25단어</span></div>
+    <p class="en"><mark class="segue">Let me start from the beginning.</mark> <span class="part-tag pt-ans">답변</span>The person who has influenced me the most is my grandmother, because she raised me with love and patience while my parents were busy working.</p>
+    <p class="ko"><span class="segko">(이음구) 처음부터 이야기를 시작해 보겠습니다.</span> 저에게 가장 큰 영향을 준 사람은 제 할머니인데, 부모님이 바쁘게 일하시는 동안 사랑과 인내로 저를 키워 주셨기 때문입니다.</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-head"><span class="slide-chip">🖥️ 슬라이드 3 · 공통질문 2</span><span class="role">변화 · 영향</span><span class="wc">한 문장 · 23단어</span></div>
+    <p class="en"><mark class="segue">Now, let me tell you how this changed me.</mark> <span class="part-tag pt-ans">답변</span>Because of my grandmother, I became a more patient person, and now I stay calm and keep trying even when things feel hard.</p>
+    <p class="ko"><span class="segko">(이음구) 이제 이것이 저를 어떻게 바꾸었는지 말씀드리겠습니다.</span> 할머니 덕분에 저는 더 인내심 있는 사람이 되었고, 이제는 일이 힘들게 느껴질 때도 침착함을 유지하며 계속 노력합니다.</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-head"><span class="slide-chip">🖥️ 슬라이드 4 · 공통질문 3</span><span class="role">교훈 + 적용</span><span class="wc">한 문장 · 26단어</span></div>
+    <p class="en"><mark class="segue">So, what is the most important lesson I learned from all this?</mark> <span class="part-tag pt-ans">답변</span>The most important lesson I learned is that patience and honest effort always pay off, so I will keep doing my best in everything I do.</p>
+    <p class="ko"><span class="segko">(이음구) 그렇다면, 이 모든 것에서 제가 배운 가장 중요한 교훈은 무엇일까요?</span> 제가 배운 가장 중요한 교훈은 인내와 정직한 노력은 언제나 보답받는다는 것이므로, 저는 무슨 일이든 계속 최선을 다할 것입니다.</p>
+  </div>
+
+  <div class="scene">
+    <div class="scene-head"><span class="slide-chip">🖥️ 슬라이드 5 · Thank You</span><span class="role">마무리 (한 문장)</span><span class="wc">한 문장</span></div>
+    <p class="en"><span class="part-tag pt-close">마무리</span>Thank you for listening to my story about my grandmother.</p>
+    <p class="ko">제 할머니에 관한 이야기를 들어주셔서 감사합니다.</p>
+  </div>
+
+  <h2 class="sec">🧰 발표 구조 템플릿</h2>
+  <p class="sec-note">①·④는 <b>고정 문장</b> — 빈칸(<span style="color:#0ea5e9;font-weight:800">______</span>)만 채우면 어떤 주제든 그대로 쓸 수 있어요. ② 이음구 세 개는 <b>빈칸 없이 통째로 외워서</b> 그대로 말합니다.</p>
+
+  <div class="usedbar">🔗 <b>발표 순서</b>: 표지에서 <b>① 오프닝</b> → 슬라이드 넘기며 <b>이음구 1</b> + 공통1 답변(한 문장) → <b>이음구 2</b> + 공통2 답변 → <b>이음구 3</b> + 공통3 답변 → Thank You 슬라이드에서 <b>④ 마무리</b>.</div>
+
+  <div class="tpl">
+    <h3>① 오프닝 <span class="ki">인사 + 자기소개 + 인트로</span><span class="fix">고정 한 문장</span></h3>
+    <ol>
+      <li><span class="lt">Hello everyone, my name is <span class="blank">______</span>, and today I'm going to talk about <span class="blank">______</span>.</span><span class="lk">안녕하세요 여러분, 제 이름은 <span class="blank">______</span>이고, 오늘 저는 <span class="blank">______</span>에 대해 이야기하려고 합니다. (첫 빈칸 = 내 이름, 둘째 빈칸 = 내 주제)</span></li>
+    </ol>
+  </div>
+
+  <div class="tpl">
+    <h3>② 이음구 <span class="ki">각 공통질문 답변 직전에 그대로</span><span class="fix">고정 3문장</span></h3>
+    <ol>
+      <li><span class="lt">Let me start from the beginning.</span><span class="lk">처음부터 이야기를 시작해 보겠습니다. (공통1 앞)</span></li>
+      <li><span class="lt">Now, let me tell you how this changed me.</span><span class="lk">이제 이것이 저를 어떻게 바꾸었는지 말씀드리겠습니다. (공통2 앞)</span></li>
+      <li><span class="lt">So, what is the most important lesson I learned from all this?</span><span class="lk">그렇다면, 이 모든 것에서 제가 배운 가장 중요한 교훈은 무엇일까요? (공통3 앞)</span></li>
+    </ol>
+  </div>
+
+  <div class="tpl">
+    <h3>③ 공통질문 답변 <span class="ki">한 문장 구조 · 빈칸 채우기</span><span class="fix">한 문장 · 10단어+</span></h3>
+    <ol>
+      <li><span class="lt">The (person who / book that / experience that) has influenced me the most is <span class="blank">______</span>, because <span class="blank">______</span>.</span><span class="lk">공통1 · 대상 + 이유</span></li>
+      <li><span class="lt">Because of <span class="blank">______</span>, I became <span class="blank">______</span>, and now I <span class="blank">______</span>.</span><span class="lk">공통2 · 변화 (빈칸은 되도록 2단어 이상으로)</span></li>
+      <li><span class="lt">The most important lesson I learned is that <span class="blank">______</span>, so I will <span class="blank">______</span>.</span><span class="lk">공통3 · 교훈 + 적용</span></li>
+    </ol>
+  </div>
+
+  <div class="tpl">
+    <h3>④ 마무리 <span class="ki">Thank You 슬라이드에서</span><span class="fix">고정 한 문장</span></h3>
+    <ol>
+      <li><span class="lt">Thank you for listening to my story about <span class="blank">______</span>.</span><span class="lk">제 <span class="blank">______</span>에 관한 이야기를 들어주셔서 감사합니다. (빈칸 = 내 주제)</span></li>
+    </ol>
+    <div class="notebar">💡 <b>다른 주제도 그대로</b> — 책이면 빈칸에 <i>'The Little Prince'</i>, 경험이면 <i>'my trip to Jeju'</i>처럼 넣으면 됩니다. 오프닝·이음구·마무리는 주제와 상관없이 <b>문장 그대로</b> 쓸 수 있어요.</div>
+  </div>
+
+</main>
+</body>
+</html>
