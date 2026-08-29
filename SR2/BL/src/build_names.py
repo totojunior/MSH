@@ -1,0 +1,185 @@
+# -*- coding: utf-8 -*-
+"""국가별 흔한 이름 데이터. [로마자, 한글발음] 쌍으로 남/여 각각.
+출생아 상위 국가를 개별로 채우고, 나머지는 지역 기본값으로 떨어진다."""
+import json, io, sys, os
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+def P(*pairs):
+    return [list(p) for p in pairs]
+
+N = {
+"IND": {"m":P(("Aarav","아라브"),("Vivaan","비반"),("Arjun","아르준"),("Rohan","로한"),("Aditya","아디티야"),("Ishaan","이샨")),
+        "f":P(("Aanya","아냐"),("Diya","디야"),("Saanvi","산비"),("Ananya","아난야"),("Ishita","이시타"),("Priya","프리야"))},
+"CHN": {"m":P(("Haoran","하오란"),("Zixuan","쯔쉬안"),("Yichen","이천"),("Junjie","쥔제"),("Wei","웨이")),
+        "f":P(("Yuxin","위신"),("Xinyi","신이"),("Ziyu","쯔위"),("Yiran","이란"),("Mengqi","멍치"))},
+"NGA": {"m":P(("Chinedu","치네두"),("Emeka","에메카"),("Oluwaseun","올루와셰운"),("Ibrahim","이브라힘"),("Musa","무사")),
+        "f":P(("Chiamaka","치아마카"),("Ngozi","응고지"),("Aisha","아이샤"),("Adaeze","아다에제"),("Fatima","파티마"))},
+"PAK": {"m":P(("Muhammad","무함마드"),("Ali","알리"),("Hassan","하산"),("Bilal","빌랄"),("Usman","우스만")),
+        "f":P(("Fatima","파티마"),("Ayesha","아이샤"),("Zainab","자이납"),("Maryam","마리암"),("Hira","히라"))},
+"IDN": {"m":P(("Budi","부디"),("Rizki","리즈키"),("Agus","아구스"),("Bayu","바유"),("Dimas","디마스")),
+        "f":P(("Siti","시티"),("Dewi","데위"),("Putri","푸트리"),("Ayu","아유"),("Indah","인다"))},
+"COD": {"m":P(("Kabongo","카봉고"),("Mbuyi","음부이"),("Ilunga","일룽가"),("Patrick","파트릭"),("Emmanuel","에마뉘엘")),
+        "f":P(("Kabibi","카비비"),("Mwamba","음왐바"),("Grâce","그라스"),("Esther","에스테르"),("Jeanne","잔"))},
+"ETH": {"m":P(("Abebe","아베베"),("Tesfaye","테스파예"),("Dawit","다위트"),("Bekele","베켈레"),("Yonas","요나스")),
+        "f":P(("Almaz","알마즈"),("Tigist","티기스트"),("Hanna","한나"),("Meseret","메세레트"),("Selam","셀람"))},
+"USA": {"m":P(("Liam","리암"),("Noah","노아"),("Oliver","올리버"),("James","제임스"),("Elijah","일라이자")),
+        "f":P(("Olivia","올리비아"),("Emma","엠마"),("Charlotte","샬럿"),("Amelia","아멜리아"),("Mia","미아"))},
+"BGD": {"m":P(("Rakib","라킵"),("Sakib","사킵"),("Abdur","압두르"),("Rahim","라힘"),("Tanvir","탄비르")),
+        "f":P(("Fatema","파테마"),("Nusrat","누스라트"),("Sadia","사디아"),("Sumaiya","수마이야"),("Taslima","타슬리마"))},
+"BRA": {"m":P(("Miguel","미겔"),("Arthur","아르투르"),("Gael","가에우"),("Davi","다비"),("Heitor","에이토르")),
+        "f":P(("Helena","엘레나"),("Alice","알리시"),("Laura","라우라"),("Maria","마리아"),("Cecília","세실리아"))},
+"EGY": {"m":P(("Mohamed","모하메드"),("Youssef","유세프"),("Omar","오마르"),("Ahmed","아흐메드"),("Karim","카림")),
+        "f":P(("Mariam","마리암"),("Nour","누르"),("Habiba","하비바"),("Jana","자나"),("Malak","말라크"))},
+"TZA": {"m":P(("Juma","주마"),("Baraka","바라카"),("Hamisi","하미시"),("Emmanuel","에마누엘"),("Joseph","조셉")),
+        "f":P(("Neema","네에마"),("Zawadi","자와디"),("Amina","아미나"),("Upendo","우펜도"),("Rehema","레헤마"))},
+"MEX": {"m":P(("Santiago","산티아고"),("Mateo","마테오"),("Sebastián","세바스티안"),("Diego","디에고"),("Emiliano","에밀리아노")),
+        "f":P(("Sofía","소피아"),("Valentina","발렌티나"),("Regina","레히나"),("Camila","카밀라"),("Ximena","히메나"))},
+"PHL": {"m":P(("Gabriel","가브리엘"),("Nathaniel","너새니얼"),("James","제임스"),("Angelo","앤젤로"),("Jomar","조마르")),
+        "f":P(("Sofia","소피아"),("Nathalie","나탈리"),("Angel","에인절"),("Althea","앨시아"),("Jasmine","재스민"))},
+"UGA": {"m":P(("Mukisa","무키사"),("Wasswa","와스와"),("Emmanuel","에마누엘"),("Okello","오켈로"),("Musa","무사")),
+        "f":P(("Nakato","나카토"),("Sanyu","산유"),("Grace","그레이스"),("Aisha","아이샤"),("Namuli","나물리"))},
+"SDN": {"m":P(("Mohamed","모하메드"),("Abdalla","압달라"),("Osman","오스만"),("Tariq","타리크")),
+        "f":P(("Fatima","파티마"),("Amna","암나"),("Sara","사라"),("Huda","후다"))},
+"KEN": {"m":P(("Kamau","카마우"),("Otieno","오티에노"),("Kipchoge","킵초게"),("Brian","브라이언"),("Mwangi","음왕기")),
+        "f":P(("Wanjiru","완지루"),("Akinyi","아키니"),("Njeri","은제리"),("Faith","페이스"),("Chebet","체벳"))},
+"AFG": {"m":P(("Ahmad","아흐마드"),("Rahim","라힘"),("Zabihullah","자비훌라"),("Farid","파리드")),
+        "f":P(("Zahra","자흐라"),("Nasrin","나스린"),("Laila","라일라"),("Marwa","마르와"))},
+"YEM": {"m":P(("Ali","알리"),("Saleh","살레"),("Abdullah","압둘라"),("Nasser","나세르")),
+        "f":P(("Amal","아말"),("Salma","살마"),("Hanan","하난"),("Rania","라니아"))},
+"AGO": {"m":P(("João","주앙"),("Domingos","도밍구스"),("Nzinga","은징가"),("Manuel","마누엘")),
+        "f":P(("Esperança","이스페란사"),("Maria","마리아"),("Ndala","은달라"),("Luzia","루지아"))},
+"VNM": {"m":P(("Minh","민"),("Anh Tuấn","아인뚜언"),("Quang","꽝"),("Bảo","바오")),
+        "f":P(("Linh","린"),("Ngọc","응옥"),("Thảo","타오"),("Hương","흐엉"))},
+"MOZ": {"m":P(("Armando","아르만두"),("Jorge","조르즈"),("Zito","지투"),("Custódio","쿠스토디우")),
+        "f":P(("Amélia","아멜리아"),("Rosa","호자"),("Fátima","파티마"),("Celeste","셀레스트"))},
+"RUS": {"m":P(("Alexander","알렉산드르"),("Mikhail","미하일"),("Dmitry","드미트리"),("Ivan","이반")),
+        "f":P(("Sofia","소피야"),("Anastasia","아나스타샤"),("Maria","마리야"),("Polina","폴리나"))},
+"ZAF": {"m":P(("Thabo","타보"),("Sipho","시포"),("Lethabo","레타보"),("Bandile","반딜레")),
+        "f":P(("Lerato","레라토"),("Nomsa","놈사"),("Amahle","아말레"),("Thandiwe","탄디웨"))},
+"IRN": {"m":P(("Amir","아미르"),("Mohammad","모함마드"),("Reza","레자"),("Ali","알리")),
+        "f":P(("Zahra","자흐라"),("Fatemeh","파테메"),("Yasmin","야스민"),("Setareh","세타레"))},
+"TUR": {"m":P(("Mehmet","메흐메트"),("Mustafa","무스타파"),("Yusuf","유수프"),("Emir","에미르")),
+        "f":P(("Zeynep","제이네프"),("Elif","엘리프"),("Defne","데프네"),("Azra","아즈라"))},
+"IRQ": {"m":P(("Ali","알리"),("Hussein","후세인"),("Mustafa","무스타파"),("Karrar","카라르")),
+        "f":P(("Zahraa","자흐라"),("Fatima","파티마"),("Noor","누르"),("Sara","사라"))},
+"NER": {"m":P(("Abdou","압두"),("Idrissa","이드리사"),("Moussa","무사"),("Hamidou","하미두")),
+        "f":P(("Hadiza","하디자"),("Ramatou","라마투"),("Aïcha","아이샤"),("Zeinabou","제이나부"))},
+"MMR": {"m":P(("Aung","아웅"),("Zaw","조"),("Kyaw","초"),("Min","민")),
+        "f":P(("Thida","티다"),("Su","수"),("Nwe","눼"),("Ei","에이"))},
+"COL": {"m":P(("Samuel","사무엘"),("Santiago","산티아고"),("Matías","마티아스"),("Juan","후안")),
+        "f":P(("Isabella","이사벨라"),("Salomé","살로메"),("Emilia","에밀리아"),("Luciana","루시아나"))},
+"THA": {"m":P(("Nattapong","낫따퐁"),("Somchai","솜차이"),("Kittisak","낏띠삭"),("Phum","품")),
+        "f":P(("Siriporn","시리펀"),("Ploy","플로이"),("Nari","나리"),("Chanya","찬야"))},
+"BFA": {"m":P(("Ousmane","우스만"),("Boureima","부레이마"),("Salif","살리프"),("Issa","이사")),
+        "f":P(("Awa","아와"),("Mariam","마리암"),("Kadidia","카디디아"),("Safiatou","사피아투"))},
+"MLI": {"m":P(("Moussa","무사"),("Bakary","바카리"),("Amadou","아마두"),("Seydou","세이두")),
+        "f":P(("Fatoumata","파투마타"),("Aminata","아미나타"),("Kadiatou","카디아투"),("Oumou","우무"))},
+"MWI": {"m":P(("Chikondi","치콘디"),("Blessings","블레싱스"),("Thoko","토코"),("Yamikani","야미카니")),
+        "f":P(("Chisomo","치소모"),("Tadala","타달라"),("Mphatso","음파초"),("Grace","그레이스"))},
+"AGO2":{"m":P(("-","-")),"f":P(("-","-"))},
+"JPN": {"m":P(("Haruto","하루토"),("Sota","소타"),("Yuto","유토"),("Ren","렌")),
+        "f":P(("Himari","히마리"),("Yui","유이"),("Sakura","사쿠라"),("Mei","메이"))},
+"DEU": {"m":P(("Noah","노아"),("Matteo","마테오"),("Leon","레온"),("Finn","핀")),
+        "f":P(("Emilia","에밀리아"),("Sophia","소피아"),("Mia","미아"),("Hannah","한나"))},
+"GBR": {"m":P(("Muhammad","무함마드"),("Noah","노아"),("Oliver","올리버"),("George","조지")),
+        "f":P(("Olivia","올리비아"),("Amelia","아멜리아"),("Isla","아일라"),("Ava","에이바"))},
+"FRA": {"m":P(("Gabriel","가브리엘"),("Léo","레오"),("Raphaël","라파엘"),("Louis","루이")),
+        "f":P(("Jade","자드"),("Louise","루이즈"),("Ambre","앙브르"),("Alba","알바"))},
+"ESP": {"m":P(("Martín","마르틴"),("Hugo","우고"),("Mateo","마테오"),("Leo","레오")),
+        "f":P(("Lucía","루시아"),("Sofía","소피아"),("Martina","마르티나"),("María","마리아"))},
+"ITA": {"m":P(("Leonardo","레오나르도"),("Francesco","프란체스코"),("Tommaso","톰마소"),("Edoardo","에도아르도")),
+        "f":P(("Sofia","소피아"),("Aurora","아우로라"),("Giulia","줄리아"),("Ginevra","지네브라"))},
+"KOR": {"m":P(("Do-yun","도윤"),("Si-woo","시우"),("Ha-jun","하준"),("Eun-woo","은우")),
+        "f":P(("Seo-yun","서윤"),("Ji-woo","지우"),("Ha-eun","하은"),("Seo-a","서아"))},
+"PRK": {"m":P(("Chol","철"),("Yong-nam","용남"),("Un-ju","은주"),("Kwang-ho","광호")),
+        "f":P(("Un-hui","은희"),("Yong-hui","영희"),("Sun-a","선아"),("Myong-hwa","명화"))},
+"UKR": {"m":P(("Mykhailo","미하일로"),("Artem","아르템"),("Danylo","다닐로"),("Nazar","나자르")),
+        "f":P(("Anna","안나"),("Sofiia","소피야"),("Solomiia","솔로미야"),("Zlata","즐라타"))},
+"MAR": {"m":P(("Youssef","유세프"),("Adam","아담"),("Anas","아나스"),("Rayan","라얀")),
+        "f":P(("Aya","아야"),("Salma","살마"),("Lina","리나"),("Malak","말라크"))},
+"DZA": {"m":P(("Mohamed","모하메드"),("Adam","아담"),("Yacine","야신"),("Anis","아니스")),
+        "f":P(("Aya","아야"),("Malak","말라크"),("Nour","누르"),("Amira","아미라"))},
+"SAU": {"m":P(("Mohammed","무함마드"),("Abdullah","압둘라"),("Faisal","파이살"),("Omar","오마르")),
+        "f":P(("Sara","사라"),("Norah","노라"),("Lujain","루자인"),("Jood","주드"))},
+"GHA": {"m":P(("Kwame","콰메"),("Kofi","코피"),("Yaw","야우"),("Kwaku","콰쿠")),
+        "f":P(("Akosua","아코수아"),("Abena","아베나"),("Ama","아마"),("Afia","아피아"))},
+"CIV": {"m":P(("Koffi","코피"),("Yao","야오"),("Aboubacar","아부바카르"),("Konan","코난")),
+        "f":P(("Aya","아야"),("Adjoua","아주아"),("Awa","아와"),("Mariam","마리암"))},
+"CMR": {"m":P(("Jean","장"),("Blaise","블레즈"),("Serge","세르주"),("Njoya","은조야")),
+        "f":P(("Nadège","나데주"),("Carine","카린"),("Bih","비"),("Marie","마리"))},
+"SOM": {"m":P(("Abdi","압디"),("Hassan","하산"),("Ahmed","아흐메드"),("Mohamed","모하메드")),
+        "f":P(("Hodan","호단"),("Ayaan","아얀"),("Fadumo","파두모"),("Halima","할리마"))},
+"NPL": {"m":P(("Aayush","아유시"),("Bibek","비벡"),("Suman","수만"),("Nabin","나빈")),
+        "f":P(("Sita","시타"),("Anjali","안잘리"),("Sushmita","수슈미타"),("Puja","푸자"))},
+"PER": {"m":P(("Mateo","마테오"),("Thiago","티아고"),("Liam","리암"),("Gael","가엘")),
+        "f":P(("Luciana","루시아나"),("Valentina","발렌티나"),("Camila","카밀라"),("Mia","미아"))},
+"VEN": {"m":P(("Santiago","산티아고"),("Sebastián","세바스티안"),("Diego","디에고"),("Ángel","앙헬")),
+        "f":P(("Isabella","이사벨라"),("Victoria","빅토리아"),("Camila","카밀라"),("Andrea","안드레아"))},
+"MDG": {"m":P(("Fanomezantsoa","파노메잔추아"),("Tiana","티아나"),("Njaka","은자카"),("Rado","라두")),
+        "f":P(("Voahangy","부항기"),("Hasina","하시나"),("Mirana","미라나"),("Fara","파라"))},
+"SYR": {"m":P(("Mohammad","무함마드"),("Ahmad","아흐마드"),("Omar","오마르"),("Karim","카림")),
+        "f":P(("Fatima","파티마"),("Layan","라얀"),("Sham","샴"),("Judy","주디"))},
+"ZMB": {"m":P(("Mwansa","음완사"),("Chanda","찬다"),("Bwalya","브왈랴"),("Mulenga","물렝가")),
+        "f":P(("Chipo","치포"),("Mutinta","무틴타"),("Natasha","나타샤"),("Lweendo","르웬도"))},
+"SEN": {"m":P(("Mamadou","마마두"),("Ousmane","우스만"),("Cheikh","셰이크"),("Ibrahima","이브라히마")),
+        "f":P(("Fatou","파투"),("Aminata","아미나타"),("Astou","아스투"),("Ndeye","은데이"))},
+"TCD": {"m":P(("Abakar","아바카르"),("Idriss","이드리스"),("Mahamat","마하마트"),("Youssouf","유수프")),
+        "f":P(("Achta","아슈타"),("Hawa","하와"),("Zara","자라"),("Fatime","파티메"))},
+"GTM": {"m":P(("José","호세"),("Diego","디에고"),("Mateo","마테오"),("Juan","후안")),
+        "f":P(("María","마리아"),("Ximena","히메나"),("Sofía","소피아"),("Ana","아나"))},
+"ARG": {"m":P(("Mateo","마테오"),("Benjamín","벤하민"),("Bautista","바우티스타"),("Thiago","티아고")),
+        "f":P(("Emma","엠마"),("Olivia","올리비아"),("Mia","미아"),("Isabella","이사벨라"))},
+"KHM": {"m":P(("Sokha","소카"),("Dara","다라"),("Vichea","비체아"),("Rithy","리티")),
+        "f":P(("Sreymom","스레이몸"),("Bopha","보파"),("Chantrea","찬트레아"),("Sopheak","소피억"))},
+"LKA": {"m":P(("Sanduni","산두니"),("Kavindu","카빈두"),("Nimal","니말"),("Tharindu","타린두")),
+        "f":P(("Amaya","아마야"),("Dilini","딜리니"),("Hasini","하시니"),("Nethmi","네트미"))},
+"MYS": {"m":P(("Muhammad","무함마드"),("Aiman","아이만"),("Danish","다니시"),("Arif","아리프")),
+        "f":P(("Nur","누르"),("Aisyah","아이샤"),("Alya","알야"),("Sofia","소피아"))},
+"AUS": {"m":P(("Oliver","올리버"),("Henry","헨리"),("Noah","노아"),("Leo","레오")),
+        "f":P(("Isla","아일라"),("Charlotte","샬럿"),("Amelia","아멜리아"),("Olivia","올리비아"))},
+"CAN": {"m":P(("Noah","노아"),("Liam","리암"),("Theodore","시어도어"),("Jack","잭")),
+        "f":P(("Olivia","올리비아"),("Emma","엠마"),("Charlotte","샬럿"),("Sophia","소피아"))},
+"POL": {"m":P(("Antoni","안토니"),("Nikodem","니코뎀"),("Jan","얀"),("Aleksander","알렉산데르")),
+        "f":P(("Zuzanna","주잔나"),("Zofia","조피아"),("Hanna","한나"),("Laura","라우라"))},
+}
+N.pop("AGO2", None)
+
+# 지역 기본값 — 개별 데이터가 없는 나라는 여기로 떨어진다.
+REGION = {
+"Sub-Saharan Africa": {"m":P(("Amadou","아마두"),("Kwesi","크웨시"),("Tendai","텐다이"),("Samuel","사무엘")),
+                       "f":P(("Amina","아미나"),("Zola","졸라"),("Naledi","날레디"),("Grace","그레이스"))},
+"Middle East, North Africa, Afghanistan & Pakistan": {"m":P(("Ahmad","아흐마드"),("Yousef","유세프"),("Omar","오마르"),("Sami","사미")),
+                       "f":P(("Layla","라일라"),("Nour","누르"),("Salma","살마"),("Rania","라니아"))},
+"South Asia": {"m":P(("Arun","아룬"),("Imran","임란"),("Rahul","라훌"),("Sanjay","산자이")),
+                       "f":P(("Meera","미라"),("Nisha","니샤"),("Farah","파라"),("Anita","아니타"))},
+"East Asia & Pacific": {"m":P(("Tuan","뚜언"),("Adi","아디"),("Sione","시오네"),("Kai","카이")),
+                       "f":P(("Mele","멜레"),("Lan","란"),("Sari","사리"),("Nia","니아"))},
+"Latin America & Caribbean": {"m":P(("Luis","루이스"),("Carlos","카를로스"),("Andrés","안드레스"),("Rafael","라파엘")),
+                       "f":P(("María","마리아"),("Ana","아나"),("Gabriela","가브리엘라"),("Daniela","다니엘라"))},
+"Europe & Central Asia": {"m":P(("Luka","루카"),("Nikola","니콜라"),("Timur","티무르"),("Marko","마르코")),
+                       "f":P(("Ana","아나"),("Elena","엘레나"),("Nurgul","누르굴"),("Sara","사라"))},
+"North America": {"m":P(("Liam","리암"),("Noah","노아"),("James","제임스"),("Lucas","루카스")),
+                       "f":P(("Emma","엠마"),("Ava","에이바"),("Sophia","소피아"),("Isabella","이사벨라"))},
+}
+
+wb = json.load(open('data/worldbank_raw.json', encoding='utf-8'))
+ko = json.load(open('data/country_ko.json', encoding='utf-8'))
+cards = json.load(open('data/cards.json', encoding='utf-8'))
+weight = {c[0]: c[2] for c in cards['countries']}
+tot = cards['total']
+
+# World Bank 지역 문자열에는 뒤에 공백이 붙은 것이 있다. 정규화한다.
+out = {'byCountry': N, 'byRegion': REGION,
+       'region': {k: v['region'].strip() for k, v in wb.items()}}
+json.dump(out, open('data/assets/names.json', 'w', encoding='utf-8'),
+          ensure_ascii=False, separators=(',', ':'))
+
+cov = sum(weight.get(k, 0) for k in N if k in weight)
+print(f"개별 국가 {len(N)}개 · 출생아 {100*cov/tot:.1f}% 커버")
+print(f"나머지 {217-len(N)}개국은 지역 기본값 {len(REGION)}개로 처리")
+print(f"→ data/assets/names.json  {os.path.getsize('data/assets/names.json')/1024:.0f}KB")
+bad = [k for k in N if k not in wb]
+if bad: print("경고 — 없는 iso3:", bad)
+for r in set(wb[k]['region'].strip() for k in wb):
+    if r not in REGION: print("경고 — 지역 기본값 없음:", repr(r))
+print("지역 기본값 전부 확인됨" if all(wb[k]['region'].strip() in REGION for k in wb) else "")

@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>출생 추첨 · The Birth Lottery</title>
+<style>
+/* ===========================================================================
+   출생 추첨 · The Birth Lottery   —  고2 영어 John Rawls 지문 도입 훅
+   TV에 컴퓨터를 연결해 쓰는 화면. 어두운 배경이 기본.
+   폰트·국기 216개·소리·국가별 이름·종교 통계·세계지도까지 전부 이 파일 안에.
+   외부 요청 0건 — 인터넷이 끊겨도 그대로 돌아간다.
+   =========================================================================== */
+@font-face{font-family:'P';font-weight:500;font-display:block;
+  src:url(data:font/woff2;base64,__F500__) format('woff2')}
+@font-face{font-family:'P';font-weight:600;font-display:block;
+  src:url(data:font/woff2;base64,__F600__) format('woff2')}
+@font-face{font-family:'P';font-weight:700;font-display:block;
+  src:url(data:font/woff2;base64,__F700__) format('woff2')}
+@font-face{font-family:'P';font-weight:800;font-display:block;
+  src:url(data:font/woff2;base64,__F800__) format('woff2')}
+
+:root{
+  font-size:10px;
+  font-size:min(100vw / 192, 100vh / 108);   /* 1rem = 10px @1920x1080 */
+  --bg:#0D0F14; --card:#191D26; --card2:#20242F; --edge:#2B313E;
+  --ink:#F4F2ED; --cond:#AAB2C2; --meta:#6B7488;
+  --hero:#191D26; --accent:#FF8A5B; --gold:#FFC46B; --land:#333B4C;
+  --scrim:rgba(6,7,10,.93); --cscrim:rgba(6,7,10,.80);
+  --shadow:0 .3rem 1rem rgba(0,0,0,.42);
+}
+html[data-light]{
+  --bg:#E8E2D6; --card:#FFF; --card2:#F2EEE4; --edge:#C9C2B2;
+  --ink:#16171B; --cond:#41454F; --meta:#767B86;
+  --hero:#191A1F; --accent:#E4622F; --gold:#B8801E; --land:#CFC7B6;
+  --scrim:rgba(16,17,21,.93); --cscrim:rgba(16,17,21,.82);
+  --shadow:0 .2rem .5rem rgba(22,23,27,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'P','Malgun Gothic','맑은 고딕',sans-serif;
+  -webkit-font-smoothing:antialiased;user-select:none;cursor:default}
+#stage{width:192rem;height:108rem;display:flex;flex-direction:column;
+  position:relative;overflow:hidden;background:var(--bg)}
+
+/* ---------------------------------------------------------- 헤더 62 ------ */
+header{flex:0 0 6.2rem;display:flex;align-items:center;gap:1rem;padding:0 3rem}
+.brand{font-size:2.4rem;font-weight:800;letter-spacing:-.09rem;line-height:1;white-space:nowrap}
+.brand em{font-style:normal;color:var(--meta);font-weight:600;font-size:1.6rem;
+  margin-left:.8rem;letter-spacing:0}
+.spacer{flex:1}
+select,.tog{font-family:inherit;color:var(--ink);background:var(--card);
+  border:.2rem solid var(--edge);border-radius:.9rem;cursor:pointer}
+select{font-size:1.85rem;font-weight:700;height:4.3rem;padding:0 .8rem}
+.tog{font-size:1.45rem;font-weight:600;height:4.3rem;padding:0 1.05rem;
+  background:transparent;color:var(--meta);white-space:nowrap;
+  transition:color .15s,border-color .15s}
+.tog:hover{color:var(--ink);border-color:var(--meta)}
+.tog[aria-pressed=true]{border-color:var(--ink);color:var(--ink)}
+.btn{font-family:inherit;font-size:2.2rem;font-weight:800;height:4.7rem;
+  padding:0 2.4rem;border:0;border-radius:99rem;cursor:pointer;white-space:nowrap;
+  background:var(--accent);color:#16120F;letter-spacing:-.06rem;
+  transition:transform .13s cubic-bezier(.2,.9,.25,1.4),filter .13s}
+.btn:hover{transform:translateY(-.25rem);filter:brightness(1.09)}
+.btn:active{transform:translateY(.1rem)}
+.btn[disabled]{opacity:.3;cursor:default;transform:none;filter:none}
+
+/* ---- 그리드 : 5열 x 7행 = 35칸.  카드 360.8 x 112.6px --------------- */
+#grid{flex:1 1 auto;min-height:0;display:grid;padding:1.1rem 3rem;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  grid-template-rows:repeat(7,minmax(0,1fr));
+  column-gap:1.4rem;row-gap:1.15rem}
+.slip{position:relative;min-width:0;perspective:90rem;cursor:pointer;
+  opacity:0;transform:translateY(1.4rem)}
+.slip.in{opacity:1;transform:none;
+  transition:opacity .3s ease var(--d,0s),transform .44s cubic-bezier(.18,.9,.24,1.3) var(--d,0s)}
+.fl3{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+  transition:transform .62s cubic-bezier(.28,.86,.32,1.04) var(--fd,0s)}
+.slip.flip .fl3{transform:rotateY(180deg)}
+.sd{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:var(--card);border:.15rem solid var(--edge);border-radius:1.5rem;
+  box-shadow:var(--shadow);padding:.7rem 1.3rem .55rem;
+  display:flex;flex-direction:column;overflow:hidden}
+.sdA{align-items:center;justify-content:center;background:var(--card2)}
+.sdA span{font-size:2.85rem;font-weight:700;letter-spacing:-.08rem;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.sdA small{font-size:1.3rem;font-weight:700;color:var(--meta);margin-top:.2rem}
+.sdB{transform:rotateY(180deg)}
+.slip:hover .sdB{border-color:var(--accent)}
+.s1{display:flex;align-items:baseline;gap:.7rem;height:1.85rem;flex:0 0 auto;min-width:0}
+.s1 b{font-size:1.25rem;font-weight:700;color:var(--meta);font-variant-numeric:tabular-nums}
+.s1 span{font-size:1.75rem;font-weight:600;color:var(--cond);letter-spacing:-.05rem;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.s2{flex:1 1 auto;display:flex;align-items:center;gap:1.05rem;min-width:0}
+.fl{flex:0 0 auto;width:4.4rem;height:3rem;border-radius:.4rem;overflow:hidden;
+  box-shadow:0 0 0 .1rem rgba(255,255,255,.15),0 .1rem .3rem rgba(0,0,0,.4)}
+html[data-light] .fl{box-shadow:0 0 0 .1rem rgba(0,0,0,.14),0 .1rem .3rem rgba(0,0,0,.14)}
+.fl svg{width:100%;height:100%;display:block}
+.fl.none{display:flex;align-items:center;justify-content:center;background:var(--edge);
+  font-size:1.3rem;font-weight:700;color:var(--meta);letter-spacing:.05rem}
+.s2 u{text-decoration:none;font-weight:700;letter-spacing:-.14rem;line-height:1.05;
+  white-space:nowrap;overflow:hidden;font-size:3.45rem;min-width:0}
+.s2 u[data-len="7"]{font-size:3.05rem}
+.s2 u[data-len="8"]{font-size:2.75rem;letter-spacing:-.16rem}
+.s2 u[data-len="9"]{font-size:2.45rem;letter-spacing:-.16rem}
+.s2 u[data-len="10"],.s2 u[data-len="11"],.s2 u[data-len="12"]{font-size:2.15rem;letter-spacing:-.14rem}
+/* 조건줄 — 같은 나라 카드끼리 이 줄이 갈리는 것이 놀림을 원천 차단한다. */
+.s3{flex:0 0 auto;height:2.6rem;display:flex;align-items:center;gap:.6rem;
+  font-size:2.25rem;font-weight:600;color:var(--cond);letter-spacing:-.09rem;
+  white-space:nowrap;overflow:hidden;min-width:0}
+.s3 i{font-style:normal;color:var(--edge);font-weight:500}
+html[data-light] .s3 i{color:#C9C2B2}
+/* 한국이 뽑힌 카드 — 33명이면 5.6% 확률이라 대개 0장이다. 뜨면 살려 준다. */
+.slip.kr .sdB{border-color:var(--gold);
+  box-shadow:0 0 0 .25rem rgba(255,196,107,.16),var(--shadow)}
+.krTag{position:absolute;top:.45rem;right:.65rem;font-size:1.15rem;font-weight:800;
+  color:#16120F;background:var(--gold);border-radius:99rem;padding:.15rem .65rem}
+
+/* ---------------------------------------------------------- 푸터 ------- */
+footer{flex:0 0 13.4rem;padding:0 3rem 1rem;display:flex;flex-direction:column;gap:.7rem}
+.heroRow{flex:1 1 auto;display:flex;gap:1.3rem;align-items:stretch;min-height:0}
+.hero{background:var(--hero);border:.15rem solid var(--edge);border-radius:1.6rem;
+  padding:.9rem 2rem;display:flex;flex-direction:column;justify-content:center;
+  min-width:0;opacity:0;transform:translateY(1rem)}
+html[data-light] .hero{border-color:transparent}
+.hero.on{opacity:1;transform:none;
+  transition:opacity .5s ease var(--hd,0s),transform .55s cubic-bezier(.2,.9,.25,1.22) var(--hd,0s)}
+.hero .k{font-size:1.55rem;font-weight:600;color:var(--meta);letter-spacing:-.04rem;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero .v{font-size:6.2rem;font-weight:800;line-height:1.03;letter-spacing:-.3rem;
+  color:#F7F3EC;font-variant-numeric:tabular-nums;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.hero .v small{font-size:2.6rem;font-weight:600;letter-spacing:-.08rem;margin-left:.5rem;color:#AAB2C2}
+.hero.acc .v{color:var(--accent)}
+.hero.gold{border-color:var(--gold)} .hero.gold .v{color:var(--gold)}
+.h1{flex:1.04 1 0} .h2{flex:1.38 1 0} .h3{flex:1 1 0}
+.hero .note{font-size:1.35rem;color:var(--meta);margin-top:.2rem;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.pairv{font-size:2.5rem !important;letter-spacing:-.09rem !important;
+  line-height:1.28 !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pairv em{font-style:normal;color:var(--accent)}
+/* 왜 그 나라가 많이 나오는가 — 뽑은 뒤에도 답이 화면에 남는다 */
+#whyBar{flex:0 0 auto;font-size:1.4rem;color:var(--meta);letter-spacing:-.02rem;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .5s ease .5s}
+#whyBar.on{opacity:1}
+#whyBar b{color:var(--cond);font-weight:600}
+
+/* ------------------------------------------------------------ 시작 화면 -- */
+#intro{position:absolute;inset:6.2rem 0 0;background:var(--bg);z-index:6;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1.8rem;text-align:center;padding:0 7rem}
+#intro.off{display:none}
+#intro h1{font-size:6.6rem;font-weight:800;letter-spacing:-.4rem;line-height:1.08}
+#intro .en{font-size:2.4rem;font-weight:600;color:var(--meta);letter-spacing:-.04rem;margin-top:-.7rem}
+#cnt{font-size:2.05rem;font-weight:600;color:var(--cond);letter-spacing:-.05rem}
+#cnt b{font-size:4.6rem;font-weight:800;color:var(--accent);letter-spacing:-.2rem;
+  font-variant-numeric:tabular-nums;margin:0 .8rem}
+#cnt small{display:block;font-size:1.5rem;color:var(--meta);font-weight:500;margin-top:.2rem}
+.whyHead{font-size:2.15rem;font-weight:700;color:var(--cond);letter-spacing:-.07rem}
+.why{display:flex;gap:1.6rem;width:100%;max-width:160rem}
+.why>div{flex:1 1 0;background:var(--card);border:.15rem solid var(--edge);
+  border-radius:1.5rem;padding:1.5rem 1.9rem;text-align:left;min-width:0}
+.why h5{font-size:1.6rem;font-weight:700;color:var(--accent);letter-spacing:-.04rem}
+.why .nm{display:flex;align-items:baseline;gap:.9rem;margin-top:.3rem}
+.why .nm b{font-size:3.4rem;font-weight:800;letter-spacing:-.14rem;white-space:nowrap}
+.why .nm em{font-style:normal;font-size:2.4rem;font-weight:800;color:var(--gold);
+  margin-left:auto;font-variant-numeric:tabular-nums}
+.why .sub{font-size:1.75rem;font-weight:600;color:var(--cond);margin-top:.5rem;letter-spacing:-.04rem}
+.why .sub2{font-size:1.6rem;color:var(--meta);margin-top:.15rem;letter-spacing:-.03rem}
+#introKr{font-size:1.85rem;font-weight:600;color:var(--cond);letter-spacing:-.05rem}
+#introKr b{color:var(--gold)}
+#intro .rule{font-size:2.25rem;font-weight:600;color:var(--cond);letter-spacing:-.07rem;
+  line-height:1.45;border-top:.2rem solid var(--edge);padding-top:1.5rem;max-width:130rem}
+#intro .rule small{display:block;font-size:1.55rem;color:var(--meta);font-weight:500;margin-top:.5rem}
+
+/* ------------------------------------------------------------ 명렬표 ----
+   공개 배포본에는 학생 이름이 들어 있지 않다. 선생님이 한 번 붙여넣으면
+   그 브라우저에만 저장된다. 서버로도, 저장소로도 나가지 않는다. */
+#roster{position:fixed;inset:0;background:var(--scrim);z-index:18;display:none;
+  align-items:center;justify-content:center}
+#roster.on{display:flex}
+.rbox{width:82rem;background:var(--card);border:.15rem solid var(--edge);border-radius:2rem;
+  padding:2.6rem 3rem 2.2rem;box-shadow:0 2rem 6rem rgba(0,0,0,.6)}
+.rbox h3{font-size:3rem;font-weight:800;letter-spacing:-.12rem}
+.rbox p{font-size:1.65rem;color:var(--meta);line-height:1.5;margin:.7rem 0 1.6rem}
+.rbox p b{color:var(--cond)}
+.rrow{display:flex;align-items:center;gap:1.2rem;margin-bottom:1rem}
+.rrow label{font-size:1.6rem;color:var(--meta);font-weight:600;width:7rem}
+.rrow input{font-family:inherit;font-size:1.9rem;font-weight:700;color:var(--ink);
+  background:var(--card2);border:.2rem solid var(--edge);border-radius:.8rem;
+  padding:.6rem 1rem;width:16rem}
+#rText{width:100%;height:22rem;font-family:inherit;font-size:1.7rem;line-height:1.5;
+  color:var(--ink);background:var(--card2);border:.2rem solid var(--edge);
+  border-radius:1rem;padding:1.2rem 1.4rem;resize:none;user-select:text}
+.rfoot{display:flex;align-items:center;gap:.9rem;margin-top:1.4rem}
+#rInfo{font-size:1.55rem;color:var(--gold);font-weight:600}
+
+/* ----------------------------------------------------------- 카운트다운 -- */
+#count{position:fixed;inset:0;z-index:20;display:none;
+  align-items:center;justify-content:center;background:var(--cscrim)}
+#count.on{display:flex}
+#count b{font-size:34rem;font-weight:800;letter-spacing:-2rem;line-height:1;
+  color:var(--ink);font-variant-numeric:tabular-nums;
+  animation:pop .62s cubic-bezier(.16,.84,.3,1) both}
+#count b.go{font-size:12rem;letter-spacing:-.6rem;color:var(--accent)}
+@keyframes pop{0%{transform:scale(2.15);opacity:0;filter:blur(1.3rem)}
+  22%{transform:scale(1);opacity:1;filter:blur(0)}74%{transform:scale(1);opacity:1}
+  100%{transform:scale(.85);opacity:0}}
+
+/* ------------------------------------------------------------- 지도 ----
+   Equal Earth 정적면적 투영. 면적이 보존되므로 화면 위 점 밀도가
+   실제 출생 밀도와 같다. 나라에는 색을 쓰지 않는다 — 주황은 사람에게만. */
+#map{position:fixed;inset:0;z-index:12;background:var(--bg);display:none;
+  flex-direction:column}
+#map.on{display:flex}
+#map header{flex:0 0 6.2rem}
+#mapWrap{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;
+  padding:.5rem 3rem 0}
+#mapSvg{width:100%;height:100%}
+#mapSvg .land{fill:var(--land)}
+#mapSvg .frame{fill:none;stroke:var(--edge);stroke-width:1.4}
+#mapSvg .eq{fill:none;stroke:var(--edge);stroke-width:1;stroke-dasharray:5 7;opacity:.55}
+#mapSvg .dot{fill:var(--accent);stroke:#0D0F14;stroke-width:2.2;cursor:pointer;
+  opacity:0;transform-box:fill-box;transform-origin:center}
+#mapSvg .dot.on:hover{stroke:var(--gold);stroke-width:4}
+html[data-light] #mapSvg .dot{stroke:#E8E2D6}
+#mapSvg .dot.on{opacity:1;animation:land .5s cubic-bezier(.2,.9,.28,1.15) both}
+@keyframes land{from{transform:scale(4);opacity:0}to{transform:scale(1);opacity:1}}
+#mapSvg .dot.sel{fill:var(--gold);stroke-width:3}
+#mapSvg .ring{fill:none;stroke:var(--gold);stroke-width:3;opacity:0}
+#mapSvg .ring.on{opacity:1;animation:ping 1.1s ease-out infinite}
+@keyframes ping{0%{r:14;opacity:.9}100%{r:60;opacity:0}}
+#mapFoot{flex:0 0 15.5rem;padding:.8rem 3rem 1.4rem;display:flex;flex-direction:column;gap:.9rem}
+#mapSum{font-size:2.5rem;font-weight:700;letter-spacing:-.09rem;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mapSum em{font-style:normal;color:var(--accent)}
+#mapSum small{font-size:1.6rem;font-weight:500;color:var(--meta);margin-left:1.2rem}
+#chips{display:flex;flex-wrap:wrap;gap:.55rem}
+.chip{font-family:inherit;font-size:1.55rem;font-weight:700;color:var(--meta);
+  background:var(--card);border:.15rem solid var(--edge);border-radius:.7rem;
+  padding:.45rem .75rem;cursor:pointer;line-height:1;
+  font-variant-numeric:tabular-nums;transition:all .13s}
+.chip:hover{color:var(--ink);border-color:var(--meta)}
+.chip.sel{background:var(--gold);border-color:var(--gold);color:#16120F}
+.chip small{font-weight:600;opacity:.75;margin-left:.35rem}
+
+/* ----------------------------------------------------------- 포커스 카드 - */
+#focus{position:fixed;inset:0;background:var(--scrim);z-index:14;
+  display:none;align-items:center;justify-content:center}
+#focus.on{display:flex}
+.fcard{width:126rem;max-height:98rem;background:var(--card);border:.15rem solid var(--edge);
+  border-radius:2.3rem;overflow:hidden;box-shadow:0 2rem 6rem rgba(0,0,0,.6);
+  animation:fin .3s cubic-bezier(.2,.9,.25,1.15) both}
+@keyframes fin{from{opacity:0;transform:scale(.94) translateY(2rem)}to{opacity:1;transform:none}}
+.fhead{padding:1.5rem 3.2rem;display:flex;align-items:center;gap:1.7rem;
+  border-bottom:.15rem solid var(--edge);background:var(--card2)}
+.fhead .fl{width:7.8rem;height:5.2rem;border-radius:.7rem}
+.fhead u{text-decoration:none;font-size:5.4rem;font-weight:800;letter-spacing:-.3rem;line-height:1}
+.fhead .iso{font-size:1.9rem;color:var(--meta);letter-spacing:.3rem;font-weight:600}
+.fmini{margin-left:auto;width:22rem;height:9.6rem}
+.fmini .land{fill:var(--land)} .fmini .frame{fill:none;stroke:var(--edge);stroke-width:2}
+.fmini .dot{fill:var(--gold);stroke:var(--card2);stroke-width:3}
+/* 이름 공개 — 이 화면의 주인공 */
+.fname{padding:1.9rem 3.2rem 1.7rem;display:flex;align-items:center;gap:2.6rem;
+  border-bottom:.15rem solid var(--edge)}
+.fname .who{font-size:1.95rem;font-weight:600;color:var(--meta);white-space:nowrap}
+.fname .who b{display:block;font-size:3.1rem;font-weight:700;color:var(--cond);
+  letter-spacing:-.1rem;margin-top:.15rem}
+.fname .arrow{font-size:2.7rem;color:var(--edge);font-weight:700}
+.fname .born{min-width:0}
+.fname .born .en{font-size:6.4rem;font-weight:800;letter-spacing:-.32rem;line-height:1.02;
+  color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fname .born .kr{font-size:2.3rem;font-weight:600;color:var(--cond);letter-spacing:-.06rem;
+  margin-top:.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fsec{padding:1.3rem 3.2rem 1.5rem}
+.fsec+.fsec{border-top:.15rem solid var(--edge)}
+.fsec>h4{font-size:1.7rem;font-weight:700;color:var(--meta);letter-spacing:-.02rem;margin-bottom:.8rem}
+.frow{display:flex;flex-wrap:wrap;gap:.7rem 2.3rem}
+.fi{min-width:20rem}
+.fi.wide{min-width:44rem}
+.fi .k{font-size:1.6rem;color:var(--meta);font-weight:600}
+.fi .v{font-size:2.85rem;font-weight:700;letter-spacing:-.1rem;line-height:1.2}
+.fi .v2{font-size:1.55rem;font-weight:500;color:var(--meta);letter-spacing:-.02rem;margin-top:.1rem}
+.fen{font-size:1.6rem;color:var(--meta);font-style:italic;margin-top:.9rem;letter-spacing:-.01rem}
+/* 한국이었다면 — 대비 두 줄 */
+.fcmp{padding:1.2rem 3.2rem 1.4rem;border-top:.15rem solid var(--edge);background:var(--card2)}
+.fcmp .row{display:flex;align-items:baseline;gap:1.4rem;font-size:2.05rem;font-weight:600;
+  letter-spacing:-.06rem;padding:.28rem 0}
+.fcmp .row .lb{width:15rem;flex:0 0 auto;font-size:1.6rem;color:var(--meta);font-weight:600}
+.fcmp .row .cn{width:15rem;flex:0 0 auto;font-weight:800;letter-spacing:-.08rem}
+.fcmp .row .fig{color:var(--cond);font-variant-numeric:tabular-nums}
+.fcmp .row.me .cn{color:var(--gold)}
+.fcmp .row.you .cn{color:var(--accent)}
+.fnav{padding:0 3.2rem 1.6rem;font-size:1.5rem;color:var(--meta)}
+
+/* -------------------------------------------------------------- 베일 ----
+   훅의 결말. 펼쳐진 카드 = 추첨이 이미 정해버린 것.
+   덮는 순간 = 뽑히기 전으로 되돌린 것. 지문의 veil of ignorance 그 자체다. */
+#veil{position:fixed;inset:0;background:var(--scrim);z-index:16;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:3rem;padding:0 13rem;text-align:center;color:#F4F2ED}
+#veil.on{display:flex;animation:vin .6s ease both}
+@keyframes vin{from{opacity:0}to{opacity:1}}
+#veil .big{font-size:6.2rem;font-weight:800;letter-spacing:-.32rem;line-height:1.2}
+#veil .quote{font-size:2.75rem;font-weight:500;line-height:1.62;color:#C7CAD3;
+  max-width:150rem;letter-spacing:-.02rem}
+#veil .quote b{font-weight:700;color:#FFF}
+#veil .src{font-size:1.8rem;color:#7C8394}
+#veil .acc{color:var(--accent);font-size:3.8rem}
+
+/* 상시 각주 — 캡처돼도 같이 찍힌다 */
+#legal{position:absolute;left:3rem;bottom:.3rem;font-size:1.15rem;color:#4B5364;
+  letter-spacing:-.01rem;pointer-events:none;z-index:2}
+html[data-light] #legal{color:#9A9384}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <header>
+    <div class="brand">출생 추첨<em>The Birth Lottery</em></div>
+    <div class="spacer"></div>
+    <select id="cls" title="반 선택"></select>
+    <button class="tog" id="rosterB" title="학생 이름 넣기 · 이 컴퓨터에만 저장됩니다">명렬표</button>
+    <button class="btn" id="go"><span id="goT">태어나기</span></button>
+    <button class="tog" id="again" hidden title="딱 한 번만 됩니다">다시 한 번</button>
+    <button class="tog" id="mapB" hidden title="세계지도에 점으로 (M)">지도 (M)</button>
+    <button class="tog" id="teach" hidden title="선생님 카드도 한 장">선생님도</button>
+    <button class="tog" id="veilBtn" hidden
+      title="카드를 전부 덮습니다. 지문의 veil of ignorance — 훅의 마지막 장면">베일 (V)</button>
+    <button class="tog" id="snd" aria-pressed="true" title="소리 켜기/끄기 (S)">🔊 소리</button>
+    <button class="tog" id="lt" aria-pressed="false" title="밝은 교실용">밝게</button>
+    <button class="tog" id="fs" title="전체 화면 (F)">전체 화면</button>
+  </header>
+
+  <div id="grid"></div>
+  <footer>
+    <div class="heroRow" id="foot"></div>
+    <div id="whyBar"></div>
+  </footer>
+
+  <div id="intro">
+    <h1>이 중에 자기가 고른 건, 하나도 없다</h1>
+    <div class="en">Nobody chose this.</div>
+    <div id="cnt">이 화면이 켜진 뒤 세계에서 <b>0</b> 명이 태어났다
+      <small>1초에 4.2명 · 1년에 1억 3,349만 명</small></div>
+    <div class="whyHead">많이 태어나는 나라는 셋 중 하나다</div>
+    <div class="why">
+      <div><h5>사람이 많거나</h5>
+        <div class="nm"><b>인도</b><em>17.6%</em></div>
+        <div class="sub">14억 5천만 명 · 출산율 2.0명</div>
+        <div class="sub2">세계 인구의 17.9% — 딱 인구만큼. 출산율은 세계 평균 이하다.</div></div>
+      <div><h5>많이 낳거나</h5>
+        <div class="nm"><b>니제르</b><em>0.8%</em></div>
+        <div class="sub">2,700만 명 · 출산율 6.1명</div>
+        <div class="sub2">인구는 한국의 절반. 그런데 태어나는 아기는 한국의 5배.</div></div>
+      <div><h5>둘 다거나</h5>
+        <div class="nm"><b>나이지리아</b><em>5.7%</em></div>
+        <div class="sub">2억 3천만 명 · 출산율 4.5명</div>
+        <div class="sub2">사람도 많고 많이 낳는다. 콩고민주공화국도 같은 이유로 6위.</div></div>
+    </div>
+    <div id="introKr">한국은 5,200만 명 · 출산율 <b>0.72명</b> → 세계 신생아의 <b>0.17%</b>.
+      33명을 뽑으면 <b>94%</b>는 한 명도 안 나온다.</div>
+    <div class="rule">오늘 뜨는 나라 중에 못난 나라는 없습니다. 우리가 고른 게 아니라는 것만 봅니다.
+      <small>화면에 종교가 나옵니다. 그건 그 나라의 통계입니다. 오늘 우리는 누가 무엇을 믿는지는 묻지 않습니다.</small></div>
+  </div>
+
+  <div id="roster">
+    <div class="rbox">
+      <h3>명렬표 넣기</h3>
+      <p>학생 이름을 붙여넣으면 카드에 이름이 뜹니다. <b>이 컴퓨터의 브라우저에만 저장</b>되고
+         어디로도 전송되지 않습니다. 한 번 넣어 두면 다음 시간에도 그대로 있습니다.</p>
+      <div class="rrow"><label>반 이름</label><input id="rName" placeholder="2-1" value="2-1"></div>
+      <textarea id="rText" placeholder="홍길동&#10;김철수&#10;이영희&#10;…&#10;&#10;엑셀 명렬표에서 이름 열을 그대로 복사해 붙여넣으세요.&#10;번호가 같이 붙어 있어도 알아서 떼어냅니다."></textarea>
+      <div class="rfoot">
+        <span id="rInfo"></span>
+        <span class="spacer"></span>
+        <button class="tog" id="rDel">이 반 지우기</button>
+        <button class="tog" id="rClose">닫기</button>
+        <button class="btn" id="rSave">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="count"></div>
+  <div id="focus"><div class="fcard" id="fcard"></div></div>
+
+  <div id="map">
+    <header>
+      <div class="brand">어디서 태어났나<em>Where they were born</em></div>
+      <div class="spacer"></div>
+      <button class="tog" id="mapBack">카드로 (M)</button>
+    </header>
+    <div id="mapWrap"></div>
+    <div id="mapFoot">
+      <div id="mapSum"></div>
+      <div id="chips"></div>
+    </div>
+  </div>
+
+  <div id="veil">
+    <div class="big">이제 아무도<br>자기가 누구인지 모릅니다</div>
+    <div class="quote">&ldquo;Imagine that we choose behind a <b>&lsquo;veil of ignorance&rsquo;</b> that temporarily
+      prevents us from knowing anything about <b>who in particular we are</b>. We don&rsquo;t know our
+      class or gender, our race or ethnicity, our political opinions or religious beliefs.&rdquo;</div>
+    <div class="src">&mdash; 오늘 읽을 지문에서</div>
+    <div class="big acc">그럼, 규칙은 어떻게 정하죠?</div>
+  </div>
+
+  <div id="legal">John Rawls &lsquo;무지의 베일&rsquo; 지문 도입 자료 · 숫자는 World Bank·Pew·CIA World Factbook 실측 ·
+    종교는 그 나라의 통계이며 이 화면은 누구의 종교도 정하지 않습니다</div>
+
+</div>
+
+<script>
+"use strict";
+const DATA=__DATA__, FLAGS=__FLAGS__, NAMES=__NAMES__;
+const RELIG=__RELIG__, MAP=__MAP__, CEN=__CEN__;
+
+/* ============================== 소리 ====================================== */
+let AC=null, SOUND=true;
+function ac(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)();
+  if(AC.state==='suspended') AC.resume(); return AC }
+function ping(freq,dur,vol,delay,type,slideTo){
+  if(!SOUND) return;
+  const c=ac(), t0=c.currentTime+(delay||0);
+  const o=c.createOscillator(), h=c.createOscillator();
+  const g=c.createGain(), gh=c.createGain();
+  o.type=type||'sine'; h.type='sine';
+  o.frequency.setValueAtTime(freq,t0); h.frequency.setValueAtTime(freq*2.02,t0);
+  if(slideTo){ o.frequency.exponentialRampToValueAtTime(slideTo,t0+dur);
+               h.frequency.exponentialRampToValueAtTime(slideTo*2.02,t0+dur) }
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+.008);
+  g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+  gh.gain.setValueAtTime(0,t0); gh.gain.linearRampToValueAtTime(vol*.32,t0+.006);
+  gh.gain.exponentialRampToValueAtTime(.0001,t0+dur*.55);
+  o.connect(g); g.connect(c.destination); h.connect(gh); gh.connect(c.destination);
+  o.start(t0); o.stop(t0+dur+.05); h.start(t0); h.stop(t0+dur+.05);
+}
+function noise(dur,vol,delay,hz){
+  if(!SOUND) return;
+  const c=ac(), t0=c.currentTime+(delay||0), n=Math.max(1,Math.floor(c.sampleRate*dur));
+  const buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3);
+  const s=c.createBufferSource(); s.buffer=buf;
+  const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=hz||1800; f.Q.value=.8;
+  const g=c.createGain(); g.gain.value=vol;
+  s.connect(f); f.connect(g); g.connect(c.destination); s.start(t0);
+}
+const S={
+  deal (){ noise(.16,.05,0,900); ping(196,.22,.07,0,'triangle') },
+  tick (i){ ping([523.25,659.25,783.99][i],.34,.20,0,'sine') },
+  open (){ [523.25,659.25,783.99,1046.5].forEach(function(f,i){ ping(f,.5,.15,i*.055) });
+           ping(82,.75,.20,0,'sine',55); noise(.22,.07,.01,2400) },
+  flip (d,i){ ping(880+(i%5)*70,.075,.030,d,'triangle') },
+  hero (i){ ping([392,493.88,587.33][i],.46,.115,i*.15) },
+  korea(d){ [1046.5,1318.5,1568,2093].forEach(function(f,i){ ping(f,.55,.10,d+i*.075) }) },
+  dot  (d){ ping(1250,.055,.022,d,'sine') },
+  veil (){ ping(146.83,1.6,.19,0,'sine',58); noise(.55,.04,0,600) },
+  click(){ ping(740,.06,.06) }
+};
+
+/* ===================== 결정론적 난수 ====================================== */
+function rng(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296}}
+
+function pickCountry(r){
+  let x=r()*DATA.total;
+  for(const c of DATA.countries){ x-=c[2]; if(x<=0) return c }
+  return DATA.countries[0];
+}
+/* 계층은 국가와 독립으로 뽑는다. World Bank 에 국가 '안'의 분포 자료가 없어서,
+   국가 평균으로 채우면 인도 카드 6장이 전부 똑같아지고 화면이
+   "인도는 다 똑같이 가난"을 확정해버린다. */
+function clsLabel(p){
+  const top=Math.max(1,Math.round((1-p)*100));
+  return top<=50 ? ('상위 '+top+'%') : ('하위 '+Math.max(1,Math.round(p*100))+'%');
+}
+function eduLabel(p,sec,ter,eyrs){
+  if(sec==null) return null;
+  if(ter!=null && p>1-ter/100) return '대학까지';
+  if(p>1-sec/100)              return '고등학교까지';
+  const base=1-sec/100, t=base>0?p/base:0;
+  const shape=eyrs==null?.5:Math.min(1,eyrs/13);
+  if(t>.62-shape*.18) return '중학교까지';
+  if(t>.24-shape*.10) return '초등학교까지';
+  return '학교를 못 다님';
+}
+function bornName(iso,sex,r){
+  const key = sex==='남' ? 'm' : 'f';
+  const src = (NAMES.byCountry[iso] && NAMES.byCountry[iso][key])
+           || (NAMES.byRegion[NAMES.region[iso]] && NAMES.byRegion[NAMES.region[iso]][key])
+           || NAMES.byRegion['Europe & Central Asia'][key];
+  return src[Math.floor(r()*src.length)];
+}
+/* 종교 — 이름은 '나라'에 붙고, 사람에게는 '다수/소수'만 붙는다.
+   그래서 어떤 학생 이름 옆에도 종교명이 붙지 않는다. */
+function religionOf(iso,r){
+  const list=RELIG[iso];
+  if(!list) return null;
+  const top=list[0];
+  let x=r()*list.reduce(function(a,b){return a+b[1]},0), pickIdx=0;
+  for(let i=0;i<list.length;i++){ x-=list[i][1]; if(x<=0){ pickIdx=i; break } }
+  return { top:top[0], topPct:top[1], major:pickIdx===0 };
+}
+function makeCard(name,i,r){
+  const c=pickCountry(r), p=r(), u=r(), g=r();
+  const sex = g<0.512?'남':'여';
+  const rel = religionOf(c[0],r);
+  return {no:i+1, name:name, iso:c[0], ko:c[1], life:c[3], eyrs:c[5],
+    p:p, cls:clsLabel(p), edu:eduLabel(p,c[6],c[7],c[5]), sex:sex,
+    born:bornName(c[0],sex,r), rel:rel,
+    pol: r()<2/3?'다수 쪽':'소수 쪽',
+    fam: u<.62?'부모님 두 분과':(u<.85?'한 부모와':'조부모·친척과')};
+}
+
+/* =========================== Equal Earth 투영 =============================
+   Savric/Patterson/Jenny (2018). 정적면적이라 화면 위 점 밀도 = 실제 출생 밀도.
+   equirectangular 를 쓰면 고위도가 부풀어 아프리카가 작아 보이고,
+   그러면 그림이 "출생은 아프리카·남아시아에 몰린다"는 사실을 갉는다.        */
+const EE=MAP.consts, S3=Math.sqrt(3)/2, T3=2*Math.sqrt(3);
+function project(lon,lat){
+  const lam=lon*Math.PI/180, phi=lat*Math.PI/180;
+  const th=Math.asin(S3*Math.sin(phi));
+  const t2=th*th, t6=t2*t2*t2, t8=t6*t2;
+  const x=T3*lam*Math.cos(th)/(3*(9*EE.A4*t8+7*EE.A3*t6+3*EE.A2*t2+EE.A1));
+  const y=th*(EE.A1+EE.A2*t2+t6*(EE.A3+EE.A4*t2));
+  return [(x+EE.xMax)*EE.k, (EE.yTop-y)*EE.k];
+}
+/* 겹침 — 점 크기를 고정한 채 해바라기(피보나치)로 흩뜨린다.
+   원을 키우거나 숫자를 쓰면 '점 하나 = 사람 하나'가 깨진다. */
+const GA=Math.PI*(3-Math.sqrt(5)), SPACING=12.26;
+function slot(i){ return i===0 ? [0,0]
+  : [SPACING*Math.sqrt(i)*Math.cos(i*GA), SPACING*Math.sqrt(i)*Math.sin(i*GA)] }
+
+/* =============================== 렌더 ==================================== */
+const $=function(s){return document.querySelector(s)};
+const grid=$('#grid'), foot=$('#foot'), sel=$('#cls'), go=$('#go'), goT=$('#goT');
+const againB=$('#again'), veilB=$('#veilBtn'), countEl=$('#count');
+const mapB=$('#mapB'), mapEl=$('#map'), teachB=$('#teach');
+let people=[], prev=null, phase=0, redrawn=false, fi=-1;
+let seed=20260829, busy=false, gen=0, selNo=-1, numBuf='', numT=null;
+
+/* 명렬표는 배포본에 없다. localStorage 에 있는 것만 쓴다. */
+const RKEY='bl_roster_v1';
+function loadR(){ try{ return JSON.parse(localStorage.getItem(RKEY)||'{}') }catch(_){ return {} } }
+function saveR(o){ try{ localStorage.setItem(RKEY,JSON.stringify(o)) }catch(_){} }
+let ROSTER=Object.assign({}, DATA.classes||{}, loadR());
+function namesFor(v){
+  if(ROSTER[v]) return ROSTER[v];
+  const n=parseInt(v,10)||33;
+  return Array.from({length:n},function(){ return '' });   /* 이름 없으면 번호만 */
+}
+function fillSel(keep){
+  const keys=Object.keys(ROSTER);
+  sel.innerHTML='';
+  if(keys.length){
+    keys.sort().forEach(function(k){
+      const o=document.createElement('option');
+      o.value=k; o.textContent=k+'  ·  '+ROSTER[k].length+'명'; sel.appendChild(o);
+    });
+    const og=document.createElement('optgroup'); og.label='이름 없이';
+    for(let i=28;i<=35;i++){
+      const o=document.createElement('option'); o.value=String(i); o.textContent=i+'명'; og.appendChild(o);
+    }
+    sel.appendChild(og);
+  } else {
+    for(let i=28;i<=35;i++){
+      const o=document.createElement('option'); o.value=String(i); o.textContent=i+'명 (이름 없이)';
+      sel.appendChild(o);
+    }
+    sel.value='33';
+  }
+  if(keep && [...sel.options].some(function(o){return o.value===keep})) sel.value=keep;
+}
+fillSel();
+function esc(s){return String(s).replace(/[&<>]/g,function(m){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]})}
+function flagHTML(iso){
+  return FLAGS[iso] ? '<span class="fl">'+FLAGS[iso]+'</span>'
+                    : '<span class="fl none">'+iso+'</span>';
+}
+function waveDelay(i){ return (Math.floor(i/5)+i%5)*0.028 }
+
+function buildGrid(){
+  grid.innerHTML='';
+  people.forEach(function(c,i){
+    const d=document.createElement('div');
+    d.className='slip'+(c.iso==='KOR'?' kr':'');
+    d.style.setProperty('--d',(i*0.012)+'s');
+    d.style.setProperty('--fd',waveDelay(i)+'s');
+    d.innerHTML=
+      '<div class="fl3">'+
+        '<div class="sd sdA"><span>'+(c.name?esc(c.name):(c.no+'번'))+'</span>'+
+          (c.name?'<small>'+c.no+'</small>':'')+'</div>'+
+        '<div class="sd sdB">'+
+          (c.iso==='KOR'?'<span class="krTag">한국</span>':'')+
+          '<div class="s1"><b>'+c.no+'</b><span>'+esc(c.name||'')+'</span></div>'+
+          '<div class="s2">'+flagHTML(c.iso)+
+            '<u data-len="'+c.ko.length+'">'+esc(c.ko)+'</u></div>'+
+          '<div class="s3">'+esc(c.cls)+(c.edu?'<i>·</i>'+esc(c.edu):'')+'</div>'+
+        '</div>'+
+      '</div>';
+    d.onclick=function(){ if(d.classList.contains('flip')){ S.click(); openFocus(i) } };
+    grid.appendChild(d);
+  });
+  requestAnimationFrame(function(){
+    grid.querySelectorAll('.slip').forEach(function(el){ el.classList.add('in') });
+  });
+}
+function flipAll(){
+  grid.querySelectorAll('.slip').forEach(function(el,i){
+    el.classList.add('flip'); S.flip(waveDelay(i)+0.30,i);
+  });
+  people.forEach(function(c,i){ if(c.iso==='KOR') S.korea(waveDelay(i)+0.62) });
+}
+
+const WHY='실제 태어나는 아기 수 그대로 뽑습니다 &nbsp;·&nbsp; '+
+  '<b>인도 17.6%</b> 중국 6.7% <b>나이지리아 5.7%</b> 파키스탄 5.2% 인도네시아 3.4% '+
+  '콩고민주공화국 3.4% … <b>한국 0.17%</b> &nbsp;·&nbsp; '+
+  '인도가 많은 건 많이 낳아서가 아니라 <b>사람이 많아서</b>';
+
+function tally(){
+  const n=people.length;
+  const kr=people.filter(function(c){return c.iso==='KOR'}).length;
+  const low=people.filter(function(c){
+    return c.edu==='학교를 못 다님'||c.edu==='초등학교까지'}).length;
+  const lifes=people.map(function(c){return c.life}).filter(function(v){return v!=null})
+                    .map(function(v){return Math.round(v)});
+  const hi=Math.max.apply(null,lifes), lo=Math.min.apply(null,lifes);
+  let pair=null,best=-1; const by={};
+  people.forEach(function(c){ (by[c.iso]=by[c.iso]||[]).push(c) });
+  Object.keys(by).forEach(function(k){
+    const g=by[k]; if(g.length<2) return;
+    g.sort(function(a,b){return a.p-b.p});
+    const d=g[g.length-1].p-g[0].p;
+    if(d>best){best=d;pair=[g[0],g[g.length-1]]}
+  });
+  const krW=DATA.countries.filter(function(c){return c[0]==='KOR'})[0][2];
+  const pKr=(1-Math.pow(1-krW/DATA.total,n))*100;
+  const line=function(c){ return '<em>'+esc(c.ko)+'</em> · '+esc(c.cls)+
+    (c.edu?' · '+esc(c.edu):'') };
+
+  /* 2회차에는 세 번째 칸이 "아까와 같은 나라"로 바뀐다.
+     재현이 안 된다는 것 자체가 '운'의 증명이라, 교사가 설명할 필요가 없다. */
+  let third;
+  if(prev){
+    const same=people.filter(function(c,i){ return prev[i] && prev[i].iso===c.iso }).length;
+    third='<div class="hero h3 acc" style="--hd:.32s">'+
+      '<div class="k">아까와 같은 나라가 나온 사람</div>'+
+      '<div class="v">'+same+'<small>/ '+n+'명</small></div>'+
+      '<div class="note">같은 사람을 다시 뽑았는데 다른 인생이 나왔다 &mdash; 그게 운이다</div></div>';
+  } else {
+    third='<div class="hero h3" style="--hd:.32s">'+
+      '<div class="k">학교를 6년도 못 다니는 사람</div>'+
+      '<div class="v">'+low+'<small>/ '+n+'명</small></div>'+
+      '<div class="note">태어난 나라 평균 수명 '+hi+'세 ↔ '+lo+'세</div></div>';
+  }
+  const krLabel = kr===0 ? '한국에서 태어난 사람' : '한국에서 태어난 사람 &mdash; 나왔습니다';
+  const krNote  = kr===0
+    ? ('세계 아기 573명 중 1명이 한국 (0.17%) · '+n+'명이면 '+pKr.toFixed(1)+'%')
+    : (pKr.toFixed(1)+'% 를 뚫었습니다 · 세계 아기 573명 중 1명이 한국');
+
+  foot.innerHTML=
+    '<div class="hero h1 '+(kr===0?'acc':'gold')+'" style="--hd:0s">'+
+      '<div class="k">'+krLabel+'</div>'+
+      '<div class="v">'+kr+'<small>/ '+n+'명</small></div>'+
+      '<div class="note">'+krNote+'</div></div>'+
+    '<div class="hero h2" style="--hd:.16s">'+
+      '<div class="k">'+(pair?'같은 나라, 다른 인생':'태어난 나라 평균 수명')+'</div>'+
+      (pair? '<div class="v pairv">'+line(pair[1])+'<br>'+line(pair[0])+'</div>'
+           : '<div class="v">'+hi+'<small>↔ '+lo+'세</small></div>')+
+      '<div class="note">오늘 지문이 다루는 건 나라와 나라 사이가 아니라 한 사회 &lsquo;안&rsquo;이다</div></div>'+
+    third;
+  $('#whyBar').innerHTML=WHY;
+  requestAnimationFrame(function(){
+    foot.querySelectorAll('.hero').forEach(function(e){ e.classList.add('on') });
+    $('#whyBar').classList.add('on');
+  });
+  S.hero(0); S.hero(1); S.hero(2);
+}
+
+/* ------------------------------- 포커스 카드 ----------------------------- */
+const KOREA=DATA.countries.filter(function(c){return c[0]==='KOR'})[0];
+function miniMap(iso){
+  const p=CEN[iso]?project(CEN[iso][0],CEN[iso][1]):null;
+  return '<svg class="fmini" viewBox="'+MAP.viewBox.join(' ')+'" preserveAspectRatio="xMidYMid meet">'+
+    '<path class="frame" d="'+MAP.frame+'"/>'+
+    '<path class="land" fill-rule="evenodd" d="'+MAP.land+'"/>'+
+    (p?'<circle class="dot" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="17"/>':'')+
+    '</svg>';
+}
+function openFocus(i){
+  fi=i; const c=people[i], miss='공개되어 있지 않습니다';
+  const item=function(k,v,v2,wide){
+    return '<div class="fi'+(wide?' wide':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div>'+
+           (v2?'<div class="v2">'+v2+'</div>':'')+'</div>'};
+  const aWord = c.sex==='남' ? '남자아이' : '여자아이';
+  /* 종교 — 이름은 나라에 붙는다. 사람 칸에는 다수/소수만. */
+  let relV=miss, relV2='';
+  if(c.rel){
+    const t=c.rel.topPct;
+    relV=esc(c.rel.top)+' '+Math.round(t)+'%';
+    relV2 = t>=50 ? ('나머지 '+Math.round(100-t)+'%는 다른 종교이거나 무종교')
+                  : ('가장 많지만 절반은 넘지 않습니다 · 나머지 '+Math.round(100-t)+'%는 다른 쪽');
+  }
+  const eduKr = KOREA[7]!=null ? Math.round(KOREA[7])+'%' : '—';
+  $('#fcard').innerHTML=
+    '<div class="fhead">'+flagHTML(c.iso)+'<u>'+esc(c.ko)+'</u>'+
+      '<span class="iso">'+c.iso+'</span>'+miniMap(c.iso)+'</div>'+
+    '<div class="fname">'+
+      '<div class="who">'+(c.name?c.no+'번':'이 카드')+'<b>'+esc(c.name||(c.no+'번'))+'</b></div>'+
+      '<div class="arrow">&rarr;</div>'+
+      '<div class="born"><div class="en">'+esc(c.born[0])+'</div>'+
+        '<div class="kr">'+esc(c.born[1])+' &nbsp;·&nbsp; '+esc(c.ko)+'에서 태어난 '+aWord+'</div></div>'+
+    '</div>'+
+    '<div class="fsec"><h4>타고난 것 &mdash; 고른 적 없는 것</h4><div class="frow">'+
+      item('그 나라 안에서',esc(c.cls))+item('성별',c.sex)+
+      item('그 나라 평균 수명', c.life!=null?Math.round(c.life)+'세':miss)+
+      item('가정',esc(c.fam))+
+      item('그 나라에서 가장 많은 종교', relV, relV2, true)+
+    '</div></div>'+
+    '<div class="fsec"><h4>그 뒤에 정해진 것</h4><div class="frow">'+
+      item('학교', c.edu?esc(c.edu):miss)+
+      item('종교', c.rel?('그 나라에서 '+(c.rel.major?'다수 쪽':'소수 쪽')):miss)+
+      item('정치적 견해', c.pol)+
+    '</div>'+
+    '<div class="fen">&ldquo;Some are members of racial, ethnic, or religious minorities; others, not.&rdquo; &mdash; 오늘 지문 첫 문단</div></div>'+
+    /* 한국이었다면 — 대비 두 줄. 국가에 좋다/나쁘다를 붙이지 않고 숫자만 나란히 놓는다. */
+    '<div class="fcmp">'+
+      '<div class="row you"><span class="lb">이 카드의 너</span><span class="cn">'+esc(c.ko)+'</span>'+
+        '<span class="fig">기대수명 '+(c.life!=null?Math.round(c.life)+'세':'—')+
+        ' &nbsp;·&nbsp; 대학까지 갈 확률 '+(c[7]==null&&false?'—':(function(){
+          const cc=DATA.countries.filter(function(x){return x[0]===c.iso})[0];
+          return cc&&cc[7]!=null?Math.round(cc[7])+'%':'자료 없음'})())+'</span></div>'+
+      '<div class="row me"><span class="lb">한국이었다면</span><span class="cn">대한민국</span>'+
+        '<span class="fig">기대수명 '+Math.round(KOREA[3])+'세 &nbsp;·&nbsp; 대학까지 갈 확률 '+eduKr+'</span></div>'+
+    '</div>'+
+    '<div class="fnav">&larr; &rarr; 다른 카드 &nbsp;·&nbsp; 번호를 눌러도 열립니다 &nbsp;·&nbsp; Esc 닫기</div>';
+  $('#focus').classList.add('on');
+}
+function closeFocus(){ $('#focus').classList.remove('on'); fi=-1 }
+
+/* --------------------------------- 지도 --------------------------------- */
+function buildMap(){
+  const seen={}, pts=[];
+  people.forEach(function(c){
+    const k=(seen[c.iso]=(seen[c.iso]||0)); seen[c.iso]++;
+    const base=CEN[c.iso]?project(CEN[c.iso][0],CEN[c.iso][1]):[500,220];
+    const s=slot(k);
+    pts.push({c:c, x:base[0]+s[0], y:base[1]+s[1]});
+  });
+  $('#mapWrap').innerHTML=
+    '<svg id="mapSvg" viewBox="'+MAP.viewBox.join(' ')+'" preserveAspectRatio="xMidYMid meet">'+
+      '<path class="frame" d="'+MAP.frame+'"/>'+
+      '<path class="land" fill-rule="evenodd" d="'+MAP.land+'"/>'+
+      '<path class="eq" d="'+MAP.equator+'"/>'+
+      '<circle class="ring" id="ring" r="14"/>'+
+      pts.map(function(p,i){
+        return '<circle class="dot" data-i="'+i+'" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="10"/>';
+      }).join('')+
+    '</svg>';
+  /* 요약 — 정확한 수는 여기서 말하고, 지도는 그림만 한다. */
+  const cnt={}; people.forEach(function(c){ cnt[c.ko]=(cnt[c.ko]||0)+1 });
+  const top=Object.keys(cnt).map(function(k){return [k,cnt[k]]})
+              .sort(function(a,b){return b[1]-a[1]}).slice(0,4);
+  const nCountry=Object.keys(cnt).length;
+  $('#mapSum').innerHTML='33명이 <em>'+nCountry+'개 나라</em>에 흩어졌습니다'
+    .replace('33명',people.length+'명')+
+    '<small>'+top.map(function(t){return t[0]+' '+t[1]+'명'}).join(' · ')+'</small>';
+  $('#chips').innerHTML=people.map(function(c,i){
+    return '<button class="chip" data-i="'+i+'">'+c.no+
+           (c.name?'<small>'+esc(c.name)+'</small>':'')+'</button>';
+  }).join('');
+  $('#chips').querySelectorAll('.chip').forEach(function(b){
+    b.onclick=function(){ selectDot(+b.dataset.i) };
+  });
+  /* 반대 방향 — 지도 위의 점을 눌러도 아래 이름이 잡힌다 */
+  $('#mapWrap').querySelectorAll('.dot').forEach(function(d){
+    d.style.cursor='pointer';
+    d.onclick=function(){ selectDot(+d.dataset.i) };
+  });
+  /* 점이 하나씩 내려앉는다 */
+  const dots=$('#mapWrap').querySelectorAll('.dot');
+  dots.forEach(function(d,i){
+    setTimeout(function(){ d.classList.add('on'); S.dot(0) }, 60+i*42);
+  });
+}
+function selectDot(i){
+  selNo=i; S.click();
+  const dots=$('#mapWrap').querySelectorAll('.dot');
+  dots.forEach(function(d){ d.classList.remove('sel') });
+  $('#chips').querySelectorAll('.chip').forEach(function(b){ b.classList.remove('sel') });
+  const d=$('#mapWrap').querySelector('.dot[data-i="'+i+'"]');
+  const b=$('#chips').querySelector('.chip[data-i="'+i+'"]');
+  if(d){ d.classList.add('sel');
+    const ring=$('#ring');
+    ring.setAttribute('cx',d.getAttribute('cx')); ring.setAttribute('cy',d.getAttribute('cy'));
+    ring.classList.add('on'); }
+  if(b){ b.classList.add('sel');
+    if(b.scrollIntoView) b.scrollIntoView({block:'nearest',inline:'nearest'}) }
+  const c=people[i];
+  $('#mapSum').innerHTML='<em>'+c.no+'번'+(c.name?' '+esc(c.name):'')+'</em> &rarr; '+esc(c.ko)+
+    ' &nbsp;·&nbsp; '+esc(c.born[0])+' '+esc(c.born[1])+
+    '<small>'+esc(c.cls)+(c.edu?' · '+esc(c.edu):'')+'</small>';
+}
+function showMap(on){
+  if(on){ buildMap(); mapEl.classList.add('on') }
+  else  { mapEl.classList.remove('on'); selNo=-1 }
+}
+
+/* ------------------------- 선생님 카드 ----------------------------------
+   교사 본인도 한 장 뽑는다. 시선이 학생 한 명에게 쏠릴 때 분산시키는
+   장치이기도 하다. 그리드는 건드리지 않고 포커스로만 띄운다. */
+function teacherCard(){
+  const r=rng((seed^0x5EED)>>>0);
+  const c=makeCard('선생님',people.length,r);
+  const keep=people, keepFi=fi;
+  people=people.concat([c]); openFocus(people.length-1);
+  people=keep; fi=keepFi;
+}
+
+/* ============================== 진행 ===================================== */
+function deal(){
+  const r=rng(seed);
+  people=namesFor(sel.value).map(function(n,i){ return makeCard(n,i,r) });
+  buildGrid(); foot.innerHTML=''; $('#whyBar').classList.remove('on');
+  S.deal(); goT.textContent='열기'; phase=1;
+}
+function cancelCount(){ gen++; busy=false;
+  countEl.classList.remove('on'); countEl.innerHTML='' }
+function countdown(done){
+  busy=true; go.disabled=true;
+  const my=++gen, seq=['3','2','1'];
+  countEl.classList.add('on');
+  let i=0;
+  (function step(){
+    if(my!==gen) return;
+    if(i<3){ countEl.innerHTML='<b>'+seq[i]+'</b>'; S.tick(i); i++; setTimeout(step,620) }
+    else {
+      countEl.innerHTML='<b class="go">태어났습니다</b>'; S.open();
+      setTimeout(function(){
+        if(my!==gen) return;
+        countEl.classList.remove('on'); countEl.innerHTML='';
+        busy=false; done();
+      },520);
+    }
+  })();
+}
+function reveal(){
+  countdown(function(){
+    flipAll(); setTimeout(tally,780);
+    goT.textContent='열림'; go.disabled=true;
+    veilB.hidden=false; mapB.hidden=false; teachB.hidden=false;
+    if(!redrawn) againB.hidden=false;
+    phase=2;
+  });
+}
+go.onclick=function(){
+  if(busy) return;
+  if(phase===0){ ac(); stopCounter(); $('#intro').classList.add('off'); deal() }
+  else if(phase===1){ reveal() }
+};
+/* 다시 뽑기는 딱 1회. 3회차부터는 '한국 나올 때까지 돌리기' 가챠가 되어
+   메시지가 정확히 뒤집힌다. 버튼이 스스로 사라지면 화면이 거절하는 것이 된다. */
+againB.onclick=function(){
+  if(busy) return;
+  prev=people; redrawn=true; againB.hidden=true;
+  seed=(Math.imul(seed,1103515245)+12345)>>>0;
+  go.disabled=false; veilB.hidden=true; mapB.hidden=true; teachB.hidden=true; deal();
+};
+veilB.onclick=function(){ const on=$('#veil').classList.toggle('on'); if(on) S.veil(); else S.click() };
+mapB.onclick=function(){ S.click(); showMap(true) };
+$('#mapBack').onclick=function(){ S.click(); showMap(false) };
+teachB.onclick=function(){ S.click(); teacherCard() };
+sel.onchange=function(){
+  cancelCount(); phase=0; go.disabled=false; goT.textContent='태어나기';
+  grid.innerHTML=''; foot.innerHTML=''; $('#whyBar').classList.remove('on');
+  againB.hidden=true; veilB.hidden=true; mapB.hidden=true; teachB.hidden=true;
+  redrawn=false; prev=null; showMap(false);
+  $('#veil').classList.remove('on'); $('#intro').classList.remove('off'); startCounter();
+};
+$('#snd').onclick=function(e){
+  SOUND=!SOUND; e.currentTarget.setAttribute('aria-pressed',String(SOUND));
+  e.currentTarget.textContent=SOUND?'🔊 소리':'🔇 음소거'; if(SOUND) S.click();
+};
+$('#lt').onclick=function(e){
+  const on=document.documentElement.hasAttribute('data-light');
+  document.documentElement.toggleAttribute('data-light',!on);
+  e.currentTarget.setAttribute('aria-pressed',String(!on));
+  e.currentTarget.textContent=!on?'어둡게':'밝게'; S.click();
+};
+$('#fs').onclick=function(){ S.click();
+  if(document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen().catch(function(){}) };
+$('#focus').onclick=function(e){ if(e.target.id==='focus') closeFocus() };
+
+/* ------------------------------- 명렬표 --------------------------------- */
+function openRoster(){
+  const cur=sel.value;
+  $('#rName').value = ROSTER[cur] ? cur : (Object.keys(ROSTER)[0] || '2-1');
+  syncRosterBox(); $('#roster').classList.add('on'); $('#rText').focus();
+}
+function syncRosterBox(){
+  const k=$('#rName').value.trim();
+  $('#rText').value = ROSTER[k] ? ROSTER[k].join('\n') : '';
+  $('#rInfo').textContent = ROSTER[k] ? (k+' · 저장돼 있음 '+ROSTER[k].length+'명') : '';
+}
+/* 붙여넣은 것에서 이름만 뽑는다. 앞의 번호, 탭·쉼표로 붙은 칸을 떼어낸다. */
+function parseNames(s){
+  return s.split(/[\r\n]+/).map(function(line){
+    let x=line.split(/[\t,;|]/).map(function(v){return v.trim()})
+              .filter(function(v){return v && !/^\d+$/.test(v)})[0] || '';
+    return x.replace(/^\s*\d+\s*[.)\-]?\s*/,'').trim();
+  }).filter(function(x){ return x.length>0 && x.length<=12 });
+}
+$('#rosterB').onclick=function(){ S.click(); openRoster() };
+$('#rName').oninput=syncRosterBox;
+$('#rClose').onclick=function(){ $('#roster').classList.remove('on') };
+$('#rSave').onclick=function(){
+  const k=$('#rName').value.trim(), arr=parseNames($('#rText').value);
+  if(!k){ $('#rInfo').textContent='반 이름을 적어 주세요'; return }
+  if(arr.length<5){ $('#rInfo').textContent='이름이 '+arr.length+'개만 인식됐습니다'; return }
+  if(arr.length>35){ $('#rInfo').textContent='35명까지만 됩니다 ('+arr.length+'개 인식)'; return }
+  ROSTER[k]=arr; saveR(ROSTER); fillSel(k); sel.onchange();
+  $('#rInfo').textContent=k+' 저장됨 · '+arr.length+'명';
+  S.hero(0);
+  setTimeout(function(){ $('#roster').classList.remove('on') },700);
+};
+$('#rDel').onclick=function(){
+  const k=$('#rName').value.trim();
+  if(ROSTER[k]){ delete ROSTER[k]; saveR(ROSTER); fillSel(); sel.onchange();
+    $('#rText').value=''; $('#rInfo').textContent=k+' 지웠습니다' }
+};
+$('#roster').onclick=function(e){ if(e.target.id==='roster') $('#roster').classList.remove('on') };
+
+/* 시작 화면 실시간 카운터 — 전 세계 연간 출생아 133,490,217명 / 31,556,952초
+   = 초당 4.23명. rAF 대신 100ms 타이머라 구형 교실 PC 부담이 없다. */
+const PER_SEC=DATA.total/31556952;
+let cT=null, cT0=0;
+function startCounter(){
+  stopCounter(); cT0=performance.now();
+  cT=setInterval(function(){
+    const n=Math.floor((performance.now()-cT0)/1000*PER_SEC);
+    const b=$('#cnt') && $('#cnt').querySelector('b');
+    if(b) b.textContent=n.toLocaleString('ko-KR');
+  },100);
+}
+function stopCounter(){ if(cT){ clearInterval(cT); cT=null } }
+startCounter();
+
+['pointerdown','keydown'].forEach(function(ev){
+  addEventListener(ev,function once(){ try{ac()}catch(_){}; removeEventListener(ev,once) },
+    {once:true, capture:true});
+});
+
+addEventListener('keydown',function(e){
+  if(e.key==='Escape'){ closeFocus(); $('#veil').classList.remove('on');
+    $('#roster').classList.remove('on');
+    if(mapEl.classList.contains('on')) showMap(false); return }
+  if($('#roster').classList.contains('on')) return;   /* 입력 중엔 단축키 끈다 */
+  /* 번호를 누르면 그 카드가 열린다 (지도 화면에서는 그 점이 선택된다) */
+  if(/^[0-9]$/.test(e.key) && phase===2){
+    numBuf+=e.key; clearTimeout(numT);
+    numT=setTimeout(function(){
+      const n=parseInt(numBuf,10); numBuf='';
+      const idx=people.findIndex(function(c){return c.no===n});
+      if(idx>=0){ if(mapEl.classList.contains('on')) selectDot(idx);
+                  else { S.click(); openFocus(idx) } }
+    },420);
+    return;
+  }
+  if($('#focus').classList.contains('on')){
+    if(e.key==='ArrowRight'){ S.click(); openFocus((fi+1)%people.length); e.preventDefault() }
+    if(e.key==='ArrowLeft'){ S.click(); openFocus((fi-1+people.length)%people.length); e.preventDefault() }
+    return;
+  }
+  if(mapEl.classList.contains('on')){
+    if(e.key==='ArrowRight'){ selectDot((selNo+1)%people.length); e.preventDefault() }
+    if(e.key==='ArrowLeft'){ selectDot((selNo-1+people.length)%people.length); e.preventDefault() }
+  }
+  if(e.key===' '||e.key==='Enter'){ if(!go.disabled&&!busy) go.click(); e.preventDefault() }
+  if(e.key==='v'||e.key==='V'){ if(!veilB.hidden) veilB.click() }
+  if(e.key==='m'||e.key==='M'){ if(mapEl.classList.contains('on')) showMap(false);
+                                else if(!mapB.hidden) showMap(true) }
+  if(e.key==='s'||e.key==='S'){ $('#snd').click() }
+  if(e.key==='f'||e.key==='F'){ $('#fs').click() }
+});
+</script>
+</body>
+</html>
