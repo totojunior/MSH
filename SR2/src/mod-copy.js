@@ -1,6 +1,15 @@
 /* =====================================================================
    MODULE: copy  -  all user-facing text + beat timing for the lesson hook
    DECLARES EXACTLY ONE GLOBAL: SCRIPT
+
+   THIS IS THE FILE TO EDIT for wording and pacing. Every line the class
+   reads is here, and so is SCRIPT.timing, which owns how long each beat
+   lasts. Korean is NOT here -- it is looked up from the English in
+   mod-ko.js, so changing an English line silently drops its Korean until
+   the same string is updated there too.
+   Editing this on github.com is enough: the Build SR2 workflow rebuilds
+   SR2/index.html and commits it, and the live lesson follows a few
+   minutes later. Do not edit SR2/index.html by hand -- it is generated.
    No DOM, no THREE, no audio, no timers. Pure data + pure helpers.
    Every helper is a property of SCRIPT; nothing else leaves the IIFE.
    All non-ASCII is written as \u escapes so the file survives any
