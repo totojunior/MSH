@@ -1,0 +1,6 @@
+/* fx module -- the overlay elements are created and inline-styled in JS.
+   These rules only reinforce them and guarantee they can never affect layout. */
+.fx-overlay{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;
+  overflow:hidden;contain:layout style;}
+.fx-overlay *{pointer-events:none;}
+.fx-overlay .fx-bar{background:#05070a;}

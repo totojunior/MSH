@@ -1,0 +1,156 @@
+<div id="ui-root" class="ui-root">
+  <div class="lb top"></div>
+  <div class="lb bot"></div>
+
+  <p id="ui-status" class="sr" role="status" aria-live="polite" aria-atomic="true"></p>
+  <p id="ui-alert" class="sr" role="alert" aria-live="assertive" aria-atomic="true"></p>
+
+  <!-- HUD -->
+  <div id="ui-hud" class="hud">
+    <div class="hud-speed"><span id="ui-hud-speed" class="n">00</span><span class="u">MPH</span></div>
+    <div class="hud-right">
+      <div id="ui-hud-phase" class="hud-phase"></div>
+      <div id="ui-hud-warn" class="hud-warn">BRAKE FAILURE</div>
+    </div>
+  </div>
+
+  <!-- COUNTDOWN -->
+  <div id="ui-cd" class="countdown" hidden aria-hidden="true">
+    <svg viewBox="0 0 120 120" focusable="false" aria-hidden="true">
+      <circle class="cd-bg" cx="60" cy="60" r="54"></circle>
+      <circle id="ui-cd-arc" class="cd-arc" cx="60" cy="60" r="54"></circle>
+    </svg>
+    <div id="ui-cd-num" class="cd-num">8</div>
+  </div>
+
+  <!-- SUBTITLE -->
+  <div id="ui-sub" class="subtitle">
+    <span id="ui-sub-text"></span>
+    <span id="ui-sub-ko" class="sub-ko"></span>
+  </div>
+  <div id="ui-skip" class="skiphint" hidden aria-hidden="true">클릭 · SPACE 로 넘기기</div>
+
+  <!-- BRAKE -->
+  <div id="ui-brake" class="brake" hidden>
+    <button id="ui-brake-btn" class="brake-btn" type="button">
+      <span class="bl">PULL THE BRAKE</span>
+      <span class="bh">PRESS AND HOLD &middot; OR HOLD SPACE</span>
+      <span class="brake-track"><span id="ui-brake-fill" class="brake-fill"></span></span>
+    </button>
+  </div>
+
+  <!-- PUSH GESTURE -->
+  <div id="ui-push" class="push" hidden>
+    <div id="ui-push-pad" class="push-pad"></div>
+    <div id="ui-push-fx" class="push-fx" aria-hidden="true"></div>
+    <div id="ui-push-guide" class="push-guide" aria-hidden="true">
+      <span class="chev"></span><span class="chev"></span><span class="chev"></span>
+    </div>
+    <div class="push-panel">
+      <p id="ui-push-hint" class="push-hint">PRESS AND DRAG YOUR HAND INTO HIS BACK</p>
+      <p id="ui-push-hint-ko" class="push-hint-ko"></p>
+      <!-- The old thin bar and the "0% / OR HOLD SPACE · ESC TO REFUSE" strip
+           are kept for the drag path's internals but no longer shown: the two
+           cards below now carry the gauge and the key hints, and three
+           competing progress readouts were what made this corner look busy. -->
+      <div class="push-bar" hidden aria-hidden="true">
+        <div id="ui-push-fill" class="push-fill"></div>
+        <div id="ui-push-hand" class="push-hand"></div>
+      </div>
+      <div class="push-meta" hidden aria-hidden="true">
+        <span id="ui-push-pct" class="push-pct">0%</span>
+        <span class="push-keys">OR HOLD SPACE &middot; ESC TO REFUSE</span>
+      </div>
+
+      <!-- Two options of equal weight. The push card carries its own gauge and
+           says, in the gauge, what it wants: hold, keep holding, or that the
+           press was too short. A click that silently does nothing reads as a
+           broken button, which is exactly what happened. -->
+      <div class="push-actions">
+        <button id="ui-push-do" class="push-do" type="button">
+          <span class="pa-top">
+            <span class="pa-en">PUSH HIM</span>
+            <span class="pa-key">SPACE</span>
+          </span>
+          <span class="pa-ko">민다</span>
+          <span class="pa-gauge">
+            <span id="ui-push-dofill" class="pa-fill"></span>
+            <span id="ui-push-state" class="pa-state">길게 누르고 계세요</span>
+          </span>
+        </button>
+        <button id="ui-push-refuse" class="push-refuse" type="button">
+          <span class="pa-top">
+            <span class="pa-en">DON'T PUSH HIM</span>
+            <span class="pa-key">ESC</span>
+          </span>
+          <span class="pa-ko">밀지 않는다</span>
+          <span class="pa-gauge pa-ghost"><span class="pa-state">한 번 클릭</span></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHOICES -->
+  <div id="ui-choices" class="choices" hidden role="group" aria-label="Your choice"></div>
+
+  <!-- SCREENS -->
+  <section id="scr-boot" class="screen" aria-hidden="true">
+    <div class="boot-wrap">
+      <p class="boot-kicker">A MORAL PUZZLE &middot; MICHAEL SANDEL</p>
+      <h1 class="boot-title">THE TROLLEY PROBLEM</h1>
+      <p class="boot-sub">You will make two decisions. Nobody else will make them for you. Choose how you are joining this lesson.</p>
+      <div class="roles">
+        <button id="ui-role-student" class="role primary" type="button">
+          <span class="rk">01</span>
+          <span class="rt">Student</span>
+          <span class="rd">On your own Chromebook. Sound starts muted. Your two answers are yours.</span>
+          <span class="rkey">S</span>
+        </button>
+        <button id="ui-role-projector" class="role" type="button">
+          <span class="rk">02</span>
+          <span class="rt">Projector</span>
+          <span class="rd">The room screen. Full sound, teacher console, class tally.</span>
+          <span class="rkey">P</span>
+        </button>
+      </div>
+      <p class="boot-foot">TAP OR PRESS A KEY TO ENABLE SOUND</p>
+    </div>
+  </section>
+
+  <section id="scr-cold" class="screen" aria-hidden="true"></section>
+
+  <section id="scr-result" class="screen" aria-hidden="true">
+    <div id="ui-verdict" class="verdict"></div>
+  </section>
+
+  <section id="scr-submit" class="screen" aria-hidden="true">
+    <div class="submit-wrap">
+      <div class="spinner" aria-hidden="true"></div>
+      <h2>RECORDING YOUR ANSWERS</h2>
+      <p>Two decisions. Both of them yours.</p>
+    </div>
+  </section>
+
+  <section id="scr-reveal" class="screen" aria-hidden="true">
+    <div id="ui-tally" class="tally"></div>
+    <div id="ui-reveal-actions" class="reveal-actions"></div>
+  </section>
+
+  <!-- HOLD-UP CARD: one full-screen colour and one huge letter, so a teacher
+       can count thirty Chromebooks by eye when nothing syncs -->
+  <section id="scr-card" class="screen" aria-hidden="true">
+    <div id="ui-card" class="card"></div>
+  </section>
+
+  <section id="scr-confront" class="screen" aria-hidden="true">
+    <div id="ui-confront" class="confront"></div>
+  </section>
+
+  <section id="scr-teacher" class="screen" aria-hidden="true">
+    <div id="ui-teacher" class="teacher"></div>
+  </section>
+
+  <div id="ui-toasts" class="toasts"></div>
+  <div id="ui-dots" class="dots"></div>
+  <div id="ui-busy" class="busy"></div>
+</div>
