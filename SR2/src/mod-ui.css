@@ -1,0 +1,1170 @@
+/* ===================== UI MODULE — dark, committed, no theme adaptation ==== */
+:root{
+  --ui-bg:#07090c; --ui-bg2:#0b1016; --ui-ink:#eef3f8; --ui-ink2:#b3c0cf;
+  --ui-dim:#8a98a8; --ui-line:#1b232e; --ui-line2:#2f3c4c;
+  --ui-orange:#ff7020; --ui-orange-b:#ff8a3d; --ui-orange-d:#c2490a;
+  --ui-red:#ff4438; --ui-black:#05070a;
+  --f-cond:'Barlow Condensed','Oswald','Arial Narrow',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-serif:'Spectral',Georgia,'Times New Roman',serif;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+html,body{
+  margin:0;padding:0;height:100%;width:100%;
+  background:#07090c;color:#eef3f8;
+  overflow:hidden;overscroll-behavior:none;
+}
+body{
+  position:fixed;inset:0;
+  font-family:var(--f-cond);
+  -webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;
+  user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+}
+canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
+body>canvas{position:fixed;inset:0;width:100%;height:100%;z-index:1;}
+#stage{position:fixed;inset:0;overflow:hidden;background:#05070a;z-index:1;touch-action:none;}
+
+/* ---------- root overlay ---------- */
+.ui-root{
+  position:fixed;inset:0;z-index:10;pointer-events:none;overflow:hidden;
+  font-family:var(--f-cond);color:var(--ui-ink);letter-spacing:.02em;
+
+  /* ---- THE PROMPT LANE ----------------------------------------------
+     Everything that asks the class for an input -- the two choice cards,
+     the brake panel -- stands in one reserved band along the bottom of the
+     frame, and the subtitle is forbidden from entering it. The band is
+     described once, here, so a caption can never drift into a panel again:
+       --prompt-bottom  the band's offset from the bottom edge
+       --prompt-gap     the gap between stacked/side-by-side cards
+       --choice-h       the height of ONE choice card, the tallest prompt
+                        (the brake button is clamp(66px,11vmin,104px), which
+                        is shorter than this at every viewport)
+       --prompt-h       the height of the whole band: one card, or the whole
+                        stack once the cards go vertical under 640px
+       --sub-gap        clear air between the caption and the band
+     These live on .ui-root, NOT on :root, and the narrow-screen override
+     below re-declares them on .ui-root too. That is deliberate: a custom
+     property that contains var() is substituted on the element that
+     DECLARES it, so a --prompt-lane computed up on :root would keep the
+     wide-screen numbers forever and the phone layout would silently go on
+     overlapping. Declared here, it is recomputed by the media query. */
+  --prompt-bottom:clamp(22px,5vmin,56px);
+  --prompt-gap:clamp(10px,1.8vmin,22px);
+  --choice-h:clamp(76px,13vmin,124px);
+  --prompt-h:var(--choice-h);
+  --sub-gap:clamp(12px,2.2vmin,26px);
+  --prompt-lane:calc(var(--prompt-bottom) + var(--prompt-h) + var(--sub-gap));
+}
+.ui-root *{box-sizing:border-box;}
+.ui-root [hidden]{display:none!important;}          /* class rules must not defeat @hidden */
+.ui-root button{
+  font-family:inherit;color:inherit;background:none;border:0;margin:0;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.ui-root button[disabled]{cursor:default;}
+.ui-root button:focus-visible,.ui-root [tabindex]:focus-visible{
+  outline:3px solid var(--ui-orange-b);outline-offset:3px;
+}
+.ui-root .sr{
+  position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0;
+}
+
+/* deliberate cinematic frame — also hides all aspect-ratio logic */
+.ui-root .lb{position:absolute;left:0;right:0;height:clamp(6px,1.1vmin,12px);background:var(--ui-black);z-index:60;pointer-events:none;}
+.ui-root .lb.top{top:0;} .ui-root .lb.bot{bottom:0;}
+
+/* ---------- screens ---------- */
+.ui-root .screen{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:clamp(16px,4vmin,54px);overflow:hidden;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .55s var(--ease),visibility .55s;
+  background:rgba(7,9,12,.94);z-index:30;
+}
+.ui-root .screen.is-on{opacity:1;visibility:visible;pointer-events:auto;}
+.ui-root .screen:not(.is-on) *{animation-play-state:paused!important;}
+.ui-root #scr-cold{background:var(--ui-black);}
+.ui-root #scr-result{background:rgba(5,7,10,.9);}
+
+/* ---------- BOOT ---------- */
+.ui-root .boot-wrap{width:100%;max-width:1100px;text-align:center;}
+.ui-root .boot-kicker{font-size:clamp(11px,1.6vmin,15px);letter-spacing:.42em;color:var(--ui-orange-b);margin:0 0 clamp(8px,1.6vmin,18px);text-transform:uppercase;}
+.ui-root .boot-title{font-weight:700;text-transform:uppercase;letter-spacing:.03em;line-height:.92;font-size:clamp(34px,7.6vmin,86px);margin:0;padding-bottom:.16em;}
+.ui-root .boot-sub{font-family:var(--f-serif);font-size:clamp(15px,2.1vmin,22px);color:var(--ui-ink2);margin:0 auto clamp(20px,3.6vmin,42px);max-width:56ch;line-height:1.5;}
+.ui-root .roles{display:flex;gap:clamp(12px,2.2vmin,26px);justify-content:center;flex-wrap:wrap;}
+.ui-root .role{
+  position:relative;flex:1 1 280px;max-width:420px;min-height:clamp(120px,20vmin,190px);
+  border:1px solid var(--ui-line2);background:linear-gradient(180deg,rgba(23,31,41,.9),rgba(11,16,22,.94));
+  padding:clamp(14px,2.4vmin,26px);text-align:left;
+  transition:border-color .25s var(--ease),transform .25s var(--ease),background .25s var(--ease);
+}
+.ui-root .role:hover,.ui-root .role:focus-visible{border-color:var(--ui-orange);transform:translateY(-3px);background:linear-gradient(180deg,rgba(34,42,54,.92),rgba(14,20,27,.96));}
+.ui-root .role .rk{display:block;font-size:clamp(10px,1.4vmin,13px);letter-spacing:.34em;color:var(--ui-dim);}
+.ui-root .role .rt{display:block;font-weight:700;text-transform:uppercase;font-size:clamp(24px,4.4vmin,44px);line-height:1.22;margin:.17em 0 .07em;}
+.ui-root .role .rd{display:block;font-size:clamp(13px,1.7vmin,17px);color:var(--ui-ink2);line-height:1.35;max-width:34ch;}
+.ui-root .role .rkey{position:absolute;right:clamp(10px,1.8vmin,18px);bottom:clamp(10px,1.8vmin,18px);border:1px solid var(--ui-line2);padding:.1em .5em;font-size:clamp(10px,1.4vmin,13px);color:var(--ui-dim);}
+.ui-root .role.primary{border-color:rgba(255,112,32,.55);}
+.ui-root .boot-foot{margin-top:clamp(16px,3vmin,34px);font-size:clamp(12px,1.5vmin,14px);color:var(--ui-dim);letter-spacing:.16em;}
+.ui-root #scr-boot.chosen .roles{opacity:.22;transition:opacity .35s var(--ease);}
+
+/* ---------- HUD ---------- */
+.ui-root .hud{
+  position:absolute;top:clamp(18px,3vmin,36px);left:clamp(14px,3vmin,34px);right:clamp(14px,3vmin,34px);
+  display:flex;align-items:flex-start;justify-content:space-between;gap:14px;z-index:40;
+  opacity:0;transition:opacity .4s var(--ease);pointer-events:none;
+}
+.ui-root .hud.on{opacity:1;}
+.ui-root .hud-speed{display:flex;align-items:baseline;gap:.35em;}
+.ui-root .hud-speed .n{
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;font-weight:700;
+  font-size:clamp(30px,6vmin,64px);line-height:.85;padding-bottom:.19em;min-width:3ch;text-align:right;
+  text-shadow:0 2px 16px rgba(0,0,0,.85);
+}
+.ui-root .hud-speed .u{font-size:clamp(11px,1.5vmin,14px);letter-spacing:.3em;color:var(--ui-dim);}
+.ui-root .hud-right{text-align:right;min-width:10ch;}
+.ui-root .hud-phase{font-size:clamp(11px,1.5vmin,14px);letter-spacing:.32em;color:var(--ui-dim);min-height:1.3em;}
+.ui-root .hud-warn{
+  margin-top:.35em;font-weight:700;font-size:clamp(15px,2.6vmin,26px);letter-spacing:.18em;
+  color:var(--ui-red);opacity:0;min-height:1.2em;text-shadow:0 2px 16px rgba(0,0,0,.9);
+  transition:opacity .18s linear;
+}
+.ui-root .hud.warn .hud-warn{opacity:1;animation:ui-pulse 1.05s steps(2,end) infinite;}
+@keyframes ui-pulse{0%,49%{opacity:1}50%,100%{opacity:.2}}
+
+/* ---------- SUBTITLE ---------- */
+.ui-root .subtitle{
+  /* Sits ON TOP OF the prompt lane, never in it: the old fixed 14vmin put the
+     caption's descenders within a couple of pixels of the PULL THE BRAKE
+     panel on a 1536-wide projector, and underneath the stacked choice cards
+     on a phone. Bottom-anchored as well as lane-anchored, so a second line
+     grows UPWARD instead of reaching down into the panel. */
+  position:absolute;left:50%;transform:translateX(-50%);bottom:var(--prompt-lane);
+  width:min(1000px,92%);text-align:center;z-index:45;min-height:2.8em;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  opacity:0;transition:opacity .5s var(--ease);pointer-events:none;
+}
+.ui-root .subtitle.on{opacity:1;}
+.ui-root .subtitle span{
+  display:inline;font-size:clamp(18px,3vmin,32px);line-height:1.35;font-weight:500;letter-spacing:.04em;
+  color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,.8);
+}
+.ui-root .subtitle.typing span::after{
+  content:"";display:inline-block;width:.5em;height:1em;margin-left:.12em;
+  background:var(--ui-orange);vertical-align:-.1em;animation:ui-caret .6s steps(2,end) infinite;
+}
+@keyframes ui-caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+/* ---------- COUNTDOWN ---------- */
+.ui-root .countdown{
+  position:absolute;top:clamp(56px,11vmin,110px);left:50%;transform:translateX(-50%);
+  width:clamp(96px,17vmin,150px);height:clamp(96px,17vmin,150px);z-index:44;pointer-events:none;
+  opacity:0;transition:opacity .35s var(--ease);
+}
+.ui-root .countdown.on{opacity:1;}
+.ui-root .countdown svg{width:100%;height:100%;display:block;transform:rotate(-90deg);}
+.ui-root .cd-bg{fill:none;stroke:rgba(255,255,255,.14);stroke-width:5;}
+.ui-root .cd-arc{fill:none;stroke:var(--ui-orange);stroke-width:5;stroke-linecap:butt;transition:stroke .3s linear;}
+.ui-root .countdown.warn .cd-arc{stroke:var(--ui-orange-b);}
+.ui-root .countdown.crit .cd-arc{stroke:var(--ui-red);}
+.ui-root .cd-num{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(34px,6.6vmin,64px);
+  color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.85);
+}
+.ui-root .countdown.crit .cd-num{color:var(--ui-red);}
+.ui-root .countdown.beat .cd-num{animation:ui-beat .42s var(--ease);}
+@keyframes ui-beat{0%{transform:scale(1.18)}100%{transform:scale(1)}}
+
+/* ---------- CHOICES ---------- */
+.ui-root .choices{
+  position:absolute;left:50%;transform:translateX(-50%);bottom:var(--prompt-bottom);
+  width:min(1180px,94%);display:flex;gap:var(--prompt-gap);z-index:50;
+  opacity:0;transition:opacity .35s var(--ease);pointer-events:none;
+}
+.ui-root .choices.on{opacity:1;pointer-events:auto;}
+.ui-root .choice{
+  position:relative;flex:1 1 0;min-width:0;min-height:var(--choice-h);overflow:hidden;
+  border:1px solid var(--ui-line2);background:rgba(9,13,18,.92);
+  padding:clamp(10px,1.8vmin,20px) clamp(12px,2.2vmin,26px);text-align:left;
+  display:flex;flex-direction:column;justify-content:center;
+  transition:border-color .2s var(--ease),transform .12s var(--ease),background .2s var(--ease),opacity .3s var(--ease);
+}
+.ui-root .choice:hover,.ui-root .choice:focus-visible{border-color:var(--ui-orange);background:rgba(20,27,36,.96);}
+.ui-root .choice.down{transform:translateY(3px) scale(.995);}
+.ui-root .choice-fill{
+  position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--ui-orange);
+  transform:scaleX(0);transform-origin:left center;opacity:.16;
+  transition:transform .28s var(--ease);
+}
+.ui-root .choice.down .choice-fill{transform:scaleX(1);}
+.ui-root .choice.picked{border-color:var(--ui-orange);}
+.ui-root .choice.picked .choice-fill{opacity:.36;transform:scaleX(1);transition:transform .16s linear;}
+.ui-root .choices.locked .choice:not(.picked){opacity:.3;}
+.ui-root .choice-key{position:relative;font-size:clamp(11px,1.4vmin,13px);letter-spacing:.3em;color:var(--ui-dim);}
+.ui-root .choice-label{position:relative;font-weight:700;text-transform:uppercase;line-height:1.22;font-size:clamp(20px,3.7vmin,38px);margin:.09em 0 .01em;}
+.ui-root .choice-sub{position:relative;font-size:clamp(12px,1.6vmin,16px);color:var(--ui-ink2);line-height:1.3;}
+.ui-root .choice.tone-danger:hover,.ui-root .choice.tone-danger:focus-visible{border-color:var(--ui-red);}
+@media (max-width:640px){
+  /* The cards stack, so the lane is TWO cards plus the gap between them and
+     the caption is pushed above the whole stack, not above one card. The
+     re-declaration must be on .ui-root -- the same element that declares
+     --prompt-lane -- or the lane keeps its wide-screen value. */
+  .ui-root{
+    --prompt-bottom:clamp(14px,3vmin,24px);
+    --choice-h:66px;
+    --prompt-h:calc(var(--choice-h) * 2 + var(--prompt-gap));
+  }
+  .ui-root .choices{flex-direction:column;}
+}
+
+/* ---------- BRAKE ---------- */
+.ui-root .brake{
+  /* The same lane the choice cards will occupy two beats later, so the two
+     panels do not jump against each other -- and so the caption clears both
+     by the same margin. */
+  position:absolute;left:50%;transform:translateX(-50%);bottom:var(--prompt-bottom);
+  width:min(620px,90%);z-index:50;opacity:0;transition:opacity .35s var(--ease);pointer-events:none;
+}
+.ui-root .brake.on{opacity:1;pointer-events:auto;}
+.ui-root .brake-btn{
+  width:100%;min-height:clamp(66px,11vmin,104px);position:relative;overflow:hidden;touch-action:none;
+  border:1px solid var(--ui-orange);background:rgba(12,17,23,.94);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25em;
+  transition:background .18s var(--ease);
+}
+.ui-root .brake-btn .bl{font-weight:700;text-transform:uppercase;font-size:clamp(20px,3.6vmin,36px);letter-spacing:.06em;}
+.ui-root .brake-btn .bh{font-size:clamp(11px,1.5vmin,14px);letter-spacing:.26em;color:var(--ui-dim);}
+.ui-root .brake-track{position:absolute;left:0;right:0;bottom:0;height:5px;background:rgba(255,255,255,.12);}
+.ui-root .brake-fill{position:absolute;inset:0;background:var(--ui-orange);transform:scaleX(0);transform-origin:left center;}
+.ui-root .brake.holding .brake-btn{background:rgba(38,24,13,.96);}
+
+/* ---------- PUSH GESTURE ---------- */
+.ui-root .push{position:absolute;inset:0;z-index:52;opacity:0;transition:opacity .4s var(--ease);pointer-events:none;--pg:0;--pgrot:0deg;}
+.ui-root .push.on{opacity:1;}
+.ui-root .push-pad{position:absolute;inset:0;pointer-events:auto;touch-action:none;cursor:grab;background:transparent;}
+.ui-root .push.dragging .push-pad{cursor:grabbing;}
+/* ONE full-screen alpha layer: warm bloom + closing vignette baked into a
+   single element, driven by opacity only (contract: <=1 overlay on LOW tier) */
+.ui-root .push-fx{
+  position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% 58%,rgba(255,112,32,.26),rgba(255,112,32,0) 55%),
+    radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 34%,rgba(0,0,0,.86) 100%);
+  opacity:0;
+}
+.ui-root .push.on .push-fx{opacity:calc(var(--pg) * .95);will-change:opacity;}
+.ui-root .push-guide{
+  position:absolute;left:50%;top:46%;width:0;height:0;pointer-events:none;
+  transform:translate(-50%,-50%) rotate(var(--pgrot,0deg));
+}
+.ui-root .push-guide .chev{
+  position:absolute;left:-11px;width:22px;height:22px;
+  border-top:3px solid rgba(255,255,255,.82);border-right:3px solid rgba(255,255,255,.82);
+  opacity:0;animation:ui-chev 1.5s var(--ease) infinite;
+}
+.ui-root .push-guide .chev:nth-child(1){top:6px;animation-delay:0s;}
+.ui-root .push-guide .chev:nth-child(2){top:26px;animation-delay:.16s;}
+.ui-root .push-guide .chev:nth-child(3){top:46px;animation-delay:.32s;}
+@keyframes ui-chev{
+  0%{opacity:0;transform:translateY(12px) rotate(-45deg);}
+  35%{opacity:.9;}
+  100%{opacity:0;transform:translateY(-16px) rotate(-45deg);}
+}
+.ui-root .push.near .push-guide .chev{border-color:var(--ui-orange-b);}
+.ui-root .push-panel{
+  position:absolute;left:50%;transform:translateX(-50%);bottom:clamp(22px,5vmin,58px);
+  width:min(760px,92%);pointer-events:none;text-align:center;
+}
+.ui-root .push-hint{font-size:clamp(13px,1.9vmin,18px);letter-spacing:.22em;color:var(--ui-ink2);margin:0 0 clamp(8px,1.4vmin,14px);text-transform:uppercase;min-height:1.4em;}
+.ui-root .push-bar{position:relative;height:clamp(18px,2.6vmin,26px);border:1px solid var(--ui-line2);background:rgba(6,9,13,.9);overflow:hidden;}
+.ui-root .push-fill{position:absolute;inset:0;background:linear-gradient(90deg,var(--ui-orange-d),var(--ui-orange-b));transform:scaleX(0);transform-origin:left center;}
+.ui-root .push-hand{position:absolute;top:0;bottom:0;left:0;width:clamp(18px,3vmin,30px);border-right:2px solid #fff;}
+.ui-root .push-meta{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:clamp(6px,1vmin,10px);}
+.ui-root .push-pct{font-variant-numeric:tabular-nums;font-weight:700;font-size:clamp(16px,2.6vmin,26px);min-width:4.5ch;text-align:left;}
+.ui-root .push-keys{font-size:clamp(11px,1.4vmin,13px);letter-spacing:.2em;color:var(--ui-dim);text-align:right;}
+.ui-root .push.near .push-bar{border-color:var(--ui-orange);}
+.ui-root .push.near .push-pct{color:var(--ui-orange-b);}
+.ui-root .push.committed .push-fill{background:var(--ui-red);}
+.ui-root .push-refuse{
+  pointer-events:auto;margin-top:clamp(10px,1.8vmin,20px);border:1px solid var(--ui-line2);
+  background:rgba(9,13,18,.92);padding:clamp(10px,1.5vmin,15px) clamp(16px,3vmin,32px);min-height:48px;
+  font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:clamp(14px,2vmin,19px);
+  transition:border-color .2s var(--ease),background .2s var(--ease);
+}
+.ui-root .push-refuse:hover,.ui-root .push-refuse:focus-visible{border-color:var(--ui-ink2);background:rgba(22,29,38,.96);}
+
+/* ---------- VERDICT ---------- */
+.ui-root .verdict{width:100%;max-width:940px;text-align:center;opacity:0;transform:translateY(14px);transition:opacity .7s var(--ease),transform .7s var(--ease);}
+.ui-root .verdict.in{opacity:1;transform:none;}
+.ui-root .verdict-rule{width:64px;height:2px;background:var(--ui-orange);margin:0 auto clamp(14px,2.6vmin,28px);}
+.ui-root .verdict.tone-red .verdict-rule{background:var(--ui-red);}
+.ui-root .verdict.tone-cold .verdict-rule{background:var(--ui-line2);}
+.ui-root .verdict-kicker{font-size:clamp(11px,1.5vmin,14px);letter-spacing:.4em;color:var(--ui-dim);margin:0 0 clamp(8px,1.6vmin,16px);text-transform:uppercase;}
+.ui-root .verdict-title{font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1.22;font-size:clamp(30px,7vmin,76px);margin:0 0 clamp(6px,1.05vmin,12px);}
+.ui-root .verdict.tone-red .verdict-title{color:#ffdcd6;}
+.ui-root .verdict-line{font-family:var(--f-serif);font-size:clamp(16px,2.5vmin,26px);line-height:1.55;color:var(--ui-ink2);margin:0 auto;max-width:52ch;}
+.ui-root .verdict-foot{margin-top:clamp(14px,2.6vmin,28px);font-size:clamp(11px,1.5vmin,14px);letter-spacing:.26em;color:var(--ui-dim);text-transform:uppercase;}
+
+/* ---------- SUBMIT ---------- */
+.ui-root .submit-wrap{text-align:center;width:100%;max-width:760px;}
+.ui-root .submit-wrap h2{font-weight:700;text-transform:uppercase;font-size:clamp(24px,5vmin,52px);margin:0 0 .4em;letter-spacing:.04em;}
+.ui-root .submit-wrap p{font-family:var(--f-serif);color:var(--ui-ink2);font-size:clamp(15px,2.2vmin,22px);margin:0;line-height:1.5;}
+.ui-root .spinner{
+  width:clamp(26px,4vmin,40px);height:clamp(26px,4vmin,40px);margin:0 auto clamp(18px,3vmin,34px);
+  border:2px solid rgba(255,255,255,.16);border-top-color:var(--ui-orange);border-radius:50%;
+  animation:ui-spin 1.1s linear infinite;
+}
+@keyframes ui-spin{to{transform:rotate(360deg)}}
+
+/* ---------- TALLY ---------- */
+.ui-root .tally{width:100%;max-width:1240px;max-height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;}
+.ui-root .tally-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--ui-line);padding-bottom:clamp(8px,1.4vmin,16px);margin-bottom:clamp(14px,2.6vmin,30px);}
+.ui-root .tally-title{font-weight:700;text-transform:uppercase;font-size:clamp(22px,4.2vmin,44px);letter-spacing:.05em;margin:0;}
+.ui-root .tally-meta{display:flex;align-items:center;gap:clamp(8px,1.4vmin,16px);}
+.ui-root .tally-count{font-size:clamp(11px,1.5vmin,14px);letter-spacing:.24em;color:var(--ui-dim);font-variant-numeric:tabular-nums;}
+.ui-root .badge{font-size:clamp(10px,1.3vmin,12px);letter-spacing:.24em;padding:.28em .7em;border:1px solid var(--ui-line2);color:var(--ui-dim);white-space:nowrap;}
+.ui-root .badge-live{color:var(--ui-orange-b);border-color:rgba(255,112,32,.6);}
+.ui-root .tally-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(16px,3.4vmin,46px);}
+@media (max-width:780px){.ui-root .tally-grid{grid-template-columns:1fr;}}
+.ui-root .chart-title{font-weight:700;text-transform:uppercase;font-size:clamp(14px,2.1vmin,20px);letter-spacing:.2em;margin:0 0 .5em;color:var(--ui-ink);}
+.ui-root .chart-quote{
+  font-family:var(--f-serif);font-style:italic;color:var(--ui-orange-b);
+  font-size:clamp(14px,2vmin,20px);margin:0 0 clamp(12px,2.2vmin,24px);line-height:1.45;
+  border-left:2px solid rgba(255,112,32,.55);padding-left:.8em;
+}
+.ui-root .bar-row{margin-bottom:clamp(12px,2.2vmin,26px);}
+.ui-root .bar-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+.ui-root .bar-label{font-weight:600;text-transform:uppercase;font-size:clamp(13px,1.9vmin,18px);letter-spacing:.1em;color:var(--ui-ink2);}
+.ui-root .bar-pct{font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(24px,4.4vmin,48px);line-height:1.22;min-width:4ch;text-align:right;}
+.ui-root .bar-track{height:clamp(14px,2.2vmin,22px);background:rgba(255,255,255,.08);margin-top:.35em;overflow:hidden;}
+.ui-root .bar-fill{height:100%;width:0;background:#43596f;}
+.ui-root .bar-row.is-lead .bar-fill{background:var(--ui-orange);}
+.ui-root .bar-row.is-lead .bar-pct{color:var(--ui-orange-b);}
+.ui-root .bar-row.is-mine .bar-track{outline:1px solid #fff;outline-offset:2px;}
+.ui-root .bar-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:.35em;}
+.ui-root .bar-n{font-size:clamp(11px,1.4vmin,13px);letter-spacing:.18em;color:var(--ui-dim);font-variant-numeric:tabular-nums;}
+.ui-root .bar-you{font-size:clamp(10px,1.3vmin,12px);letter-spacing:.24em;color:#07090c;background:#fff;padding:.16em .6em;font-weight:700;}
+.ui-root .tally-foot{margin-top:clamp(16px,3vmin,34px);font-family:var(--f-serif);color:var(--ui-ink2);font-size:clamp(14px,2vmin,20px);text-align:center;}
+
+/* ---------- TEACHER CONSOLE ---------- */
+.ui-root .teacher{width:100%;max-width:1180px;max-height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;}
+.ui-root .tc-head{display:flex;align-items:center;gap:clamp(8px,1.6vmin,18px);flex-wrap:wrap;border-bottom:1px solid var(--ui-line);padding-bottom:clamp(8px,1.4vmin,16px);}
+.ui-root .tc-title{font-weight:700;text-transform:uppercase;font-size:clamp(20px,3.4vmin,34px);letter-spacing:.16em;margin:0;}
+.ui-root .tc-hint{color:var(--ui-dim);font-size:clamp(13px,1.8vmin,17px);margin:clamp(8px,1.4vmin,16px) 0 clamp(14px,2.4vmin,26px);letter-spacing:.06em;}
+.ui-root .tc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(14px,2.6vmin,32px);}
+@media (max-width:860px){.ui-root .tc-grid{grid-template-columns:1fr;}}
+.ui-root .tc-box{border:1px solid var(--ui-line);padding:clamp(12px,2.2vmin,24px);background:rgba(11,16,22,.75);}
+.ui-root .tc-box-title{font-weight:700;text-transform:uppercase;font-size:clamp(13px,1.9vmin,17px);letter-spacing:.22em;color:var(--ui-orange-b);margin:0 0 clamp(10px,1.8vmin,20px);}
+.ui-root .tc-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:clamp(10px,1.8vmin,20px);}
+.ui-root .tc-row-label{font-weight:600;text-transform:uppercase;font-size:clamp(13px,1.8vmin,17px);letter-spacing:.1em;color:var(--ui-ink2);}
+.ui-root .tc-stepper{display:flex;align-items:center;gap:clamp(6px,1vmin,10px);}
+.ui-root .tc-btn{
+  min-width:48px;min-height:48px;border:1px solid var(--ui-line2);background:rgba(16,22,29,.92);
+  font-size:clamp(15px,2.2vmin,20px);font-weight:700;touch-action:none;
+  transition:border-color .18s var(--ease),background .18s var(--ease);
+}
+.ui-root .tc-btn.wide{min-width:64px;font-size:clamp(13px,1.7vmin,16px);}
+.ui-root .tc-btn:hover,.ui-root .tc-btn:focus-visible{border-color:var(--ui-orange);background:rgba(28,37,48,.96);}
+.ui-root .tc-btn:active{transform:translateY(2px);}
+.ui-root .tc-num{min-width:3.4ch;text-align:center;font-variant-numeric:tabular-nums;font-weight:700;font-size:clamp(26px,4.2vmin,42px);line-height:1.22;}
+.ui-root .tc-total{display:flex;align-items:baseline;justify-content:space-between;border-top:1px solid var(--ui-line);margin-top:clamp(14px,2.4vmin,28px);padding-top:clamp(10px,1.8vmin,20px);}
+.ui-root .tc-total-label{font-size:clamp(11px,1.5vmin,14px);letter-spacing:.28em;color:var(--ui-dim);}
+.ui-root .tc-total-num{font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(26px,4.4vmin,44px);min-width:3.5ch;text-align:right;}
+.ui-root .tc-actions{display:flex;gap:clamp(8px,1.6vmin,18px);flex-wrap:wrap;margin-top:clamp(14px,2.6vmin,30px);}
+.ui-root .tc-act{
+  min-height:56px;padding:0 clamp(16px,3vmin,34px);border:1px solid var(--ui-line2);
+  font-weight:700;text-transform:uppercase;letter-spacing:.16em;font-size:clamp(13px,1.9vmin,18px);
+  background:rgba(12,17,23,.92);transition:border-color .18s var(--ease),background .18s var(--ease);
+}
+.ui-root .tc-act.primary{border-color:var(--ui-orange);color:#fff;background:rgba(66,31,9,.8);margin-left:auto;}
+.ui-root .tc-act:hover,.ui-root .tc-act:focus-visible{border-color:var(--ui-orange);background:rgba(30,22,16,.96);}
+
+.ui-root .badge-manual{color:var(--ui-ink2);border-color:var(--ui-line2);background:rgba(20,27,36,.7);}
+.ui-root .tally-meta{flex-wrap:wrap;}
+
+/* ---------- the passage vs. this room ---------- */
+.ui-root .chart-vs{
+  display:grid;grid-template-columns:1fr auto;gap:.2em clamp(8px,1.6vmin,18px);align-items:baseline;
+  border-top:1px solid var(--ui-line);margin-top:clamp(10px,2vmin,22px);padding-top:clamp(8px,1.6vmin,18px);
+}
+.ui-root .vs-k{font-size:clamp(10px,1.3vmin,12px);letter-spacing:.26em;color:var(--ui-dim);text-transform:uppercase;}
+.ui-root .vs-v{font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:clamp(12px,1.7vmin,16px);color:var(--ui-ink2);text-align:right;}
+.ui-root .vs-n{font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(20px,3.4vmin,36px);line-height:1;color:var(--ui-orange-b);text-align:right;}
+
+/* ---------- reveal: the way onward ---------- */
+.ui-root .reveal-actions{margin-top:clamp(14px,2.6vmin,30px);display:none;justify-content:center;flex:0 0 auto;}
+.ui-root .reveal-actions.on{display:flex;}
+.ui-root .reveal-next{
+  min-height:60px;padding:0 clamp(20px,4vmin,44px);border:1px solid var(--ui-orange);color:#fff;
+  background:rgba(66,31,9,.8);font-weight:700;text-transform:uppercase;letter-spacing:.18em;
+  font-size:clamp(14px,2.1vmin,20px);transition:background .18s var(--ease);
+}
+.ui-root .reveal-next:hover,.ui-root .reveal-next:focus-visible{background:rgba(96,44,12,.92);}
+
+/* ---------- TEACHER CONSOLE: the four combinations ---------- */
+.ui-root .tc-grid-4{grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(10px,1.8vmin,22px);}
+@media (max-width:700px){.ui-root .tc-grid-4{grid-template-columns:1fr;}}
+.ui-root .tc-combo{border-left-width:6px;border-left-style:solid;}
+.ui-root .tc-combo-head{display:flex;align-items:center;gap:clamp(8px,1.6vmin,16px);margin-bottom:clamp(8px,1.6vmin,18px);}
+.ui-root .tc-code{
+  flex:0 0 auto;width:clamp(44px,6vmin,64px);height:clamp(44px,6vmin,64px);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:clamp(24px,4vmin,40px);line-height:1;color:#06080a;
+}
+.ui-root .tc-combo-labels{display:flex;flex-direction:column;gap:.12em;min-width:0;}
+.ui-root .tc-l1,.ui-root .tc-l2{
+  font-weight:600;text-transform:uppercase;letter-spacing:.1em;
+  font-size:clamp(12px,1.7vmin,16px);color:var(--ui-ink2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.ui-root .tc-l2{color:var(--ui-dim);}
+.ui-root .tc-code-A{border-left-color:#ff6a1a;} .ui-root .tc-code-A .tc-code{background:#ff6a1a;}
+.ui-root .tc-code-B{border-left-color:#e8eaec;} .ui-root .tc-code-B .tc-code{background:#e8eaec;}
+.ui-root .tc-code-C{border-left-color:#4a9a8f;} .ui-root .tc-code-C .tc-code{background:#4a9a8f;}
+.ui-root .tc-code-D{border-left-color:#5d84ad;} .ui-root .tc-code-D .tc-code{background:#5d84ad;}
+/* steppers sized for a teacher standing back from the projector */
+.ui-root .tc-combo .tc-stepper{display:flex;align-items:center;gap:clamp(6px,1.2vmin,12px);justify-content:space-between;}
+.ui-root .tc-btn.big{min-width:clamp(64px,8vmin,88px);min-height:clamp(56px,7vmin,76px);font-size:clamp(24px,3.4vmin,34px);}
+.ui-root .tc-combo .tc-btn.wide{min-width:clamp(56px,6.5vmin,74px);min-height:clamp(56px,7vmin,76px);font-size:clamp(14px,1.9vmin,18px);}
+.ui-root .tc-combo .tc-num{min-width:2.6ch;font-size:clamp(40px,7vmin,76px);}
+/* derived Scene A / Scene B readout */
+.ui-root .tc-derived{border-top:1px solid var(--ui-line);margin-top:clamp(14px,2.4vmin,28px);padding-top:clamp(10px,1.8vmin,20px);}
+.ui-root .tc-der-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:clamp(8px,1.6vmin,18px);align-items:baseline;margin-bottom:clamp(6px,1.2vmin,12px);}
+@media (max-width:700px){.ui-root .tc-der-row{grid-template-columns:1fr;}}
+.ui-root .tc-der-t{font-size:clamp(11px,1.5vmin,14px);letter-spacing:.24em;color:var(--ui-dim);text-transform:uppercase;}
+.ui-root .tc-der-cell{display:flex;align-items:baseline;gap:.6em;justify-content:flex-end;}
+.ui-root .tc-der-l{font-size:clamp(10px,1.4vmin,13px);letter-spacing:.16em;color:var(--ui-dim);text-transform:uppercase;margin-right:auto;}
+.ui-root .tc-der-n{font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(18px,2.6vmin,26px);}
+.ui-root .tc-der-p{font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(18px,2.6vmin,26px);color:var(--ui-orange-b);min-width:4ch;text-align:right;}
+.ui-root .tc-act.armed{border-color:var(--ui-red);color:#ffdcd6;background:rgba(60,12,10,.9);}
+
+/* ---------- HOLD-UP CARD (student counting aid) ---------- */
+.ui-root #scr-card{padding:0;background:var(--ui-black);}
+.ui-root .card{
+  width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:clamp(6px,1.4vmin,16px);padding:clamp(12px,3vmin,40px);text-align:center;
+  --card-ink:#06080a;--card-bg:#0b0f14;background:var(--card-bg);color:var(--card-ink);
+}
+.ui-root #scr-card.card-A .card{--card-bg:#ff6a1a;--card-ink:#0b0f14;}
+.ui-root #scr-card.card-B .card{--card-bg:#e8eaec;--card-ink:#0b0f14;}
+.ui-root #scr-card.card-C .card{--card-bg:#4a9a8f;--card-ink:#05070a;}
+.ui-root #scr-card.card-D .card{--card-bg:#5d84ad;--card-ink:#05070a;}
+.ui-root .card-kicker{
+  margin:0;font-size:clamp(12px,2vmin,20px);letter-spacing:.42em;text-transform:uppercase;
+  opacity:.72;font-weight:600;
+}
+.ui-root .card-code{
+  font-weight:700;line-height:.8;letter-spacing:-.02em;
+  font-size:min(52vmin,58vh);
+}
+.ui-root .card-pair{display:flex;flex-direction:column;gap:.1em;}
+.ui-root .card-line{
+  font-weight:700;text-transform:uppercase;letter-spacing:.16em;
+  font-size:clamp(13px,2.4vmin,26px);
+}
+.ui-root .card-next{
+  margin-top:clamp(12px,2.6vmin,30px);min-height:56px;padding:0 clamp(18px,3.4vmin,38px);
+  border:2px solid currentColor;color:inherit;background:transparent;
+  font-weight:700;text-transform:uppercase;letter-spacing:.18em;font-size:clamp(12px,1.8vmin,17px);
+  opacity:.8;
+}
+.ui-root .card-next:hover,.ui-root .card-next:focus-visible{opacity:1;}
+@media (orientation:landscape) and (max-height:520px){
+  .ui-root .card-code{font-size:min(46vmin,62vh);}
+}
+
+.ui-root .badge-manual{color:var(--ui-ink2);border-color:var(--ui-line2);background:rgba(20,27,36,.7);}
+
+/* ---------- the passage vs. this room ---------- */
+.ui-root .chart-vs{
+  display:grid;grid-template-columns:1fr auto;gap:.2em clamp(8px,1.6vmin,18px);align-items:baseline;
+  border-top:1px solid var(--ui-line);margin-top:clamp(10px,2vmin,22px);padding-top:clamp(8px,1.6vmin,18px);
+}
+.ui-root .vs-k{font-size:clamp(10px,1.3vmin,12px);letter-spacing:.26em;color:var(--ui-dim);text-transform:uppercase;}
+.ui-root .vs-v{font-weight:600;text-transform:uppercase;letter-spacing:.1em;font-size:clamp(12px,1.7vmin,16px);color:var(--ui-ink2);text-align:right;}
+.ui-root .vs-n{font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(20px,3.4vmin,36px);line-height:1;color:var(--ui-orange-b);text-align:right;}
+
+/* ---------- reveal: the way onward ---------- */
+.ui-root .reveal-actions{margin-top:clamp(14px,2.6vmin,30px);display:none;justify-content:center;}
+.ui-root .reveal-actions.on{display:flex;}
+.ui-root .reveal-next{
+  min-height:60px;padding:0 clamp(20px,4vmin,44px);border:1px solid var(--ui-orange);color:#fff;
+  background:rgba(66,31,9,.8);font-weight:700;text-transform:uppercase;letter-spacing:.18em;
+  font-size:clamp(14px,2.1vmin,20px);transition:background .18s var(--ease);
+}
+.ui-root .reveal-next:hover,.ui-root .reveal-next:focus-visible{background:rgba(96,44,12,.92);}
+
+/* ---------- TEACHER CONSOLE: the four combinations ---------- */
+.ui-root .tc-grid-4{grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(10px,1.8vmin,22px);}
+@media (max-width:700px){.ui-root .tc-grid-4{grid-template-columns:1fr;}}
+.ui-root .tc-combo{border-left-width:6px;border-left-style:solid;}
+.ui-root .tc-combo-head{display:flex;align-items:center;gap:clamp(8px,1.6vmin,16px);margin-bottom:clamp(8px,1.6vmin,18px);}
+.ui-root .tc-code{
+  flex:0 0 auto;width:clamp(44px,6vmin,64px);height:clamp(44px,6vmin,64px);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:clamp(24px,4vmin,40px);line-height:1;color:#06080a;
+}
+.ui-root .tc-combo-labels{display:flex;flex-direction:column;gap:.12em;min-width:0;}
+.ui-root .tc-l1,.ui-root .tc-l2{
+  font-weight:600;text-transform:uppercase;letter-spacing:.1em;
+  font-size:clamp(12px,1.7vmin,16px);color:var(--ui-ink2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.ui-root .tc-l2{color:var(--ui-dim);}
+.ui-root .tc-code-A{border-left-color:#ff6a1a;} .ui-root .tc-code-A .tc-code{background:#ff6a1a;}
+.ui-root .tc-code-B{border-left-color:#e8eaec;} .ui-root .tc-code-B .tc-code{background:#e8eaec;}
+.ui-root .tc-code-C{border-left-color:#4a9a8f;} .ui-root .tc-code-C .tc-code{background:#4a9a8f;}
+.ui-root .tc-code-D{border-left-color:#5d84ad;} .ui-root .tc-code-D .tc-code{background:#5d84ad;}
+/* steppers sized for a teacher standing back from the projector */
+.ui-root .tc-combo .tc-stepper{display:flex;align-items:center;gap:clamp(6px,1.2vmin,12px);justify-content:space-between;}
+.ui-root .tc-btn.big{min-width:clamp(64px,8vmin,88px);min-height:clamp(56px,7vmin,76px);font-size:clamp(24px,3.4vmin,34px);}
+.ui-root .tc-combo .tc-btn.wide{min-width:clamp(56px,6.5vmin,74px);min-height:clamp(56px,7vmin,76px);font-size:clamp(14px,1.9vmin,18px);}
+.ui-root .tc-combo .tc-num{min-width:2.6ch;font-size:clamp(40px,7vmin,76px);}
+/* derived Scene A / Scene B readout */
+.ui-root .tc-derived{border-top:1px solid var(--ui-line);margin-top:clamp(14px,2.4vmin,28px);padding-top:clamp(10px,1.8vmin,20px);}
+.ui-root .tc-der-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:clamp(8px,1.6vmin,18px);align-items:baseline;margin-bottom:clamp(6px,1.2vmin,12px);}
+@media (max-width:700px){.ui-root .tc-der-row{grid-template-columns:1fr;}}
+.ui-root .tc-der-t{font-size:clamp(11px,1.5vmin,14px);letter-spacing:.24em;color:var(--ui-dim);text-transform:uppercase;}
+.ui-root .tc-der-cell{display:flex;align-items:baseline;gap:.6em;justify-content:flex-end;}
+.ui-root .tc-der-l{font-size:clamp(10px,1.4vmin,13px);letter-spacing:.16em;color:var(--ui-dim);text-transform:uppercase;margin-right:auto;}
+.ui-root .tc-der-n{font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(18px,2.6vmin,26px);}
+.ui-root .tc-der-p{font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(18px,2.6vmin,26px);color:var(--ui-orange-b);min-width:4ch;text-align:right;}
+.ui-root .tc-act.armed{border-color:var(--ui-red);color:#ffdcd6;background:rgba(60,12,10,.9);}
+
+/* ---------- HOLD-UP CARD (student counting aid) ---------- */
+.ui-root #scr-card{padding:0;background:var(--ui-black);}
+.ui-root .card{
+  width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:clamp(6px,1.4vmin,16px);padding:clamp(12px,3vmin,40px);text-align:center;
+  --card-ink:#06080a;--card-bg:#0b0f14;background:var(--card-bg);color:var(--card-ink);
+}
+.ui-root #scr-card.card-A .card{--card-bg:#ff6a1a;--card-ink:#0b0f14;}
+.ui-root #scr-card.card-B .card{--card-bg:#e8eaec;--card-ink:#0b0f14;}
+.ui-root #scr-card.card-C .card{--card-bg:#4a9a8f;--card-ink:#05070a;}
+.ui-root #scr-card.card-D .card{--card-bg:#5d84ad;--card-ink:#05070a;}
+.ui-root .card-kicker{
+  margin:0;font-size:clamp(12px,2vmin,20px);letter-spacing:.42em;text-transform:uppercase;
+  opacity:.72;font-weight:600;
+}
+.ui-root .card-code{
+  font-weight:700;line-height:.8;letter-spacing:-.02em;
+  font-size:min(52vmin,58vh);
+}
+.ui-root .card-pair{display:flex;flex-direction:column;gap:.1em;}
+.ui-root .card-line{
+  font-weight:700;text-transform:uppercase;letter-spacing:.16em;
+  font-size:clamp(13px,2.4vmin,26px);
+}
+.ui-root .card-next{
+  margin-top:clamp(12px,2.6vmin,30px);min-height:56px;padding:0 clamp(18px,3.4vmin,38px);
+  border:2px solid currentColor;color:inherit;background:transparent;
+  font-weight:700;text-transform:uppercase;letter-spacing:.18em;font-size:clamp(12px,1.8vmin,17px);
+  opacity:.8;
+}
+.ui-root .card-next:hover,.ui-root .card-next:focus-visible{opacity:1;}
+@media (orientation:landscape) and (max-height:520px){
+  .ui-root .card-code{font-size:min(46vmin,62vh);}
+}
+
+/* ---------- CONFRONT ---------- */
+.ui-root .confront{width:100%;max-width:1080px;text-align:center;max-height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;}
+.ui-root .confront .cf-kicker,.ui-root .confront .cf-stmt,.ui-root .confront .cf-rule,
+.ui-root .confront .cf-verdict,.ui-root .confront .cf-question,.ui-root .confront .cf-attr{
+  opacity:0;transform:translateY(12px);transition:opacity .8s var(--ease),transform .8s var(--ease);
+}
+.ui-root .confront .in{opacity:1;transform:none;}
+.ui-root .cf-kicker{font-size:clamp(11px,1.5vmin,14px);letter-spacing:.42em;color:var(--ui-dim);margin:0 0 clamp(16px,3vmin,34px);text-transform:uppercase;}
+.ui-root .cf-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(12px,2.4vmin,32px);text-align:left;}
+@media (max-width:720px){.ui-root .cf-pair{grid-template-columns:1fr;}}
+.ui-root .cf-stmt{border-left:2px solid var(--ui-line2);padding-left:clamp(12px,2.2vmin,24px);}
+.ui-root .cf-stmt.acted{border-left-color:var(--ui-orange);}
+.ui-root .cf-n{font-size:clamp(11px,1.4vmin,13px);letter-spacing:.32em;color:var(--ui-dim);}
+.ui-root .cf-line{font-weight:700;text-transform:uppercase;line-height:1.22;letter-spacing:.02em;font-size:clamp(22px,4.2vmin,44px);margin:.2em 0 .2em;}
+.ui-root .cf-sub{font-family:var(--f-serif);color:var(--ui-ink2);font-size:clamp(14px,1.9vmin,19px);margin:0;line-height:1.45;}
+.ui-root .cf-rule{width:100%;height:1px;background:var(--ui-line);margin:clamp(20px,4vmin,48px) 0;}
+.ui-root .cf-verdict{font-weight:600;font-size:clamp(16px,2.6vmin,28px);line-height:1.42;color:#fff;max-width:60ch;margin:0 auto clamp(24px,5vmin,60px);letter-spacing:.01em;}
+.ui-root .cf-question{border-top:1px solid rgba(255,112,32,.4);border-bottom:1px solid rgba(255,112,32,.4);padding:clamp(18px,3.4vmin,40px) 0;}
+/* P2-D: the closing question is the last thing the room reads, and 34ch was
+   setting it at 28-30 characters -- five short lines ending in a 7-character
+   orphan ("second?"). Spectral's digit advance is exactly 0.5em here, so a ch
+   buys ~1.1 characters: 50ch measures 54/50/45 characters across three lines
+   on a projector, the first of them exactly the authored break. text-wrap:
+   balance (silently ignored where unsupported, where 50ch still gives three
+   lines) evens the rag and kills the orphan on phones too. Nothing can
+   overflow: on a portrait phone the 1080px/viewport column caps the measure
+   below 50ch long before max-width binds. */
+.ui-root .cf-q{font-family:var(--f-serif);font-size:clamp(18px,3.2vmin,36px);line-height:1.42;color:#fff;margin:0 auto;max-width:50ch;text-wrap:balance;}
+.ui-root .cf-attr{margin:clamp(12px,2.2vmin,24px) 0 0;font-size:clamp(11px,1.4vmin,13px);letter-spacing:.3em;color:var(--ui-dim);text-transform:uppercase;}
+
+/* ---------- TOAST / DOTS / BUSY ---------- */
+.ui-root .toasts{position:absolute;left:50%;transform:translateX(-50%);top:clamp(14px,3vmin,30px);z-index:70;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;max-width:92%;}
+.ui-root .toast{
+  border:1px solid var(--ui-line2);background:rgba(10,14,20,.96);padding:.5em 1.1em;
+  font-size:clamp(12px,1.6vmin,15px);letter-spacing:.14em;text-transform:uppercase;color:var(--ui-ink2);
+  opacity:0;transform:translateY(-8px);transition:opacity .3s var(--ease),transform .3s var(--ease);text-align:center;
+}
+.ui-root .toast.in{opacity:1;transform:none;}
+.ui-root .toast-warn{border-color:rgba(255,68,56,.65);color:#ffdcd6;}
+.ui-root .toast-good{border-color:rgba(255,112,32,.65);color:#ffdcc2;}
+.ui-root .dots{position:absolute;left:50%;transform:translateX(-50%);bottom:clamp(8px,1.8vmin,18px);z-index:62;display:flex;gap:8px;opacity:0;transition:opacity .3s var(--ease);pointer-events:none;}
+.ui-root .dots.on{opacity:1;}
+.ui-root .dot{width:22px;height:2px;background:rgba(255,255,255,.18);}
+.ui-root .dot.done{background:rgba(255,255,255,.45);}
+.ui-root .dot.now{background:var(--ui-orange);}
+.ui-root .busy{
+  position:absolute;right:clamp(14px,3vmin,30px);bottom:clamp(14px,3vmin,30px);z-index:66;
+  width:22px;height:22px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--ui-orange);
+  border-radius:50%;opacity:0;transition:opacity .25s linear;pointer-events:none;
+}
+.ui-root .busy.on{opacity:1;animation:ui-spin 1s linear infinite;}
+
+/* ---------- reduced motion: SHORTEN, do not remove ---------- */
+@media (prefers-reduced-motion: reduce){
+  .ui-root *,.ui-root *::before,.ui-root *::after{transition-duration:.14s!important;}
+  .ui-root .hud.warn .hud-warn{animation:none;opacity:1;}
+  .ui-root .subtitle.typing span::after{animation:none;opacity:1;}
+  .ui-root .countdown.beat .cd-num{animation:none;}
+  .ui-root .push-guide .chev{animation-duration:2.6s!important;}
+  .ui-root .spinner,.ui-root .busy.on{animation-duration:2s!important;}
+}
+
+/* ================== D3: authoritative screen switching ==================
+   The fade still plays; when it ENDS the UI sets [hidden] on the outgoing
+   screen and it leaves the layout. Stated explicitly here so no later
+   class rule can put a `display` back onto a hidden screen. ============ */
+.ui-root .screen[hidden]{display:none!important;}
+
+/* The screen on its way OUT fades faster than the one coming in (.26s
+   against .55s) and is then taken out of the layout on its own
+   transitionend, so an outgoing screen stops reporting an offsetParent
+   within a quarter of a second of the switch. Nothing that is not the live
+   screen may scroll, so no panel can paint a bar over the screen beneath
+   it while it fades. */
+.ui-root .screen:not(.is-on){transition:opacity .26s var(--ease),visibility .26s;}
+.ui-root .screen:not(.is-on),.ui-root .screen:not(.is-on) *{overflow:hidden!important;}
+
+/* No stray scrollbar may ever paint over a full-bleed cinematic screen.
+   Suppressed everywhere by default; the three panels that genuinely
+   scroll opt back in to a thin dark bar. */
+.ui-root,.ui-root *{scrollbar-width:none;}
+.ui-root ::-webkit-scrollbar{width:0;height:0;background:transparent;}
+.ui-root .tally,.ui-root .teacher,.ui-root .confront{scrollbar-width:thin;scrollbar-color:var(--ui-line2) transparent;}
+.ui-root .tally::-webkit-scrollbar,.ui-root .teacher::-webkit-scrollbar,.ui-root .confront::-webkit-scrollbar{width:6px;height:6px;background:transparent;}
+.ui-root .tally::-webkit-scrollbar-thumb,.ui-root .teacher::-webkit-scrollbar-thumb,.ui-root .confront::-webkit-scrollbar-thumb{background:var(--ui-line2);}
+.ui-root .tally::-webkit-scrollbar-track,.ui-root .teacher::-webkit-scrollbar-track,.ui-root .confront::-webkit-scrollbar-track{background:transparent;}
+
+/* #scr-reveal is a flex column: #ui-tally + #ui-reveal-actions. Without
+   these the tally claims the whole column and pushes the NEXT button out
+   under the screen's overflow:hidden. Make the panel the part that
+   shrinks and scrolls, and pin the actions row.
+   (.reveal-actions carried flex:0 0 auto in the FIRST copy of the block
+   duplicated at lines ~340-432 / ~434-524 of this file; the surviving
+   second copy dropped it. Restored here.) */
+.ui-root .tally,.ui-root .teacher,.ui-root .confront{flex:0 1 auto;min-height:0;}
+.ui-root .reveal-actions{flex:0 0 auto;}
+
+/* ================== D4: line-height floor ==============================
+   Measured content-area ratio of the display face in this build is
+   ~1.16-1.18, from three independent readings of scrollHeight-clientHeight
+   (which counts BOTTOM overflow only): .boot-title 45/51 at .92 -> 1.165,
+   #ui-hud-speed .n 33/39 at .85 -> 1.159, .tc-num 45/49 at 1 -> 1.178.
+   1.22 is therefore the floor used above. The two selectors below live
+   inside the duplicated block, so no in-place find string is unique for
+   them; setting the floor once here, last in the cascade at equal
+   specificity, fixes both copies. ==================================== */
+.ui-root .vs-n{line-height:1.22;}      /* was 1 - the "this room" number */
+.ui-root .tc-code{line-height:1.22;}   /* was 1 - the A/B/C/D chip       */
+/* ---------------------------------------------------------------------------
+   SHORT VIEWPORTS. .teacher and .confront already degrade gracefully
+   (max-height:100% + a thin scrollbar), but on a laptop whose browser chrome
+   leaves ~640 px of page height they overflow by only 12-21 px — just enough
+   to put a scrollbar down the side of a cinematic screen. Measured at
+   1536x639: .teacher 588/609, .confront 440/452. Tightening the largest
+   vertical gaps closes both without touching the type scale or the layout at
+   the sizes a classroom actually uses (720 p projector, 768 px Chromebook).
+   --------------------------------------------------------------------------- */
+@media (max-height: 700px) {
+  .ui-root .cf-kicker  { margin-bottom: clamp(10px, 2vmin, 20px); }
+  .ui-root .cf-rule    { margin: clamp(12px, 2.4vmin, 26px) 0; }
+  .ui-root .cf-verdict { margin-bottom: clamp(14px, 3vmin, 34px); }
+  .ui-root .cf-question{ padding: clamp(12px, 2.2vmin, 24px) 0; }
+  .ui-root .tc-hint    { margin: clamp(6px, 1vmin, 10px) 0 clamp(8px, 1.4vmin, 16px); }
+  .ui-root .tc-grid    { gap: clamp(10px, 1.8vmin, 20px); }
+  .ui-root .tc-box     { padding: clamp(9px, 1.6vmin, 16px); }
+  .ui-root .tc-row     { margin-bottom: clamp(7px, 1.2vmin, 13px); }
+  .ui-root .tc-box-title { margin-bottom: clamp(7px, 1.2vmin, 13px); }
+  /* the confront screen was still 12 px over after the block above */
+  .ui-root .cf-line    { margin: .12em 0; }
+  .ui-root .cf-pair    { gap: clamp(10px, 1.8vmin, 22px); }
+  .ui-root .cf-attr    { margin-top: clamp(8px, 1.4vmin, 16px); }
+}
+
+/* =====================================================================
+   KOREAN SUBTITLE LINE
+   Students who do not read English fast were losing the narration. The
+   English stays primary (it is the passage's language and the reason the
+   lesson exists); the Korean sits under it, smaller and dimmer, close
+   enough to read in the same glance.
+   ===================================================================== */
+.ui-root .sub-ko{
+  display:block;margin-top:.34em;
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-weight:500;
+  font-size:clamp(13px,1.85vmin,19px);
+  line-height:1.45;
+  letter-spacing:.01em;
+  color:rgba(232,234,236,.62);
+  text-shadow:0 2px 14px rgba(0,0,0,.95);
+  text-wrap:balance;
+}
+.ui-root .sub-ko:empty{display:none;}
+
+/* Skip affordance. Only shown while a narration beat is actually skippable. */
+.ui-root .skiphint{
+  position:absolute;left:50%;transform:translateX(-50%);
+  bottom:clamp(10px,2.2vmin,26px);
+  font-family:var(--f-hud,"Saira Condensed","Arial Narrow",sans-serif);
+  font-size:clamp(10px,1.3vmin,13px);
+  letter-spacing:.26em;text-transform:uppercase;
+  color:rgba(232,234,236,.34);
+  pointer-events:none;z-index:46;
+  animation:skippulse 2.6s ease-in-out infinite;
+}
+@keyframes skippulse{0%,100%{opacity:.34}50%{opacity:.72}}
+@media (prefers-reduced-motion:reduce){.ui-root .skiphint{animation:none;opacity:.5}}
+
+/* =====================================================================
+   PUSH / DON'T PUSH — two controls of equal weight
+   ===================================================================== */
+.ui-root .push-hint-ko{
+  margin:.3em 0 0;
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-size:clamp(12px,1.6vmin,16px);
+  color:rgba(232,234,236,.6);letter-spacing:.02em;
+}
+.ui-root .push-hint-ko:empty{display:none;}
+
+.ui-root .push-actions{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:clamp(10px,1.8vmin,22px);
+  margin-top:clamp(10px,1.8vmin,20px);
+}
+@media (max-width:640px){.ui-root .push-actions{grid-template-columns:1fr;}}
+
+.ui-root .push-do,
+.ui-root .push-refuse{
+  position:relative;display:flex;flex-direction:column;align-items:flex-start;
+  gap:.16em;width:100%;min-height:clamp(84px,13vmin,116px);
+  padding:clamp(11px,1.8vmin,18px) clamp(14px,2.4vmin,24px);
+  border:1px solid var(--ui-line2,rgba(232,234,236,.22));
+  background:rgba(11,16,22,.9);
+  text-align:left;overflow:hidden;
+  transition:border-color .18s ease,background .18s ease,transform .12s ease;
+  touch-action:none;
+}
+.ui-root .push-do{border-color:rgba(255,106,26,.55);}
+.ui-root .push-do:hover,.ui-root .push-do:focus-visible{
+  border-color:var(--ui-orange,#ff6a1a);background:rgba(30,16,8,.95);
+}
+.ui-root .push-do:active{transform:translateY(1px);}
+.ui-root .push-refuse:hover,.ui-root .push-refuse:focus-visible{
+  border-color:rgba(232,234,236,.55);background:rgba(16,22,29,.95);
+}
+
+.ui-root .push-do .pa-key,
+.ui-root .push-refuse .pa-key{
+  font-family:var(--f-hud,"Saira Condensed",sans-serif);
+  font-size:clamp(9px,1.15vmin,12px);letter-spacing:.24em;
+  color:var(--ui-dim,#5c666f);
+}
+.ui-root .push-do .pa-en,
+.ui-root .push-refuse .pa-en{
+  font-family:var(--f-hud,"Saira Condensed",sans-serif);
+  font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  font-size:clamp(19px,3vmin,31px);line-height:1.12;color:#fff;
+}
+.ui-root .push-do .pa-ko,
+.ui-root .push-refuse .pa-ko{
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-weight:600;font-size:clamp(14px,2vmin,20px);line-height:1.2;
+  color:rgba(232,234,236,.9);
+}
+.ui-root .push-do .pa-sub,
+.ui-root .push-refuse .pa-sub{
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-size:clamp(11px,1.5vmin,14px);color:rgba(232,234,236,.5);
+}
+.ui-root .push-do .pa-en{color:var(--ui-orange-b,#ff8a45);}
+
+/* The hold gauge fills the button itself, so the effort is visible where
+   the finger already is. */
+.ui-root .pa-track{
+  position:absolute;left:0;right:0;bottom:0;height:4px;
+  background:rgba(232,234,236,.1);
+}
+.ui-root .pa-fill{
+  display:block;height:100%;width:0%;
+  background:var(--ui-orange,#ff6a1a);
+  box-shadow:0 0 16px rgba(255,106,26,.75);
+  transition:width .06s linear;
+}
+.ui-root .push-do.arming{background:rgba(46,22,8,.96);border-color:var(--ui-orange,#ff6a1a);}
+
+/* =====================================================================
+   TEACHER CONSOLE — make the A/B/C/D mapping unmistakable
+   The colours already matched the student card; the letter did not read at
+   arm's length, and the two labels under it were English-only. The chip is
+   now the size the student is holding up, and the Korean sits under the
+   English so the teacher can call the room without translating first.
+   ===================================================================== */
+.ui-root .tc-combo .tc-code{
+  min-width:clamp(46px,7vmin,72px);
+  min-height:clamp(46px,7vmin,72px);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:clamp(26px,4.6vmin,46px);
+  font-weight:700;letter-spacing:0;line-height:1;
+  border-radius:2px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.5) inset;
+}
+.ui-root .tc-lko{
+  display:block;margin-top:.22em;
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-weight:600;
+  font-size:clamp(12px,1.7vmin,16px);
+  color:rgba(232,234,236,.72);letter-spacing:.01em;
+}
+.ui-root .tc-hint-ko{
+  color:rgba(232,234,236,.55);
+  margin-top:-.4em;
+}
+
+/* =====================================================================
+   SCREEN ACTIONS — replay / back, bottom-left of a finished screen
+   ===================================================================== */
+.ui-root .scr-actions{
+  position:absolute;left:clamp(16px,4vmin,54px);bottom:clamp(16px,4vmin,54px);
+  display:flex;gap:clamp(8px,1.4vmin,14px);z-index:3;flex-wrap:wrap;
+}
+.ui-root .scr-act{
+  display:inline-flex;flex-direction:column;align-items:flex-start;gap:.1em;
+  min-height:48px;padding:clamp(8px,1.3vmin,13px) clamp(13px,2.2vmin,22px);
+  border:1px solid var(--ui-line2,rgba(232,234,236,.22));
+  background:rgba(11,16,22,.9);
+  font-family:var(--f-hud,"Saira Condensed",sans-serif);
+  font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  font-size:clamp(12px,1.7vmin,16px);color:#fff;
+  transition:border-color .18s ease,background .18s ease;
+}
+.ui-root .scr-act:hover,.ui-root .scr-act:focus-visible{
+  border-color:rgba(232,234,236,.55);background:rgba(18,25,33,.96);
+}
+.ui-root .scr-act.primary{border-color:rgba(255,106,26,.6);}
+.ui-root .scr-act.primary:hover,.ui-root .scr-act.primary:focus-visible{
+  border-color:var(--ui-orange,#ff6a1a);background:rgba(32,17,8,.96);
+}
+.ui-root .scr-act .sa-ko{
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-weight:600;text-transform:none;letter-spacing:0;
+  font-size:clamp(11px,1.5vmin,14px);color:rgba(232,234,236,.6);
+}
+
+/* =====================================================================
+   A/B/C/D LEGEND — shown on the class-results screen
+   ===================================================================== */
+.ui-root .abcd{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:clamp(6px,1.1vmin,12px);
+  margin:clamp(10px,1.8vmin,20px) 0 0;
+}
+@media (max-width:720px){.ui-root .abcd{grid-template-columns:repeat(2,minmax(0,1fr));}}
+.ui-root .abcd-item{
+  display:flex;align-items:center;gap:clamp(6px,1vmin,10px);
+  padding:clamp(6px,1vmin,10px) clamp(8px,1.3vmin,13px);
+  border:1px solid var(--ui-line,rgba(232,234,236,.13));
+  background:rgba(11,16,22,.6);
+}
+.ui-root .abcd-chip{
+  flex:0 0 auto;width:clamp(24px,3.4vmin,34px);height:clamp(24px,3.4vmin,34px);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--f-hud,"Saira Condensed",sans-serif);
+  font-weight:700;font-size:clamp(14px,2.2vmin,22px);color:#0b0f14;border-radius:2px;
+}
+.ui-root .abcd-A .abcd-chip{background:#ff6a1a;}
+.ui-root .abcd-B .abcd-chip{background:#e8eaec;}
+.ui-root .abcd-C .abcd-chip{background:#4a9a8f;}
+.ui-root .abcd-D .abcd-chip{background:#5d84ad;}
+.ui-root .abcd-txt{min-width:0;}
+.ui-root .abcd-en{
+  display:block;font-family:var(--f-hud,"Saira Condensed",sans-serif);
+  font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  font-size:clamp(10px,1.4vmin,13px);color:rgba(232,234,236,.85);line-height:1.25;
+}
+.ui-root .abcd-ko{
+  display:block;font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-size:clamp(11px,1.5vmin,14px);color:rgba(232,234,236,.6);line-height:1.3;
+}
+
+/* The subtitle's normal lane sits where the push panel's two buttons are.
+   .lift moves it above them for the length of that beat only. */
+.ui-root .subtitle.lift{
+  bottom:auto;
+  top:clamp(96px,18vmin,190px);
+}
+
+/* The bigger A/B/C/D chip and the Korean label lines added ~50 px to the
+   console. On a 695 px page that pushed RESET / SHOW THE CLASS under a
+   scrollbar, which is exactly the control the teacher needs at the end.
+   Breakpoint raised to 820 px so a 720p projector and a 768 px Chromebook
+   both get the compact treatment rather than only the shortest laptops. */
+@media (max-height: 820px) {
+  .ui-root .tc-combo .tc-code{
+    min-width:clamp(38px,5.4vmin,54px);
+    min-height:clamp(38px,5.4vmin,54px);
+    font-size:clamp(21px,3.4vmin,34px);
+  }
+  .ui-root .tc-hint{margin:clamp(4px,.8vmin,9px) 0 clamp(6px,1vmin,12px);}
+  .ui-root .tc-hint-ko{margin-top:-.55em;}
+  .ui-root .tc-lko{font-size:clamp(11px,1.5vmin,14px);margin-top:.12em;}
+  .ui-root .tc-combo-head{gap:clamp(7px,1.2vmin,13px);}
+  .ui-root .tc-box{padding:clamp(8px,1.4vmin,14px);}
+  .ui-root .tc-grid{gap:clamp(8px,1.5vmin,17px);}
+  .ui-root .tc-row{margin-bottom:clamp(5px,.9vmin,10px);}
+}
+
+/* =====================================================================
+   PUSH PANEL — rebuilt
+   The first pass stacked four lines per card under a separate progress
+   bar and a separate percentage readout: three things competing to show
+   the same number, which is what made the corner look busy. Now each card
+   is one block — title row, Korean, and a single gauge that doubles as the
+   instruction. Nothing else.
+   ===================================================================== */
+.ui-root .push-panel .push-bar,
+.ui-root .push-panel .push-meta{display:none!important;}
+
+.ui-root .push-panel{
+  width:min(860px,92%);
+  margin-inline:auto;
+}
+.ui-root .push-hint{
+  text-align:center;
+  margin:0 0 .18em;
+}
+.ui-root .push-hint-ko{
+  text-align:center;
+  margin:0 0 clamp(12px,2vmin,20px);
+}
+
+.ui-root .push-actions{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:clamp(10px,1.6vmin,18px);
+  margin-top:0;
+}
+@media (max-width:620px){.ui-root .push-actions{grid-template-columns:1fr;}}
+
+.ui-root .push-do,
+.ui-root .push-refuse{
+  display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+  gap:clamp(5px,.8vmin,9px);
+  width:100%;min-height:0;
+  padding:clamp(12px,1.9vmin,20px) clamp(14px,2.2vmin,22px);
+  border:1px solid rgba(232,234,236,.2);
+  border-radius:3px;
+  background:rgba(10,14,20,.94);
+  text-align:left;overflow:hidden;
+  transition:border-color .16s ease,background .16s ease,box-shadow .16s ease;
+}
+.ui-root .push-do{border-color:rgba(255,106,26,.5);}
+.ui-root .push-do:hover,.ui-root .push-do:focus-visible{
+  border-color:#ff6a1a;background:rgba(26,14,7,.96);
+  box-shadow:0 0 0 1px rgba(255,106,26,.28),0 10px 34px -18px rgba(255,106,26,.9);
+}
+.ui-root .push-refuse:hover,.ui-root .push-refuse:focus-visible{
+  border-color:rgba(232,234,236,.5);background:rgba(15,20,27,.96);
+}
+
+.ui-root .pa-top{
+  display:flex;align-items:baseline;justify-content:space-between;gap:.6em;
+}
+.ui-root .pa-en{
+  font-family:var(--f-hud,"Saira Condensed",sans-serif);
+  font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  font-size:clamp(17px,2.5vmin,26px);line-height:1.1;color:#fff;
+}
+.ui-root .push-do .pa-en{color:#ff8a45;}
+.ui-root .pa-key{
+  flex:0 0 auto;
+  font-family:var(--f-hud,"Saira Condensed",sans-serif);
+  font-size:clamp(9px,1.1vmin,11px);letter-spacing:.2em;
+  color:rgba(232,234,236,.4);
+  border:1px solid rgba(232,234,236,.18);
+  padding:.14em .5em;border-radius:2px;white-space:nowrap;
+}
+.ui-root .pa-ko{
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-weight:600;font-size:clamp(14px,1.95vmin,19px);line-height:1.15;
+  color:rgba(232,234,236,.92);
+}
+
+/* The gauge IS the instruction: it says what to do, then how far you are. */
+.ui-root .pa-gauge{
+  position:relative;display:block;
+  height:clamp(26px,3.6vmin,34px);
+  margin-top:clamp(3px,.5vmin,6px);
+  background:rgba(232,234,236,.07);
+  border-radius:2px;overflow:hidden;
+}
+.ui-root .pa-fill{
+  position:absolute;inset:0 auto 0 0;width:0%;
+  background:linear-gradient(90deg,#c4500f,#ff6a1a);
+  transition:width .06s linear;
+}
+.ui-root .pa-state{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-weight:600;font-size:clamp(11px,1.5vmin,14px);
+  letter-spacing:.02em;color:rgba(232,234,236,.72);
+  text-shadow:0 1px 6px rgba(0,0,0,.8);
+  white-space:nowrap;
+}
+.ui-root .pa-ghost{background:rgba(232,234,236,.05);}
+
+.ui-root .push-do.arming .pa-state{color:#fff;}
+.ui-root .push-do.arming{border-color:#ff6a1a;}
+
+/* Released too early. Says so, once, instead of doing nothing. */
+.ui-root .push-do.tooshort .pa-gauge{background:rgba(192,32,42,.22);}
+.ui-root .push-do.tooshort .pa-state{color:#ff9a8a;}
+.ui-root .push-do.tooshort{
+  border-color:rgba(192,32,42,.75);
+  animation:pashake .34s ease;
+}
+@keyframes pashake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-5px)}
+  45%{transform:translateX(4px)}
+  70%{transform:translateX(-2px)}
+}
+@media (prefers-reduced-motion:reduce){.ui-root .push-do.tooshort{animation:none;}}
+
+/* Korean on the choice buttons — both cases use this one component, so the
+   two decisions look and weigh exactly the same. */
+.ui-root .choice-ko{
+  display:block;
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-weight:600;
+  font-size:clamp(14px,2vmin,21px);
+  line-height:1.18;
+  color:rgba(232,234,236,.9);
+  margin-top:.1em;
+}
+.ui-root .choice-subko{
+  display:block;
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-size:clamp(11px,1.5vmin,14px);
+  line-height:1.35;
+  color:rgba(232,234,236,.55);
+  margin-top:.12em;
+}
+
+/* Subtitle lane while a choice strip is on screen. Lifted just clear of the
+   buttons rather than to the top of the frame, where it would collide with
+   the countdown ring. */
+.ui-root .subtitle.lift-choices{
+  bottom:clamp(158px,23vmin,232px);
+  top:auto;
+}
+
+/* =====================================================================
+   "WHAT THEY DID" BLOCK  — shared by the student card, the teacher
+   console and the class-results legend, so the same two statements name
+   the same person on all three screens.
+   ===================================================================== */
+.ui-root .cw{display:flex;flex-direction:column;gap:.34em;min-width:0;}
+.ui-root .cw-row{display:flex;align-items:flex-start;gap:.55em;min-width:0;}
+.ui-root .cw-n{
+  flex:0 0 auto;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:1.55em;height:1.55em;border-radius:50%;
+  font-family:var(--f-hud,"Saira Condensed",sans-serif);
+  font-weight:700;font-size:.92em;line-height:1;
+  background:rgba(232,234,236,.14);color:rgba(232,234,236,.9);
+}
+.ui-root .cw-t{display:flex;flex-direction:column;min-width:0;}
+.ui-root .cw-case{
+  font-family:var(--f-hud,"Saira Condensed",sans-serif);
+  font-size:.62em;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(232,234,236,.45);line-height:1.3;
+}
+.ui-root .cw-did{
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-weight:700;line-height:1.16;color:#fff;
+}
+.ui-root .cw-did-en{
+  font-family:var(--f-hud,"Saira Condensed",sans-serif);
+  font-size:.66em;letter-spacing:.07em;text-transform:uppercase;
+  color:rgba(232,234,236,.5);line-height:1.28;
+}
+
+/* --- on the student's hold-up card: this is the whole screen --- */
+.ui-root .cw-card{
+  gap:clamp(14px,2.4vmin,26px);
+  margin:clamp(14px,2.6vmin,30px) 0 clamp(12px,2vmin,22px);
+  align-items:flex-start;text-align:left;
+}
+.ui-root .cw-card .cw-n{font-size:clamp(15px,2.4vmin,24px);}
+.ui-root .cw-card .cw-case{font-size:clamp(10px,1.4vmin,13px);}
+.ui-root .cw-card .cw-did{font-size:clamp(26px,5.4vmin,58px);}
+.ui-root .cw-card .cw-did-en{font-size:clamp(11px,1.7vmin,17px);}
+
+/* --- teacher console: compact, two lines beside the stepper --- */
+.ui-root .cw-tc{gap:.2em;}
+.ui-root .cw-tc .cw-n{font-size:clamp(10px,1.4vmin,13px);}
+.ui-root .cw-tc .cw-case{display:none;}          /* the number already says it */
+.ui-root .cw-tc .cw-did{font-size:clamp(14px,2vmin,20px);}
+.ui-root .cw-tc .cw-did-en{font-size:clamp(9px,1.2vmin,12px);}
+
+/* --- results legend: smallest of the three --- */
+.ui-root .cw-legend{gap:.16em;}
+.ui-root .cw-legend .cw-n{font-size:clamp(9px,1.2vmin,11px);}
+.ui-root .cw-legend .cw-case{display:none;}
+.ui-root .cw-legend .cw-did{font-size:clamp(12px,1.65vmin,15px);}
+.ui-root .cw-legend .cw-did-en{font-size:clamp(8px,1.05vmin,10px);}
+
+/* The letter is now a corner tag, not the headline. */
+.ui-root .card-code{
+  position:absolute;right:clamp(14px,3vmin,34px);top:clamp(14px,3vmin,34px);
+  font-size:clamp(20px,3.2vmin,34px)!important;
+  opacity:.34;line-height:1;
+}
+.ui-root .card-kicker-ko{
+  font-family:var(--f-body,"Barlow",system-ui,sans-serif);
+  font-size:clamp(12px,1.7vmin,16px);
+  color:rgba(11,15,20,.6);letter-spacing:.02em;margin:.1em 0 0;
+}
+
+/* =====================================================================
+   HOLD-UP CARD — dark ink.
+   The four card grounds are all light-to-mid (orange #ff6a1a, near-white
+   #e8eaec, teal #4a9a8f, blue #5d84ad) because they have to be countable
+   across a lit classroom. The shared .cw block is authored for the DARK
+   screens, so on the card its white type vanished into the ground —
+   B in particular was white on near-white. Everything on the card takes
+   the same near-black the letter tag already used.
+   ===================================================================== */
+.ui-root .cw-card{align-items:center;text-align:center;}
+.ui-root .cw-card .cw-row{
+  flex-direction:column;align-items:center;gap:.12em;
+}
+.ui-root .cw-card .cw-t{align-items:center;text-align:center;}
+.ui-root .cw-card .cw-n{
+  background:rgba(11,15,20,.86);
+  color:#f2f4f6;
+  margin-bottom:.16em;
+}
+.ui-root .cw-card .cw-case{color:rgba(11,15,20,.55);}
+.ui-root .cw-card .cw-did{color:#0b0f14;text-shadow:none;}
+.ui-root .cw-card .cw-did-en{color:rgba(11,15,20,.52);}
+.ui-root .card-code{color:#0b0f14;opacity:.28;}

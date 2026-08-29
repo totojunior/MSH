@@ -1,0 +1,137 @@
+/* =====================================================================
+   THE TROLLEY PROBLEM — foundation
+   A single committed visual world: the inside of a machine. This page
+   does not follow the viewer's light/dark theme; every colour is painted.
+   ===================================================================== */
+
+:root {
+  /* ground — near-black biased toward blue, never neutral grey */
+  --void:    #06080a;
+  --pitch:   #0b0f14;
+  --steel:   #161c22;
+  --ash:     #2a333c;
+  --iron:    #3d4852;
+
+  /* text */
+  --bone:    #e8eaec;
+  --grey:    #8b969f;
+  --dim:     #5c666f;
+
+  /* the only warm colour in the entire piece */
+  --hivis:   #ff6a1a;
+  --hivis-d: #c44f10;
+  --hivis-g: rgba(255,106,26,.14);
+
+  /* danger — brake failure and impact only */
+  --blood:   #c0202a;
+  --blood-d: #7d1219;
+
+  /* system / live indicator */
+  --signal:  #4a9a8f;
+
+  --hair:    rgba(232,234,236,.13);
+  --hair-2:  rgba(232,234,236,.07);
+
+  --f-hud:   "Saira Condensed", "Oswald", "Arial Narrow", system-ui, sans-serif;
+  --f-body:  "Barlow", "Helvetica Neue", system-ui, -apple-system, sans-serif;
+  --f-quote: "Spectral", "Iowan Old Style", Georgia, "Times New Roman", serif;
+
+  --gut:     clamp(16px, 3.2vw, 44px);
+  --ease:    cubic-bezier(.22,.61,.36,1);
+  --ease-in: cubic-bezier(.55,.06,.68,.19);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--void);
+  color: var(--bone);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: var(--void);
+  touch-action: none;
+  z-index: 0;
+}
+
+/* A very fine static grain over everything, so even flat screens have tooth. */
+#grain {
+  position: fixed;
+  inset: -20%;
+  z-index: 3;
+  pointer-events: none;
+  opacity: .05;
+  mix-blend-mode: overlay;
+  background-image:
+    repeating-linear-gradient(0deg,   rgba(255,255,255,.9) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg,  rgba(0,0,0,.9)      0 1px, transparent 1px 3px);
+  animation: grainshift 1.1s steps(3) infinite;
+}
+@keyframes grainshift {
+  0%   { transform: translate(0,0); }
+  33%  { transform: translate(-1.5%, 1%); }
+  66%  { transform: translate(1%, -1.5%); }
+  100% { transform: translate(0,0); }
+}
+
+/* Cinematic bars. Driven by UI.letterbox(). */
+.letterbox {
+  position: fixed;
+  left: 0; right: 0;
+  height: 0;
+  background: #000;
+  z-index: 4;
+  pointer-events: none;
+  transition: height .9s var(--ease);
+}
+#lb-top { top: 0; }
+#lb-bot { bottom: 0; }
+
+/* Focus that reads as part of the machine, not a browser default. */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--hivis);
+  outline-offset: 3px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  #grain { animation: none; }
+  * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  .letterbox { transition-duration: .2s; }
+}
