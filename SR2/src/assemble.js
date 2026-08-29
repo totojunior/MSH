@@ -4,6 +4,11 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
+/* index.html, because the deliverable is served at
+   https://totojunior.github.io/MSH/SR2/ and GitHub Pages serves the
+   directory index. The name has to match in the repo and locally, or a
+   rebuild writes a file the live page never reads. */
+const OUT_NAME = 'index.html';
 const B = __dirname;
 
 const THREE_SRC = fs.existsSync(path.join(B, 'three-src.txt'))
@@ -160,7 +165,7 @@ if (fs.existsSync(THREE_LOCAL)) {
       '<script id="APPJS" type="text/plain">' + js + '</scr' + 'ipt>\n' +
       '<script id="BOOT">' + BOOT + '</scr' + 'ipt>\n' +
       '</body>\n</html>\n';
-    fs.writeFileSync(path.join(ROOT, 'trolley.html'), standalone, 'utf8');
+    fs.writeFileSync(path.join(ROOT, OUT_NAME), standalone, 'utf8');
   }
 }
 
@@ -170,7 +175,7 @@ console.log('  css  ' + css.length.toLocaleString() + ' chars');
 console.log('  html ' + html.length.toLocaleString() + ' chars');
 
 if (standalone) {
-  console.log('wrote trolley.html           ' + (standalone.length / 1048576).toFixed(2) + ' MB  (three.js INLINED — opens by double-click, works offline)');
+  console.log('wrote ' + OUT_NAME + '          ' + (standalone.length / 1048576).toFixed(2) + ' MB  (three.js INLINED — opens by double-click, works offline)');
 } else {
   console.log('  (no standalone: build/vendor/three.r134.min.js missing)');
 }

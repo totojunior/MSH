@@ -1,0 +1,67 @@
+# Rebuilds SR2/index.html whenever the lesson's source changes.
+#
+# SR2/index.html is a BUILD OUTPUT: eleven module files concatenated into one
+# self-contained page with three.js inlined. Editing a module on github.com
+# used to change nothing that a student would see, because the built page was
+# only ever regenerated on a laptop. This closes that gap, so the source on
+# GitHub is the only thing anyone has to touch.
+name: Build SR2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SR2/src/**'
+      - '.github/workflows/sr2-build.yml'
+  workflow_dispatch:        # lets you rebuild by hand from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sr2-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Assemble
+        run: node SR2/src/assemble.js
+
+      # The assembler already refuses ES modules, external URLs, fetch(),
+      # stray "</script" sequences and TODO markers, and exits non-zero if it
+      # finds any. Belt and braces: fail loudly if the page did not appear or
+      # came out implausibly small, so a broken build can never be committed
+      # over a working lesson.
+      - name: Check the output
+        run: |
+          test -f SR2/index.html || { echo "::error::SR2/index.html was not produced"; exit 1; }
+          size=$(wc -c < SR2/index.html)
+          echo "index.html = $size bytes"
+          if [ "$size" -lt 1000000 ]; then
+            echo "::error::index.html is only $size bytes — three.js is probably not inlined"
+            exit 1
+          fi
+          grep -q 'id="APPJS"' SR2/index.html || { echo "::error::APPJS block missing"; exit 1; }
+          grep -q 'id="BOOT"'  SR2/index.html || { echo "::error::BOOT block missing"; exit 1; }
+
+      - name: Commit the rebuilt page
+        run: |
+          if git diff --quiet -- SR2/index.html; then
+            echo "index.html unchanged — nothing to commit"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add SR2/index.html
+          git commit -m "Rebuild SR2/index.html from source
+
+          Automated: SR2/src changed, so the built page was regenerated."
+          git push

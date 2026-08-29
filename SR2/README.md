@@ -142,14 +142,29 @@ USB에 담아 교실 PC에 꽂아도 그대로 실행됩니다. (1.28 MB 단일 
 
 ## 6. 수정하는 법
 
-소스는 `build/` 에 모듈로 나뉘어 있고, `trolley.html` 은 **빌드 산출물**입니다.
-`trolley.html` 을 직접 고치지 마세요 — 다음 빌드에 덮어써집니다.
+`index.html` 은 **빌드 산출물**입니다. 모듈 11개를 이어붙이고 three.js를 내장해
+한 파일로 만든 것이므로, **직접 고치지 마세요** — 다음 빌드에 덮어써집니다.
+고칠 것은 전부 `src/` 안에 있습니다.
+
+### 깃헙에서만 작업해도 됩니다
+
+`src/` 의 파일을 github.com에서 고쳐 커밋하면, **GitHub Actions가 자동으로
+`index.html` 을 다시 만들어 커밋**합니다. 몇 분 뒤 라이브 페이지에 반영됩니다.
+
+- 워크플로우: `.github/workflows/sr2-build.yml`
+- 수동 실행: 저장소 **Actions** 탭 → *Build SR2* → *Run workflow*
+- 빌드가 실패하면 커밋하지 않습니다 (깨진 페이지가 수업용 페이지를 덮어쓰지 않도록)
+
+### 로컬에서 작업할 때
 
 ```bash
-node build/assemble.js        # build/*  ->  trolley.html
+node src/assemble.js          # src/*  ->  index.html
+node src/serve.js             # http://127.0.0.1:8766/index.html 로 확인
 ```
 
 ### 파일
+
+`src/` 안:
 
 | 파일 | 내용 |
 |---|---|
@@ -166,12 +181,14 @@ node build/assemble.js        # build/*  ->  trolley.html
 | `base.css` | 디자인 토큰 (팔레트·폰트) |
 | `serve.js` | 테스트용 로컬 서버 (utf-8 헤더) |
 
-`mod-humans.js` 는 **빌드에서 빠져 있습니다.** 두 월드가 각자 인체를 구현해서 죽은 코드가 됐습니다.
+`vendor/three.r134.min.js` 는 빌드가 페이지에 내장하는 three.js입니다. 이게 없으면 빌드가 조용히 실패합니다.
+
+(`mod-humans.js` 는 두 월드가 각자 인체를 구현하면서 죽은 코드가 되어 빌드에서 빠졌고, 저장소에도 없습니다.)
 
 ### three.js 제약 (중요)
 
 **r134 고정.** cdnjs에 남은 마지막 UMD 빌드이고, r135+ 는 404입니다.
-`build/THREE-CONSTRAINTS.md` 에 상세히 적어뒀지만 요점만:
+`src/THREE-CONSTRAINTS.md` 에 상세히 적어뒀지만 요점만:
 
 - ❌ `CapsuleGeometry` (r140+) → 실린더 + 반구로 조립
 - ❌ `EffectComposer` / `BufferGeometryUtils` / `examples/jsm` 전부 → 포스트는 렌더타깃 + 자작 셰이더
@@ -181,7 +198,7 @@ node build/assemble.js        # build/*  ->  trolley.html
 ### 검증하는 법
 
 ```bash
-node build/serve.js           # http://127.0.0.1:8766/trolley.html
+node src/serve.js             # http://127.0.0.1:8766/index.html
 ```
 ⚠️ 브라우저 자동화는 `file://` 을 못 엽니다. 반드시 로컬 서버로.
 
