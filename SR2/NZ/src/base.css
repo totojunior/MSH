@@ -66,8 +66,17 @@
      assemble.js 가 <link> 로 받아 오는 것은 IBM Plex Sans KR · Gowun Batang · Spectral
      세 종이고 전부 display=swap 이다. 못 받아도 아래 대체 폰트로 즉시 그려진다.
      그래서 어떤 코드도 document.fonts.ready 를 기다리지 않는다. */
-  --nz-f-ko:"Pretendard","Noto Sans KR","IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,-apple-system,sans-serif;
+  /* 실제로 불러오는 IBM Plex Sans KR 을 맨 앞에 둔다. Pretendard 를 앞에 두면
+     그게 깔린 PC 와 안 깔린 크롬북이 서로 다른 얼굴로 뜬다 — 교실에서
+     같은 화면을 보고 있어야 하는 자료에서는 일관성이 취향보다 앞선다.
+     인터넷이 없으면 뒤쪽 시스템 폰트로 떨어질 뿐 수업은 그대로 굴러간다. */
+  --nz-f-ko:"IBM Plex Sans KR","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,-apple-system,sans-serif;
   --nz-f-en:"Spectral","Iowan Old Style",Georgia,"Times New Roman",serif;
+  /* 제목용. Gowun Batang 은 이미 불러오고 있으면서 아무 데도 쓰지 않던 폰트였다.
+     본문 고딕과 같은 얼굴로 제목만 굵게 키우면 크기 차이밖에 남지 않는다 —
+     바탕 계열로 갈아 끼우면 "법정"과 "지문"이라는 이 수업의 두 얼굴이 한 화면에서 맞는다.
+     영문 악센트(Spectral)도 세리프라 제목과 한 가족으로 읽힌다. */
+  --nz-f-display:"Gowun Batang","Nanum Myeongjo","Apple SD Gothic Neo",Batang,serif;
   --nz-f-num:"Barlow Condensed","Oswald","Arial Narrow",system-ui,-apple-system,"Segoe UI",sans-serif;
 
   --nz-fs-title:22px;  --nz-lh-title:1.32;
