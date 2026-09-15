@@ -791,6 +791,7 @@
     if (NZ.State.allDone()) { goResult(); return; }
     var id = NZ.State.nextUnanswered(NZ.State.current());
     if (!id) { goResult(); return; }
+    NZ.Audio.play('next');
     goCase(id, false);
   }
 
@@ -821,6 +822,7 @@
     applyScreen('result');
     NZ.Court.setScene('result');
     NZ.Court.pause();
+    NZ.Audio.play('result');
     focusEl(resultTitle);
   }
 
@@ -897,6 +899,7 @@
     var applied = NZ.Audio.setEnabled(!nowMuted);
     /* 브라우저가 오디오를 못 켜면 화면 표기도 그 사실을 따라가야 한다. */
     if (applied === false && !nowMuted) NZ.State.setMuted(true);
+    if (applied === true) NZ.Audio.play('on');
     audioSynced = true;
     syncSoundDom();
     say(NZ.State.muted() ? CP.a11y.liveSoundOff : CP.a11y.liveSoundOn);
@@ -1189,6 +1192,8 @@
     /* click 만 건다. pointerdown 과 같이 걸면 터치에서 두 번 발화한다.
        dblclick 은 아예 바인딩하지 않는다. */
     btnStart.addEventListener('click', function () {
+      /* 개정(開廷). 여기서만 울린다 — 사건 화면에서 로비로 돌아올 때는 아니다. */
+      NZ.Audio.play('start');
       NZ.State.startFresh();
       goLobby(null);
     });

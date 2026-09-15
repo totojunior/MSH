@@ -7,7 +7,7 @@
 <meta name="description" content="노직의 철학 법정 — 외부지문 2 지문 3(Nozick) 읽기 전 도입 활동">
 <title>노직의 철학 법정 — 내 생각 말고, 노직의 생각!</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
 </head>
 <body>
 <script id="APPHTML" type="text/plain">
@@ -313,8 +313,17 @@
      assemble.js 가 <link> 로 받아 오는 것은 IBM Plex Sans KR · Gowun Batang · Spectral
      세 종이고 전부 display=swap 이다. 못 받아도 아래 대체 폰트로 즉시 그려진다.
      그래서 어떤 코드도 document.fonts.ready 를 기다리지 않는다. */
-  --nz-f-ko:"Pretendard","Noto Sans KR","IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,-apple-system,sans-serif;
+  /* 실제로 불러오는 IBM Plex Sans KR 을 맨 앞에 둔다. Pretendard 를 앞에 두면
+     그게 깔린 PC 와 안 깔린 크롬북이 서로 다른 얼굴로 뜬다 — 교실에서
+     같은 화면을 보고 있어야 하는 자료에서는 일관성이 취향보다 앞선다.
+     인터넷이 없으면 뒤쪽 시스템 폰트로 떨어질 뿐 수업은 그대로 굴러간다. */
+  --nz-f-ko:"IBM Plex Sans KR","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,-apple-system,sans-serif;
   --nz-f-en:"Spectral","Iowan Old Style",Georgia,"Times New Roman",serif;
+  /* 제목용. Gowun Batang 은 이미 불러오고 있으면서 아무 데도 쓰지 않던 폰트였다.
+     본문 고딕과 같은 얼굴로 제목만 굵게 키우면 크기 차이밖에 남지 않는다 —
+     바탕 계열로 갈아 끼우면 "법정"과 "지문"이라는 이 수업의 두 얼굴이 한 화면에서 맞는다.
+     영문 악센트(Spectral)도 세리프라 제목과 한 가족으로 읽힌다. */
+  --nz-f-display:"Gowun Batang","Nanum Myeongjo","Apple SD Gothic Neo",Batang,serif;
   --nz-f-num:"Barlow Condensed","Oswald","Arial Narrow",system-ui,-apple-system,"Segoe UI",sans-serif;
 
   --nz-fs-title:22px;  --nz-lh-title:1.32;
@@ -545,9 +554,23 @@ mark{ background:none; color:inherit; }
   top:var(--nz-hud-h); left:0; right:0; bottom:0;
   z-index:var(--nz-z-scrim);
   pointer-events:none;
-  background:linear-gradient(180deg,rgba(10,16,32,.58) 0%,rgba(10,16,32,.88) 58%,rgba(10,16,32,.95) 100%);
+  /* 가로 방향이다. 글자가 앉는 왼쪽만 덮고 노직이 서는 오른쪽은 비워 둔다.
+     전면 세로 딤은 법정 전체를 진흙으로 만들면서도 정작 얼굴 위에 놓인
+     제목의 대비는 못 살렸다 — 덮을 곳만 덮는 편이 양쪽 다 낫다. */
+  background:
+    linear-gradient(90deg,
+      rgba(9,14,28,.94) 0%, rgba(9,14,28,.90) 34%,
+      rgba(9,14,28,.62) 52%, rgba(9,14,28,.18) 72%, rgba(9,14,28,.06) 100%),
+    linear-gradient(180deg, rgba(9,14,28,.34) 0%, rgba(9,14,28,0) 26%, rgba(9,14,28,.42) 100%);
 }
 #nz-root[data-screen="case"]::after{ display:none; }
+/* 결과 화면만 예외로 전면을 덮는다. 좌우 두 열을 다 쓰기 때문에
+   오른쪽을 비워 두는 가로 그라디언트로는 점수·안내 문구가 법정 위에 얹힌다.
+   법정은 남기되 흐릿한 배경으로만 남긴다 — 여기 주인공은 두 질문이다. */
+#nz-root[data-screen="result"]::after{
+  background:
+    radial-gradient(120% 90% at 62% 46%, rgba(9,14,28,.72) 0%, rgba(9,14,28,.90) 58%, rgba(9,14,28,.96) 100%);
+}
 
 .nz-screen{
   position:absolute;
@@ -686,7 +709,8 @@ mark{ background:none; color:inherit; }
   overflow-y:auto; overscroll-behavior:contain;
 }
 #nz-start-title{
-  font-size:34px; line-height:1.2; letter-spacing:-.01em; font-weight:700;
+  font-family:var(--nz-f-display);
+  font-size:46px; line-height:1.14; letter-spacing:-.005em; font-weight:700;
   max-width:var(--nz-measure-title);
 }
 #nz-start-sub{
@@ -734,7 +758,9 @@ mark{ background:none; color:inherit; }
   overflow-y:auto; overscroll-behavior:contain;
 }
 #nz-lobby-title{
-  font-size:var(--nz-fs-title); line-height:var(--nz-lh-title); letter-spacing:-.01em; font-weight:700;
+  font-family:var(--nz-f-display);
+  font-size:calc(var(--nz-fs-title) + 4px); line-height:var(--nz-lh-title);
+  letter-spacing:-.005em; font-weight:700;
 }
 #nz-lobby-progress{
   margin-top:var(--nz-s2);
@@ -792,10 +818,33 @@ mark{ background:none; color:inherit; }
   border-left:4px solid transparent;              /* 상태 바 자리를 미리 비워 둔다 —
                                                      완료/현재로 바뀔 때 폭이 안 튄다 */
   border-radius:var(--nz-radius);
-  background:var(--nz-navy-2);
+  /* 위쪽을 아주 살짝 밝혀 종이 한 장이 빛을 받는 느낌만 준다.
+     여기가 평평하면 '사건 파일'이 아니라 그냥 목록 버튼으로 읽힌다. */
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.055) 0%, rgba(255,255,255,0) 26%),
+    var(--nz-navy-2);
+  position:relative;
+  overflow:hidden;
   transition:transform var(--nz-t-fast) var(--nz-ease),
              border-color var(--nz-t-fast) var(--nz-ease),
              background var(--nz-t-fast) var(--nz-ease);
+}
+/* 서류철 탭. 카드 오른쪽 위에 종이 한 장이 살짝 접힌 자리다.
+   장식이지만 이 한 조각이 카드 열 개를 '파일 더미'로 묶어 준다. */
+.nz-file::before{
+  content:"";
+  position:absolute; top:0; right:0;
+  width:30px; height:30px;
+  background:linear-gradient(225deg, rgba(255,255,255,.10) 0 50%, transparent 50%);
+  pointer-events:none;
+}
+/* 파일철 끈. 왼쪽 상태 바 안쪽에 얇은 선 하나를 더 둔다. */
+.nz-file::after{
+  content:"";
+  position:absolute; left:0; top:12px; bottom:12px;
+  width:1px;
+  background:rgba(255,255,255,.07);
+  pointer-events:none;
 }
 .nz-file:hover,.nz-file:focus-visible{ transform:translateY(-3px); border-color:var(--nz-amber); }
 
@@ -864,8 +913,9 @@ mark{ background:none; color:inherit; }
 }
 #nz-case-title{
   margin-top:var(--nz-s1);
-  font-size:var(--nz-fs-title); line-height:var(--nz-lh-title);
-  letter-spacing:-.01em; font-weight:700;
+  font-family:var(--nz-f-display);
+  font-size:calc(var(--nz-fs-title) + 3px); line-height:var(--nz-lh-title);
+  letter-spacing:-.005em; font-weight:700;
   max-width:var(--nz-measure-title);
   text-wrap:balance;
 }
@@ -1032,7 +1082,9 @@ mark{ background:none; color:inherit; }
    불투명 배경 — 3D 조명이 뒤에서 밝아져도 대비가 변하지 않아야 한다. */
 #nz-fb-line{
   position:fixed;
-  left:var(--nz-s8); bottom:28px;
+  /* 노직의 가슴께 높이로 올린다. 화면 맨 아래에 두면 말풍선이 바닥에서
+     혼자 떠 있고 꼬리가 아무도 가리키지 않는다. */
+  left:var(--nz-s8); bottom:clamp(96px,16vh,150px);
   z-index:var(--nz-z-bubble);
   width:min(520px,calc(100vw - var(--nz-panel-w) - 80px));
   padding:14px 18px;
@@ -1043,14 +1095,16 @@ mark{ background:none; color:inherit; }
   color:var(--nz-ink);
   max-width:var(--nz-measure-title);
 }
-/* 좌하단 꼬리 — 노직 쪽을 가리킨다. */
+/* 꼬리는 말풍선 위쪽에서 노직을 가리킨다. 아래로 향하던 예전 꼬리는
+   그가 서 있는 곳이 아니라 바닥을 가리키고 있었다.
+   가로 위치도 왼쪽 끝(22px)이 아니라 그가 서는 쪽으로 옮긴다. */
 #nz-fb-line::after{
   content:"";
-  position:absolute; left:22px; bottom:-8px;
+  position:absolute; left:46%; top:-9px;
   width:0; height:0;
-  border-left:8px solid transparent;
-  border-right:8px solid transparent;
-  border-top:8px solid var(--nz-bubble-bg);
+  border-left:9px solid transparent;
+  border-right:9px solid transparent;
+  border-bottom:9px solid var(--nz-bubble-bg);
 }
 /* 아직 아무 판정도 없는 위상에서는 말풍선이 뜰 이유가 없다. */
 #nz-case[data-phase="ask"] #nz-fb-line{ display:none; }
@@ -1073,7 +1127,8 @@ mark{ background:none; color:inherit; }
 }
 #nz-result-title{
   grid-column:1/-1; grid-row:1;
-  font-size:var(--nz-fs-title); line-height:var(--nz-lh-title); font-weight:700;
+  font-family:var(--nz-f-display);
+  font-size:calc(var(--nz-fs-title) + 5px); line-height:var(--nz-lh-title); font-weight:700;
 }
 #nz-result-q1{ grid-column:1; grid-row:2/5; }
 #nz-result-q2{ grid-column:1; grid-row:5/9; }
@@ -1172,6 +1227,10 @@ mark{ background:none; color:inherit; }
   border-left-color:var(--nz-line);
 }
 .nz-file[data-state="done"] .nz-file-title{ color:var(--nz-ink-2); }
+/* 처리된 서류는 빛을 덜 받는다. 완료를 색 하나로만 말하지 않기 위한 두 번째 신호다
+   (첫 번째는 ▣ 기호, 세 번째는 도장 자국). */
+.nz-file[data-state="done"]::before{ background:linear-gradient(225deg, rgba(255,255,255,.05) 0 50%, transparent 50%); }
+.nz-file[data-state="done"]{ background:var(--nz-navy-2); }
 .nz-file[data-state="done"] .nz-file-no::before{ content:"▣"; }
 /* 도장은 '완료'만 말한다. 일치/다름으로 갈라 칠하면 10장의 카드가 사건별 정오답
    패턴이 되어 06 §2-2(6)이 결과 화면에서 금지한 것을 로비가 더 크게 재현한다
@@ -2815,14 +2874,23 @@ mark{ background:none; color:inherit; }
   }
 
   /* --------------------------------------------------------------- 보이스
-     전부 220ms 이내. 각 함수는 t0(스케줄 시각)만 받는다. */
+     각 함수는 t0(스케줄 시각)만 받는다. 타격이 있는 보이스는 자기 안에서
+     t0 뒤로 살짝 밀어 3D 연출의 임팩트 순간에 소리가 떨어지게 한다 -
+     ui.js 가 애니메이션 길이를 알 필요가 없도록 여기서 끝낸다. */
+
+  /* 재생마다 살짝 흔든다. 같은 파형이 열 번 그대로 반복되면 소리가 있다는
+     사실 자체가 피로가 된다. 폭은 반음 이내라 '다른 소리'로 들리지는 않는다. */
+  function vary(v, amt) {
+    return v * (1 + (Math.random() * 2 - 1) * amt);
+  }
 
   /* 서류철을 여는 소리. 종이가 스치는 짧은 노이즈 한 번. */
   function vOpen(t0) {
     var g = gain();
-    var bp = filt('bandpass', 1100, 0.9);
-    bp.frequency.setValueAtTime(1100, t0);                 // 앵커가 없으면 램프 시작점이 브라우저마다 다르다
-    bp.frequency.linearRampToValueAtTime(2600, t0 + 0.12); // 스치듯 위로 훑는다
+    var lo = vary(1100, 0.10), hi = vary(2600, 0.10);
+    var bp = filt('bandpass', lo, 0.9);
+    bp.frequency.setValueAtTime(lo, t0);                 // 앵커가 없으면 램프 시작점이 브라우저마다 다르다
+    bp.frequency.linearRampToValueAtTime(hi, t0 + 0.12); // 스치듯 위로 훑는다
     var s = noiseSrc(t0, 0.17);
     env(g, t0, 0.26, 0.014, 0.13);
     s.connect(bp);
@@ -2830,11 +2898,27 @@ mark{ background:none; color:inherit; }
     g.connect(master);
   }
 
+  /* 다음 사건으로 넘길 때. open 보다 짧고 높다 - 같은 종이지만 '여는' 게
+     아니라 '넘기는' 동작이라 꼬리가 없어야 한다. */
+  function vNext(t0) {
+    var g = gain();
+    var lo = vary(1800, 0.12);
+    var bp = filt('bandpass', lo, 1.1);
+    bp.frequency.setValueAtTime(lo, t0);
+    bp.frequency.linearRampToValueAtTime(vary(3400, 0.10), t0 + 0.07);
+    var s = noiseSrc(t0, 0.1);
+    env(g, t0, 0.17, 0.008, 0.075);
+    s.connect(bp);
+    bp.connect(g);
+    g.connect(master);
+  }
+
   /* 선택 확정. 아주 짧은 클릭 하나. 여기가 길면 두 개 고를 때마다 거슬린다. */
   function vPick(t0) {
+    var f0 = vary(980, 0.05);
     var o = osc('triangle', t0, 0.06);
-    o.frequency.setValueAtTime(980, t0);
-    o.frequency.exponentialRampToValueAtTime(720, t0 + 0.05);
+    o.frequency.setValueAtTime(f0, t0);
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.73, t0 + 0.05);
     var g = gain();
     env(g, t0, 0.15, 0.004, 0.045);
     o.connect(g);
@@ -2849,58 +2933,138 @@ mark{ background:none; color:inherit; }
     gn.connect(master);
   }
 
+  /* 법정을 여는 소리. 낮은 두 번의 노크. 개정(開廷)이지 팡파르가 아니다. */
+  function vStart(t0) {
+    for (var i = 0; i < 2; i++) {
+      var t = t0 + i * 0.145;
+      var o = osc('sine', t, 0.17);
+      var f0 = vary(i ? 132 : 118, 0.03);
+      o.frequency.setValueAtTime(f0, t);
+      o.frequency.exponentialRampToValueAtTime(f0 * 0.62, t + 0.1);
+      var lp = filt('lowpass', 520, 0.7);
+      var g = gain();
+      env(g, t, i ? 0.30 : 0.26, 0.011, 0.13);
+      o.connect(lp); lp.connect(g); g.connect(master);
+
+      var s = noiseSrc(t, 0.07);
+      var lp2 = filt('lowpass', 1100, 0.8);
+      var gn = gain();
+      env(gn, t, 0.10, 0.004, 0.055);
+      s.connect(lp2); lp2.connect(gn); gn.connect(master);
+    }
+  }
+
   /* 도장 '쿵'. 낮게 떨어지고 짧은 꼬리만 남는다.
-     어택을 12ms 로 늘려 급격한 저음 어택(계약 §9 금지 항목)을 피한다. */
+     어택을 12ms 로 늘려 급격한 저음 어택(계약 §9 금지 항목)을 피한다.
+     0.16s 밀어 두는 이유: 3D 도장이 상판에 닿는 순간이 연출 시작 뒤 그쯤이다. */
   function vMatch(t0) {
-    var o = osc('sine', t0, 0.21);
-    o.frequency.setValueAtTime(168, t0);
-    o.frequency.exponentialRampToValueAtTime(96, t0 + 0.12);
+    var t = t0 + 0.16;
+    var f0 = vary(168, 0.06);
+    var o = osc('sine', t, 0.21);
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.57, t + 0.12);
     var lp = filt('lowpass', 420, 0.6);
     var g = gain();
-    env(g, t0, 0.30, 0.012, 0.16);
+    env(g, t, 0.30, 0.012, 0.16);
     o.connect(lp);
     lp.connect(g);
     g.connect(master);
 
     /* 도장 몸통이 책상에 닿는 마찰음. 리버브 대신 이 한 겹으로 두께를 만든다. */
-    var s = noiseSrc(t0, 0.1);
-    var lp2 = filt('lowpass', 900, 0.7);
+    var s = noiseSrc(t, 0.1);
+    var lp2 = filt('lowpass', vary(900, 0.12), 0.7);
     var gn = gain();
-    env(gn, t0, 0.11, 0.01, 0.08);
+    env(gn, t, 0.11, 0.01, 0.08);
     s.connect(lp2);
     lp2.connect(gn);
     gn.connect(master);
+
+    /* 나무 상판이 잠깐 우는 소리. 이 한 겹이 '쿵'과 '툭'을 가른다. */
+    var w = osc('triangle', t, 0.22);
+    w.frequency.setValueAtTime(vary(305, 0.05), t);
+    var bp = filt('bandpass', vary(430, 0.08), 5.5);
+    var gw = gain();
+    env(gw, t, 0.075, 0.009, 0.19);
+    w.connect(bp); bp.connect(gw); gw.connect(master);
   }
 
   /* 지휘봉이 칠판을 한 번 치는 소리. 마르고 짧다.
-     일부러 'match' 보다 작게 잡았다 - 틀린 쪽이 더 크게 울리면 그게 벌이다. */
+     일부러 'match' 보다 작게 잡았다 - 틀린 쪽이 더 크게 울리면 그게 벌이다.
+     0.13s 밀어 둔다 - 지휘봉이 닿는 순간에 맞춘다. */
   function vRebut(t0) {
-    var s = noiseSrc(t0, 0.08);
-    var bp = filt('bandpass', 1500, 3.2);
+    var t = t0 + 0.13;
+    var s = noiseSrc(t, 0.08);
+    var bp = filt('bandpass', vary(1500, 0.14), 3.2);
     var g = gain();
-    env(g, t0, 0.20, 0.003, 0.06);
+    env(g, t, 0.20, 0.003, 0.06);
     s.connect(bp);
     bp.connect(g);
     g.connect(master);
 
-    var o = osc('triangle', t0, 0.12);
-    o.frequency.setValueAtTime(380, t0);
-    o.frequency.exponentialRampToValueAtTime(298, t0 + 0.09);
+    var f0 = vary(380, 0.07);
+    var o = osc('triangle', t, 0.12);
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.78, t + 0.09);
     var lp = filt('lowpass', 1800, 0.7);
     var go = gain();
-    env(go, t0, 0.13, 0.004, 0.09);
+    env(go, t, 0.13, 0.004, 0.09);
     o.connect(lp);
     lp.connect(go);
     go.connect(master);
+
+    /* 칠판 판이 한 번 울리고 만다. 길게 끌면 혼내는 소리가 된다. */
+    var b = osc('sine', t, 0.16);
+    b.frequency.setValueAtTime(vary(196, 0.05), t);
+    var gb = gain();
+    env(gb, t, 0.06, 0.008, 0.13);
+    b.connect(gb); gb.connect(master);
   }
 
-  /* 계약 §9: 이름은 정확히 4개다. 여기 없는 이름은 play() 가 조용히 버린다.
-     결과 화면에는 소리가 없다 - 점수를 소리로 축하하거나 위로하지 않는다. */
+  /* 결과 화면. 중립적인 두 음이다. 점수를 축하하지도 위로하지도 않는다 -
+     0/10 인 학생과 10/10 인 학생이 정확히 같은 소리를 듣는다. */
+  function vResult(t0) {
+    var base = 294;                       // D4
+    var steps = [1, 1.3348];              // 완전4도. 해결도 미해결도 아닌 간격
+    for (var i = 0; i < steps.length; i++) {
+      var t = t0 + i * 0.17;
+      var o = osc('sine', t, 0.5);
+      o.frequency.setValueAtTime(base * steps[i], t);
+      var g = gain();
+      env(g, t, 0.14, 0.05, 0.42);
+      o.connect(g); g.connect(master);
+
+      var h = osc('sine', t, 0.4);        // 한 옥타브 위를 아주 얇게 얹는다
+      h.frequency.setValueAtTime(base * steps[i] * 2, t);
+      var gh = gain();
+      env(gh, t, 0.035, 0.05, 0.3);
+      h.connect(gh); gh.connect(master);
+    }
+  }
+
+  /* 소리를 켰을 때의 확인음. 이게 없으면 학생이 토글을 눌러 놓고도
+     켜졌는지 알 수 없어 한 번 더 누른다. */
+  function vOn(t0) {
+    var f = [660, 880];
+    for (var i = 0; i < 2; i++) {
+      var t = t0 + i * 0.075;
+      var o = osc('triangle', t, 0.1);
+      o.frequency.setValueAtTime(f[i], t);
+      var g = gain();
+      env(g, t, 0.11, 0.006, 0.075);
+      o.connect(g); g.connect(master);
+    }
+  }
+
+  /* play() 는 여기 없는 이름을 조용히 버린다. */
   var VOICES = {
     open: vOpen,
+    next: vNext,
     pick: vPick,
+    start: vStart,
     match: vMatch,
-    rebut: vRebut
+    rebut: vRebut,
+    result: vResult,
+    on: vOn
   };
 
   /* --------------------------------------------------------------- API */
@@ -3364,6 +3528,13 @@ mark{ background:none; color:inherit; }
     '#nz-court-flat{pointer-events:none;overflow:hidden;}',
     '#nz-court-flat #nz-fb-bust{position:absolute;left:0;top:0;width:100%;height:100%;}',
     /* 배경을 여기서 불투명하게 깔아, 폴백일 때 보이는 그림이 언제나 하나가 되게 한다. */
+    /* 3D 쪽 카메라가 start/lobby/result 에서 노직을 화면 오른쪽에 세운다.
+       폴백도 같은 구도라야 한다 — 안 그러면 WebGL 이 없는 크롬북에서만
+       제목이 그의 얼굴 위에 얹힌다. 사건 화면은 패널이 따로 있어 그대로 둔다. */
+    '#nz-fb-bust.sc-start,#nz-fb-bust.sc-lobby,#nz-fb-bust.sc-result{',
+    'transform:translateX(24%) scale(1.06);transform-origin:80% 100%;}',
+    '@media (max-width:1023px){#nz-fb-bust.sc-start,#nz-fb-bust.sc-lobby,',
+    '#nz-fb-bust.sc-result{transform:none;}}',
     '#nz-fb-bust{display:block;pointer-events:none;background:',
     'radial-gradient(64% 52% at 20% 24%, rgba(255,196,128,.17), transparent 72%),',
     'linear-gradient(180deg,#0d1433 0%,#0b1024 55%,#070b1c 100%);}',
@@ -4048,12 +4219,24 @@ mark{ background:none; color:inherit; }
 
   /* 카메라 프리셋. 시선 높이는 노직과 수평이다 — 올려다보는 앵글은 금지다(계약 §8.8). */
   var CAM = {
-    overlay: { pos: [0.18, 1.46, 2.32], look: [-0.30, 1.27, 0.26], lock: 'h', deg: 58 },
+    /* 노직을 화면 오른쪽에 세운다. look.x 가 그의 x(-1.00)보다 왼쪽이면
+       그는 화면 오른쪽으로 간다 — 글자가 앉는 왼쪽 열이 그만큼 비워진다.
+       예전 값(look.x=-0.30)은 그를 정확히 제목 밑에 갖다 놓고 있었다. */
+    overlay: { pos: [-1.02, 1.44, 2.18], look: [-1.42, 1.28, 0.24], lock: 'h', deg: 52 },
+    /* 결과 화면은 좌우 두 열을 다 쓴다. 더 물러서서 방을 보여 주고
+       노직은 오른쪽 아래에 작게 남긴다 — 여기서 주인공은 두 질문이다. */
+    wide: { pos: [-1.12, 1.62, 2.86], look: [-1.34, 1.24, 0.18], lock: 'h', deg: 62 },
+    /* 로비는 사건 파일 10장이 화면 한복판을 가로지른다. 노직을 눈높이에 두면
+       카드가 그의 몸통을 덮어 사고처럼 보인다 — 카메라를 올려 내려다보면
+       그는 격자 위로 올라가고 아래쪽은 책상 상판이 받친다. */
+    desk: { pos: [-1.06, 2.16, 2.62], look: [-1.34, 1.12, 0.06], lock: 'h', deg: 58 },
     split: { pos: [-0.78, 1.52, 2.05], look: [-1.00, 1.30, 0.22], lock: 'h', deg: 46 },
     stack: { pos: [-0.82, 1.55, 1.45], look: [-1.00, 1.42, 0.12], lock: 'v', deg: 32 }
   };
 
   function modeFor(sceneName, w, h) {
+    if (sceneName === 'result') return 'wide';
+    if (sceneName === 'lobby') return 'desk';
     if (sceneName !== 'case') return 'overlay';
     /* 창 폭이 아니라 캔버스 사각형으로 판정한다. window.innerWidth 를 읽지 않는 이유는
        패널 폭이 clamp(...,46vw,...) 라 같은 창 폭에서도 캔버스가 달라지기 때문이다. */
@@ -4108,7 +4291,8 @@ mark{ background:none; color:inherit; }
     G.camBase = pre.pos;
     G.camLook = pre.look;
     /* 좁은 창에서 노직이 왼쪽으로 잘리지 않도록 스테이지를 안쪽으로 민다. */
-    G.stage.position.x = (G.mode === 'overlay') ? clamp((1.45 - a) * 0.62, 0, 0.45) : 0;
+    G.stage.position.x = (G.mode === 'overlay' || G.mode === 'wide' || G.mode === 'desk')
+      ? clamp((1.45 - a) * 0.62, 0, 0.45) : 0;
     flatSync();
   }
 
@@ -4630,6 +4814,17 @@ mark{ background:none; color:inherit; }
     pause: function () {
       G.paused = true;
       stopLoop();
+      /* 멈추기 전에 한 프레임만 더 그린다. setScene() 직후 곧바로 pause() 가
+         불리면(결과 화면이 그렇다) 새 카메라가 한 번도 렌더되지 않아
+         캔버스에 이전 화면이 남거나 통째로 비어 버린다. */
+      if (api.mode === 'three' && G.renderer && !G.offscreen && G.w > 1 && G.h > 1) {
+        try {
+          tick(0);
+          G.renderer.render(G.scene, G.cam);
+        } catch (e) {
+          /* 마지막 한 장을 못 그렸다고 화면을 죽이지 않는다. */
+        }
+      }
       flatPause(true);
     },
 
@@ -5460,6 +5655,7 @@ mark{ background:none; color:inherit; }
     if (NZ.State.allDone()) { goResult(); return; }
     var id = NZ.State.nextUnanswered(NZ.State.current());
     if (!id) { goResult(); return; }
+    NZ.Audio.play('next');
     goCase(id, false);
   }
 
@@ -5490,6 +5686,7 @@ mark{ background:none; color:inherit; }
     applyScreen('result');
     NZ.Court.setScene('result');
     NZ.Court.pause();
+    NZ.Audio.play('result');
     focusEl(resultTitle);
   }
 
@@ -5566,6 +5763,7 @@ mark{ background:none; color:inherit; }
     var applied = NZ.Audio.setEnabled(!nowMuted);
     /* 브라우저가 오디오를 못 켜면 화면 표기도 그 사실을 따라가야 한다. */
     if (applied === false && !nowMuted) NZ.State.setMuted(true);
+    if (applied === true) NZ.Audio.play('on');
     audioSynced = true;
     syncSoundDom();
     say(NZ.State.muted() ? CP.a11y.liveSoundOff : CP.a11y.liveSoundOn);
@@ -5858,6 +6056,8 @@ mark{ background:none; color:inherit; }
     /* click 만 건다. pointerdown 과 같이 걸면 터치에서 두 번 발화한다.
        dblclick 은 아예 바인딩하지 않는다. */
     btnStart.addEventListener('click', function () {
+      /* 개정(開廷). 여기서만 울린다 — 사건 화면에서 로비로 돌아올 때는 아니다. */
+      NZ.Audio.play('start');
       NZ.State.startFresh();
       goLobby(null);
     });

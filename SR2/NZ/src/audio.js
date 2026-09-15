@@ -161,14 +161,23 @@
   }
 
   /* --------------------------------------------------------------- 보이스
-     전부 220ms 이내. 각 함수는 t0(스케줄 시각)만 받는다. */
+     각 함수는 t0(스케줄 시각)만 받는다. 타격이 있는 보이스는 자기 안에서
+     t0 뒤로 살짝 밀어 3D 연출의 임팩트 순간에 소리가 떨어지게 한다 -
+     ui.js 가 애니메이션 길이를 알 필요가 없도록 여기서 끝낸다. */
+
+  /* 재생마다 살짝 흔든다. 같은 파형이 열 번 그대로 반복되면 소리가 있다는
+     사실 자체가 피로가 된다. 폭은 반음 이내라 '다른 소리'로 들리지는 않는다. */
+  function vary(v, amt) {
+    return v * (1 + (Math.random() * 2 - 1) * amt);
+  }
 
   /* 서류철을 여는 소리. 종이가 스치는 짧은 노이즈 한 번. */
   function vOpen(t0) {
     var g = gain();
-    var bp = filt('bandpass', 1100, 0.9);
-    bp.frequency.setValueAtTime(1100, t0);                 // 앵커가 없으면 램프 시작점이 브라우저마다 다르다
-    bp.frequency.linearRampToValueAtTime(2600, t0 + 0.12); // 스치듯 위로 훑는다
+    var lo = vary(1100, 0.10), hi = vary(2600, 0.10);
+    var bp = filt('bandpass', lo, 0.9);
+    bp.frequency.setValueAtTime(lo, t0);                 // 앵커가 없으면 램프 시작점이 브라우저마다 다르다
+    bp.frequency.linearRampToValueAtTime(hi, t0 + 0.12); // 스치듯 위로 훑는다
     var s = noiseSrc(t0, 0.17);
     env(g, t0, 0.26, 0.014, 0.13);
     s.connect(bp);
@@ -176,11 +185,27 @@
     g.connect(master);
   }
 
+  /* 다음 사건으로 넘길 때. open 보다 짧고 높다 - 같은 종이지만 '여는' 게
+     아니라 '넘기는' 동작이라 꼬리가 없어야 한다. */
+  function vNext(t0) {
+    var g = gain();
+    var lo = vary(1800, 0.12);
+    var bp = filt('bandpass', lo, 1.1);
+    bp.frequency.setValueAtTime(lo, t0);
+    bp.frequency.linearRampToValueAtTime(vary(3400, 0.10), t0 + 0.07);
+    var s = noiseSrc(t0, 0.1);
+    env(g, t0, 0.17, 0.008, 0.075);
+    s.connect(bp);
+    bp.connect(g);
+    g.connect(master);
+  }
+
   /* 선택 확정. 아주 짧은 클릭 하나. 여기가 길면 두 개 고를 때마다 거슬린다. */
   function vPick(t0) {
+    var f0 = vary(980, 0.05);
     var o = osc('triangle', t0, 0.06);
-    o.frequency.setValueAtTime(980, t0);
-    o.frequency.exponentialRampToValueAtTime(720, t0 + 0.05);
+    o.frequency.setValueAtTime(f0, t0);
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.73, t0 + 0.05);
     var g = gain();
     env(g, t0, 0.15, 0.004, 0.045);
     o.connect(g);
@@ -195,58 +220,138 @@
     gn.connect(master);
   }
 
+  /* 법정을 여는 소리. 낮은 두 번의 노크. 개정(開廷)이지 팡파르가 아니다. */
+  function vStart(t0) {
+    for (var i = 0; i < 2; i++) {
+      var t = t0 + i * 0.145;
+      var o = osc('sine', t, 0.17);
+      var f0 = vary(i ? 132 : 118, 0.03);
+      o.frequency.setValueAtTime(f0, t);
+      o.frequency.exponentialRampToValueAtTime(f0 * 0.62, t + 0.1);
+      var lp = filt('lowpass', 520, 0.7);
+      var g = gain();
+      env(g, t, i ? 0.30 : 0.26, 0.011, 0.13);
+      o.connect(lp); lp.connect(g); g.connect(master);
+
+      var s = noiseSrc(t, 0.07);
+      var lp2 = filt('lowpass', 1100, 0.8);
+      var gn = gain();
+      env(gn, t, 0.10, 0.004, 0.055);
+      s.connect(lp2); lp2.connect(gn); gn.connect(master);
+    }
+  }
+
   /* 도장 '쿵'. 낮게 떨어지고 짧은 꼬리만 남는다.
-     어택을 12ms 로 늘려 급격한 저음 어택(계약 §9 금지 항목)을 피한다. */
+     어택을 12ms 로 늘려 급격한 저음 어택(계약 §9 금지 항목)을 피한다.
+     0.16s 밀어 두는 이유: 3D 도장이 상판에 닿는 순간이 연출 시작 뒤 그쯤이다. */
   function vMatch(t0) {
-    var o = osc('sine', t0, 0.21);
-    o.frequency.setValueAtTime(168, t0);
-    o.frequency.exponentialRampToValueAtTime(96, t0 + 0.12);
+    var t = t0 + 0.16;
+    var f0 = vary(168, 0.06);
+    var o = osc('sine', t, 0.21);
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.57, t + 0.12);
     var lp = filt('lowpass', 420, 0.6);
     var g = gain();
-    env(g, t0, 0.30, 0.012, 0.16);
+    env(g, t, 0.30, 0.012, 0.16);
     o.connect(lp);
     lp.connect(g);
     g.connect(master);
 
     /* 도장 몸통이 책상에 닿는 마찰음. 리버브 대신 이 한 겹으로 두께를 만든다. */
-    var s = noiseSrc(t0, 0.1);
-    var lp2 = filt('lowpass', 900, 0.7);
+    var s = noiseSrc(t, 0.1);
+    var lp2 = filt('lowpass', vary(900, 0.12), 0.7);
     var gn = gain();
-    env(gn, t0, 0.11, 0.01, 0.08);
+    env(gn, t, 0.11, 0.01, 0.08);
     s.connect(lp2);
     lp2.connect(gn);
     gn.connect(master);
+
+    /* 나무 상판이 잠깐 우는 소리. 이 한 겹이 '쿵'과 '툭'을 가른다. */
+    var w = osc('triangle', t, 0.22);
+    w.frequency.setValueAtTime(vary(305, 0.05), t);
+    var bp = filt('bandpass', vary(430, 0.08), 5.5);
+    var gw = gain();
+    env(gw, t, 0.075, 0.009, 0.19);
+    w.connect(bp); bp.connect(gw); gw.connect(master);
   }
 
   /* 지휘봉이 칠판을 한 번 치는 소리. 마르고 짧다.
-     일부러 'match' 보다 작게 잡았다 - 틀린 쪽이 더 크게 울리면 그게 벌이다. */
+     일부러 'match' 보다 작게 잡았다 - 틀린 쪽이 더 크게 울리면 그게 벌이다.
+     0.13s 밀어 둔다 - 지휘봉이 닿는 순간에 맞춘다. */
   function vRebut(t0) {
-    var s = noiseSrc(t0, 0.08);
-    var bp = filt('bandpass', 1500, 3.2);
+    var t = t0 + 0.13;
+    var s = noiseSrc(t, 0.08);
+    var bp = filt('bandpass', vary(1500, 0.14), 3.2);
     var g = gain();
-    env(g, t0, 0.20, 0.003, 0.06);
+    env(g, t, 0.20, 0.003, 0.06);
     s.connect(bp);
     bp.connect(g);
     g.connect(master);
 
-    var o = osc('triangle', t0, 0.12);
-    o.frequency.setValueAtTime(380, t0);
-    o.frequency.exponentialRampToValueAtTime(298, t0 + 0.09);
+    var f0 = vary(380, 0.07);
+    var o = osc('triangle', t, 0.12);
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.78, t + 0.09);
     var lp = filt('lowpass', 1800, 0.7);
     var go = gain();
-    env(go, t0, 0.13, 0.004, 0.09);
+    env(go, t, 0.13, 0.004, 0.09);
     o.connect(lp);
     lp.connect(go);
     go.connect(master);
+
+    /* 칠판 판이 한 번 울리고 만다. 길게 끌면 혼내는 소리가 된다. */
+    var b = osc('sine', t, 0.16);
+    b.frequency.setValueAtTime(vary(196, 0.05), t);
+    var gb = gain();
+    env(gb, t, 0.06, 0.008, 0.13);
+    b.connect(gb); gb.connect(master);
   }
 
-  /* 계약 §9: 이름은 정확히 4개다. 여기 없는 이름은 play() 가 조용히 버린다.
-     결과 화면에는 소리가 없다 - 점수를 소리로 축하하거나 위로하지 않는다. */
+  /* 결과 화면. 중립적인 두 음이다. 점수를 축하하지도 위로하지도 않는다 -
+     0/10 인 학생과 10/10 인 학생이 정확히 같은 소리를 듣는다. */
+  function vResult(t0) {
+    var base = 294;                       // D4
+    var steps = [1, 1.3348];              // 완전4도. 해결도 미해결도 아닌 간격
+    for (var i = 0; i < steps.length; i++) {
+      var t = t0 + i * 0.17;
+      var o = osc('sine', t, 0.5);
+      o.frequency.setValueAtTime(base * steps[i], t);
+      var g = gain();
+      env(g, t, 0.14, 0.05, 0.42);
+      o.connect(g); g.connect(master);
+
+      var h = osc('sine', t, 0.4);        // 한 옥타브 위를 아주 얇게 얹는다
+      h.frequency.setValueAtTime(base * steps[i] * 2, t);
+      var gh = gain();
+      env(gh, t, 0.035, 0.05, 0.3);
+      h.connect(gh); gh.connect(master);
+    }
+  }
+
+  /* 소리를 켰을 때의 확인음. 이게 없으면 학생이 토글을 눌러 놓고도
+     켜졌는지 알 수 없어 한 번 더 누른다. */
+  function vOn(t0) {
+    var f = [660, 880];
+    for (var i = 0; i < 2; i++) {
+      var t = t0 + i * 0.075;
+      var o = osc('triangle', t, 0.1);
+      o.frequency.setValueAtTime(f[i], t);
+      var g = gain();
+      env(g, t, 0.11, 0.006, 0.075);
+      o.connect(g); g.connect(master);
+    }
+  }
+
+  /* play() 는 여기 없는 이름을 조용히 버린다. */
   var VOICES = {
     open: vOpen,
+    next: vNext,
     pick: vPick,
+    start: vStart,
     match: vMatch,
-    rebut: vRebut
+    rebut: vRebut,
+    result: vResult,
+    on: vOn
   };
 
   /* --------------------------------------------------------------- API */

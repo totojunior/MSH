@@ -71,9 +71,23 @@
   top:var(--nz-hud-h); left:0; right:0; bottom:0;
   z-index:var(--nz-z-scrim);
   pointer-events:none;
-  background:linear-gradient(180deg,rgba(10,16,32,.58) 0%,rgba(10,16,32,.88) 58%,rgba(10,16,32,.95) 100%);
+  /* 가로 방향이다. 글자가 앉는 왼쪽만 덮고 노직이 서는 오른쪽은 비워 둔다.
+     전면 세로 딤은 법정 전체를 진흙으로 만들면서도 정작 얼굴 위에 놓인
+     제목의 대비는 못 살렸다 — 덮을 곳만 덮는 편이 양쪽 다 낫다. */
+  background:
+    linear-gradient(90deg,
+      rgba(9,14,28,.94) 0%, rgba(9,14,28,.90) 34%,
+      rgba(9,14,28,.62) 52%, rgba(9,14,28,.18) 72%, rgba(9,14,28,.06) 100%),
+    linear-gradient(180deg, rgba(9,14,28,.34) 0%, rgba(9,14,28,0) 26%, rgba(9,14,28,.42) 100%);
 }
 #nz-root[data-screen="case"]::after{ display:none; }
+/* 결과 화면만 예외로 전면을 덮는다. 좌우 두 열을 다 쓰기 때문에
+   오른쪽을 비워 두는 가로 그라디언트로는 점수·안내 문구가 법정 위에 얹힌다.
+   법정은 남기되 흐릿한 배경으로만 남긴다 — 여기 주인공은 두 질문이다. */
+#nz-root[data-screen="result"]::after{
+  background:
+    radial-gradient(120% 90% at 62% 46%, rgba(9,14,28,.72) 0%, rgba(9,14,28,.90) 58%, rgba(9,14,28,.96) 100%);
+}
 
 .nz-screen{
   position:absolute;
@@ -212,7 +226,8 @@
   overflow-y:auto; overscroll-behavior:contain;
 }
 #nz-start-title{
-  font-size:34px; line-height:1.2; letter-spacing:-.01em; font-weight:700;
+  font-family:var(--nz-f-display);
+  font-size:46px; line-height:1.14; letter-spacing:-.005em; font-weight:700;
   max-width:var(--nz-measure-title);
 }
 #nz-start-sub{
@@ -260,7 +275,9 @@
   overflow-y:auto; overscroll-behavior:contain;
 }
 #nz-lobby-title{
-  font-size:var(--nz-fs-title); line-height:var(--nz-lh-title); letter-spacing:-.01em; font-weight:700;
+  font-family:var(--nz-f-display);
+  font-size:calc(var(--nz-fs-title) + 4px); line-height:var(--nz-lh-title);
+  letter-spacing:-.005em; font-weight:700;
 }
 #nz-lobby-progress{
   margin-top:var(--nz-s2);
@@ -318,10 +335,33 @@
   border-left:4px solid transparent;              /* 상태 바 자리를 미리 비워 둔다 —
                                                      완료/현재로 바뀔 때 폭이 안 튄다 */
   border-radius:var(--nz-radius);
-  background:var(--nz-navy-2);
+  /* 위쪽을 아주 살짝 밝혀 종이 한 장이 빛을 받는 느낌만 준다.
+     여기가 평평하면 '사건 파일'이 아니라 그냥 목록 버튼으로 읽힌다. */
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.055) 0%, rgba(255,255,255,0) 26%),
+    var(--nz-navy-2);
+  position:relative;
+  overflow:hidden;
   transition:transform var(--nz-t-fast) var(--nz-ease),
              border-color var(--nz-t-fast) var(--nz-ease),
              background var(--nz-t-fast) var(--nz-ease);
+}
+/* 서류철 탭. 카드 오른쪽 위에 종이 한 장이 살짝 접힌 자리다.
+   장식이지만 이 한 조각이 카드 열 개를 '파일 더미'로 묶어 준다. */
+.nz-file::before{
+  content:"";
+  position:absolute; top:0; right:0;
+  width:30px; height:30px;
+  background:linear-gradient(225deg, rgba(255,255,255,.10) 0 50%, transparent 50%);
+  pointer-events:none;
+}
+/* 파일철 끈. 왼쪽 상태 바 안쪽에 얇은 선 하나를 더 둔다. */
+.nz-file::after{
+  content:"";
+  position:absolute; left:0; top:12px; bottom:12px;
+  width:1px;
+  background:rgba(255,255,255,.07);
+  pointer-events:none;
 }
 .nz-file:hover,.nz-file:focus-visible{ transform:translateY(-3px); border-color:var(--nz-amber); }
 
@@ -390,8 +430,9 @@
 }
 #nz-case-title{
   margin-top:var(--nz-s1);
-  font-size:var(--nz-fs-title); line-height:var(--nz-lh-title);
-  letter-spacing:-.01em; font-weight:700;
+  font-family:var(--nz-f-display);
+  font-size:calc(var(--nz-fs-title) + 3px); line-height:var(--nz-lh-title);
+  letter-spacing:-.005em; font-weight:700;
   max-width:var(--nz-measure-title);
   text-wrap:balance;
 }
@@ -558,7 +599,9 @@
    불투명 배경 — 3D 조명이 뒤에서 밝아져도 대비가 변하지 않아야 한다. */
 #nz-fb-line{
   position:fixed;
-  left:var(--nz-s8); bottom:28px;
+  /* 노직의 가슴께 높이로 올린다. 화면 맨 아래에 두면 말풍선이 바닥에서
+     혼자 떠 있고 꼬리가 아무도 가리키지 않는다. */
+  left:var(--nz-s8); bottom:clamp(96px,16vh,150px);
   z-index:var(--nz-z-bubble);
   width:min(520px,calc(100vw - var(--nz-panel-w) - 80px));
   padding:14px 18px;
@@ -569,14 +612,16 @@
   color:var(--nz-ink);
   max-width:var(--nz-measure-title);
 }
-/* 좌하단 꼬리 — 노직 쪽을 가리킨다. */
+/* 꼬리는 말풍선 위쪽에서 노직을 가리킨다. 아래로 향하던 예전 꼬리는
+   그가 서 있는 곳이 아니라 바닥을 가리키고 있었다.
+   가로 위치도 왼쪽 끝(22px)이 아니라 그가 서는 쪽으로 옮긴다. */
 #nz-fb-line::after{
   content:"";
-  position:absolute; left:22px; bottom:-8px;
+  position:absolute; left:46%; top:-9px;
   width:0; height:0;
-  border-left:8px solid transparent;
-  border-right:8px solid transparent;
-  border-top:8px solid var(--nz-bubble-bg);
+  border-left:9px solid transparent;
+  border-right:9px solid transparent;
+  border-bottom:9px solid var(--nz-bubble-bg);
 }
 /* 아직 아무 판정도 없는 위상에서는 말풍선이 뜰 이유가 없다. */
 #nz-case[data-phase="ask"] #nz-fb-line{ display:none; }
@@ -599,7 +644,8 @@
 }
 #nz-result-title{
   grid-column:1/-1; grid-row:1;
-  font-size:var(--nz-fs-title); line-height:var(--nz-lh-title); font-weight:700;
+  font-family:var(--nz-f-display);
+  font-size:calc(var(--nz-fs-title) + 5px); line-height:var(--nz-lh-title); font-weight:700;
 }
 #nz-result-q1{ grid-column:1; grid-row:2/5; }
 #nz-result-q2{ grid-column:1; grid-row:5/9; }
@@ -698,6 +744,10 @@
   border-left-color:var(--nz-line);
 }
 .nz-file[data-state="done"] .nz-file-title{ color:var(--nz-ink-2); }
+/* 처리된 서류는 빛을 덜 받는다. 완료를 색 하나로만 말하지 않기 위한 두 번째 신호다
+   (첫 번째는 ▣ 기호, 세 번째는 도장 자국). */
+.nz-file[data-state="done"]::before{ background:linear-gradient(225deg, rgba(255,255,255,.05) 0 50%, transparent 50%); }
+.nz-file[data-state="done"]{ background:var(--nz-navy-2); }
 .nz-file[data-state="done"] .nz-file-no::before{ content:"▣"; }
 /* 도장은 '완료'만 말한다. 일치/다름으로 갈라 칠하면 10장의 카드가 사건별 정오답
    패턴이 되어 06 §2-2(6)이 결과 화면에서 금지한 것을 로비가 더 크게 재현한다

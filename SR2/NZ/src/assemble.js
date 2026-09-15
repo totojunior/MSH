@@ -21,7 +21,7 @@ const OUT_NAME = 'index.html';             // GitHub Pages 가 디렉터리 인�
 /* 구글 폰트만 외부 링크로 남긴다. 못 받아도 대체 폰트로 떨어질 뿐 수업은 굴러간다.
    그 외 모든 자산은 파일 안에 있다. */
 const FONTS =
-  'https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap';
+  'https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap';
 
 /* 연결 순서가 중요하다. 뒤 모듈이 앞 모듈의 window.NZ.* 를 읽는다.
    cases/copy(데이터) → state(상태) → audio/court3d(장치) → ui(화면) → boot(시작). */

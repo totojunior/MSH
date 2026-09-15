@@ -384,6 +384,13 @@
     '#nz-court-flat{pointer-events:none;overflow:hidden;}',
     '#nz-court-flat #nz-fb-bust{position:absolute;left:0;top:0;width:100%;height:100%;}',
     /* 배경을 여기서 불투명하게 깔아, 폴백일 때 보이는 그림이 언제나 하나가 되게 한다. */
+    /* 3D 쪽 카메라가 start/lobby/result 에서 노직을 화면 오른쪽에 세운다.
+       폴백도 같은 구도라야 한다 — 안 그러면 WebGL 이 없는 크롬북에서만
+       제목이 그의 얼굴 위에 얹힌다. 사건 화면은 패널이 따로 있어 그대로 둔다. */
+    '#nz-fb-bust.sc-start,#nz-fb-bust.sc-lobby,#nz-fb-bust.sc-result{',
+    'transform:translateX(24%) scale(1.06);transform-origin:80% 100%;}',
+    '@media (max-width:1023px){#nz-fb-bust.sc-start,#nz-fb-bust.sc-lobby,',
+    '#nz-fb-bust.sc-result{transform:none;}}',
     '#nz-fb-bust{display:block;pointer-events:none;background:',
     'radial-gradient(64% 52% at 20% 24%, rgba(255,196,128,.17), transparent 72%),',
     'linear-gradient(180deg,#0d1433 0%,#0b1024 55%,#070b1c 100%);}',
@@ -1068,12 +1075,24 @@
 
   /* 카메라 프리셋. 시선 높이는 노직과 수평이다 — 올려다보는 앵글은 금지다(계약 §8.8). */
   var CAM = {
-    overlay: { pos: [0.18, 1.46, 2.32], look: [-0.30, 1.27, 0.26], lock: 'h', deg: 58 },
+    /* 노직을 화면 오른쪽에 세운다. look.x 가 그의 x(-1.00)보다 왼쪽이면
+       그는 화면 오른쪽으로 간다 — 글자가 앉는 왼쪽 열이 그만큼 비워진다.
+       예전 값(look.x=-0.30)은 그를 정확히 제목 밑에 갖다 놓고 있었다. */
+    overlay: { pos: [-1.02, 1.44, 2.18], look: [-1.42, 1.28, 0.24], lock: 'h', deg: 52 },
+    /* 결과 화면은 좌우 두 열을 다 쓴다. 더 물러서서 방을 보여 주고
+       노직은 오른쪽 아래에 작게 남긴다 — 여기서 주인공은 두 질문이다. */
+    wide: { pos: [-1.12, 1.62, 2.86], look: [-1.34, 1.24, 0.18], lock: 'h', deg: 62 },
+    /* 로비는 사건 파일 10장이 화면 한복판을 가로지른다. 노직을 눈높이에 두면
+       카드가 그의 몸통을 덮어 사고처럼 보인다 — 카메라를 올려 내려다보면
+       그는 격자 위로 올라가고 아래쪽은 책상 상판이 받친다. */
+    desk: { pos: [-1.06, 2.16, 2.62], look: [-1.34, 1.12, 0.06], lock: 'h', deg: 58 },
     split: { pos: [-0.78, 1.52, 2.05], look: [-1.00, 1.30, 0.22], lock: 'h', deg: 46 },
     stack: { pos: [-0.82, 1.55, 1.45], look: [-1.00, 1.42, 0.12], lock: 'v', deg: 32 }
   };
 
   function modeFor(sceneName, w, h) {
+    if (sceneName === 'result') return 'wide';
+    if (sceneName === 'lobby') return 'desk';
     if (sceneName !== 'case') return 'overlay';
     /* 창 폭이 아니라 캔버스 사각형으로 판정한다. window.innerWidth 를 읽지 않는 이유는
        패널 폭이 clamp(...,46vw,...) 라 같은 창 폭에서도 캔버스가 달라지기 때문이다. */
@@ -1128,7 +1147,8 @@
     G.camBase = pre.pos;
     G.camLook = pre.look;
     /* 좁은 창에서 노직이 왼쪽으로 잘리지 않도록 스테이지를 안쪽으로 민다. */
-    G.stage.position.x = (G.mode === 'overlay') ? clamp((1.45 - a) * 0.62, 0, 0.45) : 0;
+    G.stage.position.x = (G.mode === 'overlay' || G.mode === 'wide' || G.mode === 'desk')
+      ? clamp((1.45 - a) * 0.62, 0, 0.45) : 0;
     flatSync();
   }
 
@@ -1650,6 +1670,17 @@
     pause: function () {
       G.paused = true;
       stopLoop();
+      /* 멈추기 전에 한 프레임만 더 그린다. setScene() 직후 곧바로 pause() 가
+         불리면(결과 화면이 그렇다) 새 카메라가 한 번도 렌더되지 않아
+         캔버스에 이전 화면이 남거나 통째로 비어 버린다. */
+      if (api.mode === 'three' && G.renderer && !G.offscreen && G.w > 1 && G.h > 1) {
+        try {
+          tick(0);
+          G.renderer.render(G.scene, G.cam);
+        } catch (e) {
+          /* 마지막 한 장을 못 그렸다고 화면을 죽이지 않는다. */
+        }
+      }
       flatPause(true);
     },
 
