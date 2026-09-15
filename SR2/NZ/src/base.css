@@ -1,0 +1,224 @@
+/* =====================================================================
+   MODULE: base.css  -  토큰 · 리셋 · 유틸. 컴포넌트는 한 줄도 없다.
+
+   CSS 연결 순서는 assemble.js 의 CSS_ORDER 가 강제한다: base.css → ui.css.
+   그래서 여기 있는 것은 전부 ui.css 가 덮어쓸 수 있는 바닥이고,
+   여기서 !important 를 쓰는 곳은 .nz-sr 과 [hidden] 둘뿐이다.
+
+   ---------------------------------------------------------------------
+   왜 이렇게 나눴나
+   ---------------------------------------------------------------------
+   · 매직 넘버를 없애려고 치수·색·시간을 전부 :root 토큰으로 내렸다.
+     화면이 좁아지거나 낮아지면 토큰 값만 갈아 끼우고, 컴포넌트 규칙은
+     한 줄도 바뀌지 않는다(ui.css 의 미디어 쿼리가 짧은 이유다).
+   · 전역 태그 선택자는 *, html/body, button, canvas, mark 다섯 개로 묶었다.
+     p·h2·ul 여백 제거는 #nz-root 아래로 한정한다 — 이 파일이 페이지 전체를
+     책임지는 리셋이 되면, 나중에 이 게임 밖의 마크업이 같이 망가진다.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------- ① 토큰 */
+:root{
+  color-scheme: dark;              /* 스크롤바·폼 컨트롤까지 어두운 계열로 */
+
+  /* ── 색: 지면 ── */
+  --nz-navy-0:#0A1020;  --nz-navy-1:#101A2E;  --nz-navy-2:#14203A;  --nz-navy-3:#18243C;
+  --nz-navy-4:#0E172A;
+  --nz-bubble-bg:#16203A;
+  --nz-hair:#2E3E5C;    --nz-line:#5C74A0;
+  /* ── 색: 글자 ── */
+  --nz-ink:#F2F5FA;     --nz-ink-2:#C3CEDF;   --nz-ink-3:#93A2BA;
+  /* ── 색: 의미 ── */
+  --nz-amber:#FFC24D;   --nz-amber-2:#FFD98A;
+  --nz-match:#5BD7B4;   --nz-miss:#FF9A62;    --nz-on-amber:#0A1020;
+
+  /* 실측 대비비 (WCAG 2.1 상대휘도). 텍스트 기준 4.5:1, 비텍스트 3:1.
+       전경        #0A1020  #101A2E  #14203A  #18243C
+       ink F2F5FA   17.35    15.89    14.81    14.17
+       ink-2 C3CEDF 11.93    10.93    10.18     9.74
+       ink-3 93A2BA  7.33     6.71     6.26     5.98   ← 14px 이상에서만 쓴다
+       amber FFC24D 11.80    10.81    10.08     9.64
+       amber2 FFD98A 14.03   12.85    11.98    11.46
+       match 5BD7B4 10.67     9.78     9.11     8.72
+       miss  FF9A62  9.07     8.31     7.75     7.41
+     반전: #0A1020 on #FFC24D = 11.80 / on #5BD7B4 = 10.67
+           #F2F5FA on #16203A = 14.76 / #C3CEDF on #0E172A = 11.25
+     테두리 #5C74A0 on 위 네 바닥 = 3.69 / 3.44 / 3.80 / 3.29  (전부 3:1 통과)
+     포커스 링 #FFC24D on #18243C = 9.64 / on #0A1020 = 11.80
+     --nz-hair #2E3E5C on #101A2E = 1.62 → 3:1 미달이므로 장식 경계에만 쓴다.
+     의미를 가진 경계(버튼·카드·다이얼로그)는 전부 --nz-line 이다. */
+
+  /* ── 간격: 4px 단위 ── */
+  --nz-s1:4px;  --nz-s2:8px;  --nz-s3:12px; --nz-s4:16px;
+  --nz-s5:20px; --nz-s6:24px; --nz-s7:32px; --nz-s8:40px; --nz-s9:56px;
+  --nz-gutter:26px;  --nz-gap-row:14px;
+
+  /* ── 레이아웃 ── */
+  --nz-hud-h:48px;
+  --nz-panel-w:clamp(492px,46vw,640px);   /* 구간 경계에서 폭이 튀지 않게 한 줄 공식 */
+  --nz-band-h:0px;                        /* 세로 스택 모드에서만 0 이 아니다 */
+  --nz-file-cols:5;  --nz-file-h:150px;
+  --nz-radius:12px;  --nz-radius-sm:8px;  --nz-radius-lg:14px;
+
+  /* ── 폰트 ──
+     한국어 본문에는 웹폰트를 요구하지 않는다. 학교 와이파이에서 첫 문단이 늦게 뜨고,
+     이 파일은 오프라인 더블클릭으로도 굴러가야 한다. 크롬북에는 Noto Sans CJK KR 이
+     기본 탑재라 시스템 스택만으로 품질이 나온다.
+     assemble.js 가 <link> 로 받아 오는 것은 IBM Plex Sans KR · Gowun Batang · Spectral
+     세 종이고 전부 display=swap 이다. 못 받아도 아래 대체 폰트로 즉시 그려진다.
+     그래서 어떤 코드도 document.fonts.ready 를 기다리지 않는다. */
+  --nz-f-ko:"Pretendard","Noto Sans KR","IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,-apple-system,sans-serif;
+  --nz-f-en:"Spectral","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --nz-f-num:"Barlow Condensed","Oswald","Arial Narrow",system-ui,-apple-system,"Segoe UI",sans-serif;
+
+  --nz-fs-title:22px;  --nz-lh-title:1.32;
+  --nz-fs-body:17px;   --nz-lh-body:1.72;
+  --nz-fs-hook:16px;   --nz-lh-hook:1.50;
+  --nz-fs-choice:17px; --nz-lh-choice:1.50;
+  --nz-fs-bubble:19px; --nz-lh-bubble:1.50;
+  --nz-fs-why:15px;    --nz-lh-why:1.55;
+  --nz-fs-label:13px;  --nz-fs-en:14px;   --nz-fs-num:18px;
+
+  /* 한글 글리프는 어떤 CJK 폰트에서도 정확히 1em 이다. 그래서 33em = 한 줄 33자가
+     폰트와 무관하게 성립한다. ch 는 숫자 글리프 폭(0.50~0.56em)이라 한글에 못 쓴다. */
+  --nz-measure-title:26em; --nz-measure-body:33em;
+  --nz-measure-choice:30em; --nz-measure-why:36em;
+
+  /* ── 모션 ── */
+  --nz-t-fast:140ms; --nz-t-base:220ms; --nz-t-slow:380ms;
+  --nz-ease:cubic-bezier(.22,.61,.36,1);
+  --nz-ease-out:cubic-bezier(.16,1,.3,1);
+
+  /* ui.js 가 #nz-feedback 에 인라인으로 꽂는 유일한 커스텀 프로퍼티.
+     꽂지 않아도 ui.css 가 [data-verdict] 로 같은 값을 만들어 낸다(이중 안전장치). */
+  --nz-fb-accent:var(--nz-match);
+
+  /* ── 겹침. 매직 넘버 금지 ── */
+  --nz-z-canvas:0; --nz-z-scrim:5; --nz-z-panel:10;
+  --nz-z-bubble:20; --nz-z-hud:30; --nz-z-dialog:60;
+}
+
+/* 폭 구간. 1024px 미만은 좌우 분할을 접고 세로로 쌓는다. */
+@media (max-width:1023px){
+  :root{ --nz-gutter:20px; --nz-band-h:min(28vh,240px); --nz-file-cols:2; --nz-file-h:96px; }
+}
+@media (max-width:599px){
+  :root{ --nz-gutter:14px; --nz-band-h:min(22vh,180px); --nz-file-cols:1; --nz-file-h:84px; --nz-hud-h:44px; }
+}
+
+/* 세로 구간. 크롬북 1366x768 의 실효 innerHeight 는 셸프·탭·툴바를 빼면 636px 이다.
+   636 은 기본 스케일로 들어가고, 북마크바가 켜진 606 이나 1280x720(=588)만
+   압축 스케일로 떨어지도록 임계값을 620 에 두었다. */
+@media (max-height:620px){
+  :root{ --nz-hud-h:44px; --nz-gap-row:12px; --nz-fs-title:20px; --nz-fs-body:16px;
+         --nz-lh-body:1.70; --nz-fs-hook:15px; --nz-fs-choice:16px;
+         --nz-fs-bubble:18px; --nz-fs-why:14px; }
+}
+/* 이보다 낮으면 3D 밴드를 통째로 접는다. 3D 보다 읽기가 먼저다. */
+@media (max-height:559px){ :root{ --nz-band-h:0px; } }
+
+/* 모션 감소에서도 시간을 0 으로 만들지 않는다. 90ms 짜리 페이드가 남아 있어야
+   "무엇이 바뀌었는지"가 보인다. 전환을 통째로 끊으면 화면이 순간이동한다. */
+@media (prefers-reduced-motion: reduce){
+  :root{ --nz-t-fast:1ms; --nz-t-base:90ms; --nz-t-slow:120ms; }
+}
+
+/* ---------------------------------------------------------------- ② 리셋 */
+*,*::before,*::after{ box-sizing:border-box; }
+
+html,body{
+  margin:0; padding:0;
+  height:100%;
+  overflow:hidden;                 /* 페이지 전체 스크롤은 어떤 폭에서도 0 */
+  background:var(--nz-navy-0);
+  color:var(--nz-ink);
+  font-family:var(--nz-f-ko);
+  font-size:16px;
+  line-height:1.5;
+  -webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
+}
+
+button{
+  font:inherit; color:inherit; letter-spacing:inherit;
+  background:none; border:0; margin:0; padding:0;
+  cursor:pointer;
+  text-align:inherit;
+}
+button[disabled]{ cursor:default; }
+
+canvas{ display:block; }
+
+/* 이 한 줄이 없으면 짙은 남색 위에 브라우저 기본 형광 노랑이 뜬다. */
+mark{ background:none; color:inherit; }
+
+/* 클래스 규칙이 hidden 속성을 이기지 못하게 못 박는다.
+   화면 전환은 el.hidden 으로만 하고 style.display 를 쓰지 않기로 한 계약의 바닥이다. */
+[hidden]{ display:none !important; }
+
+/* 태그 리셋을 페이지 전역이 아니라 게임 루트 아래로 한정한다.
+   :where() 로 감싸 특이도를 0 으로 만든다. 이렇게 하지 않으면 #nz-root p 가
+   (0,1,1) 이라서 ui.css 의 #nz-case-body(0,1,0) 나 .nz-q-ko(0,0,1) 같은 규칙을
+   이겨 버리고, 그것을 되돌리려면 ui.css 가 !important 범벅이 된다.
+   작성자 규칙은 특이도가 0 이어도 브라우저 기본 스타일을 이긴다. */
+:where(#nz-root) :where(h1,h2,p,ul,li){ margin:0; padding:0; }
+:where(#nz-root) :where(ul){ list-style:none; }
+
+/* ------------------------------------------------- ③ 한국어 줄바꿈 · 포커스 */
+
+/* 전역에서 한 번만 선언한다. keep-all 단독은 '300만 원짜리' 같은 긴 어절에서
+   가로 오버플로를 만든다. overflow-wrap:anywhere 를 반드시 짝으로 건다
+   (break-word 가 아니라 anywhere 다 — break-word 는 최소 내용 폭을 줄이지 못한다). */
+#nz-root,.nz-ko{
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+  line-break:strict;
+  hyphens:none;
+}
+
+/* 포커스 링. 개별 컴포넌트에서 outline 을 다시 지우지 않는다 —
+   아래 :focus-visible 이 즉시 되살리는 구조라, 지우는 순간 링이 영영 사라진다.
+   바깥쪽 어두운 헤일로 덕분에 3D 캔버스나 말풍선 위에 올라간 요소에서도
+   배경 밝기와 무관하게 링이 보인다(앰버 대비 9.64~11.80:1). */
+:focus{ outline:none; }
+:focus-visible{
+  outline:3px solid var(--nz-amber);
+  outline-offset:2px;
+  box-shadow:0 0 0 5px rgba(10,16,32,.92);
+  border-radius:inherit;
+}
+
+::selection{ background:var(--nz-amber); color:var(--nz-on-amber); }
+
+/* ---------------------------------------------------------------- ④ 유틸 */
+
+/* 시각적으로만 숨긴다. display:none 이면 낭독도 안 된다.
+   !important 를 허용한 세 자리 중 하나다. */
+.nz-sr{
+  position:absolute !important;
+  width:1px; height:1px; margin:-1px; padding:0;
+  overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%);
+  white-space:nowrap; border:0;
+}
+
+/* 끊기면 안 되는 구. U+2060 같은 보이지 않는 문자 대신 이 클래스를 쓴다 —
+   보이지 않는 문자는 나중에 사람이 붙여넣기로 지워 버린다. */
+.nz-nb{ white-space:nowrap; }
+
+/* 영어 개념어. lang="en" 과 짝으로 쓴다(한국어 음성엔진이 영어를 음절로 읽지 않게). */
+.nz-en{ font-family:var(--nz-f-en); word-break:normal; overflow-wrap:normal; }
+
+/* HUD 숫자와 시계. --nz-f-num 을 못 받아도 폭이 흔들리지 않도록
+   tabular-nums 를 반드시 함께 건다(대체 폰트에서도 작동한다). */
+.nz-tnum{ font-family:var(--nz-f-num); font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; }
+
+/* 아이콘 자리. 실제 모양은 ui.css 가 마스크로 그린다.
+   이모지를 쓰지 않는 이유: 크롬북과 Windows 에서 렌더가 다르고 색이 고정이라
+   상태 대비(색+모양 이중 부호화)를 보장할 수 없다. */
+.nz-icon{
+  display:inline-block; flex:none;
+  width:20px; height:20px;
+  background-color:currentColor;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  -webkit-mask-position:center;  mask-position:center;
+  -webkit-mask-size:contain;     mask-size:contain;
+}

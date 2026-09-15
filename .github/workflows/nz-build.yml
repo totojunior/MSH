@@ -1,0 +1,69 @@
+# SR2/NZ/index.html 을 소스가 바뀔 때마다 다시 굽는다.
+#
+# SR2/NZ/index.html 은 빌드 산출물이다: src/ 의 모듈들을 이어붙이고 three.js 를
+# 인라인한 단일 자립형 페이지. github.com 웹 편집기에서 src/cases.js 의 문장 하나를
+# 고쳐도 학생이 보는 페이지가 그대로 바뀌어야 하기 때문에, 리빌드를 CI 가 맡는다.
+# (SR2 본편의 sr2-build.yml 과 같은 구조다.)
+name: Build SR2/NZ
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SR2/NZ/src/**'
+      - '.github/workflows/nz-build.yml'
+  workflow_dispatch: # Actions 탭에서 손으로 다시 구울 수 있게
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nz-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 콘텐츠·상태·채점 불변식. 사건을 고치다 깨뜨리면 여기서 막힌다.
+      - name: Test
+        run: node SR2/NZ/src/test/run.js
+
+      # assemble.js 가 ES 모듈·외부 URL·fetch·r134 에 없는 API·미완성 마커·
+      # 사건 데이터 무결성을 전부 검사하고, 하나라도 걸리면 종료 코드 1 로 끝난다.
+      - name: Assemble
+        run: node SR2/NZ/src/assemble.js
+
+      # 벨트와 멜빵. 페이지가 안 나왔거나 말이 안 되게 작으면 크게 실패시킨다.
+      # 깨진 빌드가 돌아가던 수업 자료를 덮어쓰는 일은 없어야 한다.
+      - name: Check the output
+        run: |
+          test -f SR2/NZ/index.html || { echo "::error::SR2/NZ/index.html 이 만들어지지 않았다"; exit 1; }
+          size=$(wc -c < SR2/NZ/index.html)
+          echo "index.html = $size bytes"
+          if [ "$size" -lt 700000 ]; then
+            echo "::error::index.html 이 $size 바이트뿐이다 — three.js 가 인라인되지 않았을 것이다"
+            exit 1
+          fi
+          grep -q 'id="APPJS"' SR2/NZ/index.html || { echo "::error::APPJS 블록이 없다"; exit 1; }
+          grep -q 'id="BOOT"'  SR2/NZ/index.html || { echo "::error::BOOT 블록이 없다"; exit 1; }
+
+      - name: Commit the rebuilt page
+        run: |
+          if git diff --quiet -- SR2/NZ/index.html; then
+            echo "index.html 변화 없음 — 커밋할 것이 없다"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add SR2/NZ/index.html
+          git commit -m "Rebuild SR2/NZ/index.html from source
+
+          Automated: SR2/NZ/src changed, so the built page was regenerated."
+          git push
