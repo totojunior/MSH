@@ -1,0 +1,229 @@
+<!-- =====================================================================
+     MODULE: ui.html  -  DOM 골격. 문자열은 거의 전부 비어 있다.
+
+     assemble.js 가 이 파일의 내용을 <div id="root"> 안에 통째로 넣는다.
+     따라서 #nz-gl · #nz-root 는 #root 의 자식이고, court3d.js 가 만드는
+     #nz-fb-bust 는 #nz-gl 의 형제로 이 둘 사이에 끼어든다.
+
+     ---------------------------------------------------------------------
+     고칠 때 반드시 지킬 것
+     ---------------------------------------------------------------------
+     1) id 는 docs/07-인터페이스-계약.md §6.3 색인이 전부다. ui.js 가 그 이름으로
+        찾는다. 하나라도 빠지면 그 화면이 통째로 비고, 새로 만들면 아무도 안 읽는다.
+     2) 화면에 나가는 문자열은 NZ.COPY 가 소유한다. 여기 하드코딩해도 되는 것은
+        계약 §6.7 의 두 가지뿐이다 — #nz-hud-clock 의 0:00 과 .nz-choice-key 의 1 / 2.
+        (aria-label 은 문자열이 아니라 골격의 일부라 §6.1 골격에 적힌 그대로 둔다.
+         ui.js 가 COPY 로 덮어써도 결과는 같다.)
+     3) 인라인 style 과 on* 핸들러를 쓰지 않는다. 상태는 전부 data-* 이고
+        보이기/숨기기는 hidden 속성이다. style.display 를 쓰지 않기로 한 계약이다.
+     4) 문자열 안에 리터럴 "</scr"+"ipt" 를 만들지 않는다. assemble.js 가 막는다.
+     5) 반복되는 것(사건 카드 10장, 결과 목록)은 ui.js 가 만든다. 여기에는 컨테이너와
+        <template> 만 둔다.
+     ===================================================================== -->
+
+<!-- 3D 캔버스. 그림이지 정보가 아니므로 접근성 트리에서 빼고 포커스도 받지 않는다.
+     (aria-hidden 안에 포커스 가능한 요소가 있으면 ChromeVox 가 그 자리에서 침묵한다.)
+     2D 폴백 <svg id="nz-fb-bust"> 는 court3d.js 가 init() 에서 이 요소의 형제로
+     삽입한다. 여기에 미리 쓰지 않는다 — 3D 가 살아 있을 때 빈 SVG 가 남는다. -->
+<canvas id="nz-gl" aria-hidden="true" tabindex="-1"></canvas>
+
+<div id="nz-root"
+     data-screen="start" data-three="off"
+     data-motion="full"  data-sound="off">
+
+  <!-- 낭독 영역 두 개. 페이지가 뜨는 순간부터 DOM 에 있어야 첫 알림이 읽힌다.
+       나중에 삽입하면 그 안에 든 첫 문장은 낭독되지 않는다. -->
+  <p id="nz-live"  class="nz-sr" role="status" aria-live="polite"    aria-atomic="true"></p>
+  <p id="nz-alert" class="nz-sr" role="alert"  aria-live="assertive" aria-atomic="true"></p>
+
+  <!-- ── HUD ─────────────────────────────────────────────────────────
+       start 화면에서는 음소거 버튼만 남고 진행도·시계·처음부터는 CSS 가 감춘다.
+       진행 중 HUD 에는 완료 수와 경과 시간만 있다. 정확도는 결과 화면에서만 공개한다. -->
+  <header id="nz-hud" aria-label="진행 상황">
+    <button id="nz-btn-lobby" type="button" hidden></button>
+
+    <p id="nz-hud-progress">
+      <span id="nz-hud-done" class="nz-tnum nz-nb"></span>
+      <!-- 도트 10개는 ui.js 가 넣는다. 같은 정보를 왼쪽 텍스트가 이미 낭독하므로
+           중복 낭독을 막으려고 통째로 aria-hidden 이다. -->
+      <span id="nz-hud-dots" aria-hidden="true"></span>
+    </p>
+
+    <!-- 1초마다 바뀌는 값에 접근 이름을 달면 ChromeVox 가 커서를 지날 때마다 읽는다.
+         경과 시간은 결과 화면 #nz-result-time-v 에 낭독 가능한 형태로 다시 나온다. -->
+    <p id="nz-hud-clock" class="nz-tnum" aria-hidden="true">0:00</p>
+
+    <!-- 아이콘 전용 버튼을 만들지 않는다. 아이콘 + 상태 텍스트 + aria-pressed 4중 표시.
+         아이콘 모양은 #nz-root[data-sound] 를 읽는 CSS 마스크가 그린다. -->
+    <button id="nz-btn-mute" type="button" aria-label="효과음" aria-pressed="false">
+      <span class="nz-icon" aria-hidden="true"></span><span class="nz-btn-mute-t"></span>
+    </button>
+
+    <button id="nz-btn-restart" type="button" hidden></button>
+  </header>
+
+  <!-- ── START ───────────────────────────────────────────────────────
+       role="main" 은 지금 보이는 화면 하나에만 붙는다. ui.js 가 전환 때 옮긴다. -->
+  <section id="nz-start" class="nz-screen" role="main" tabindex="-1" aria-labelledby="nz-start-title">
+    <h1 id="nz-start-title"></h1>
+    <p  id="nz-start-sub"></p>
+    <p  id="nz-start-note"></p>
+    <!-- 노직을 판사로 오해하지 않게 하는 한 줄. 06 §2-3 [심각] — 지우지 마라. -->
+    <p  id="nz-start-judge"></p>
+    <button id="nz-btn-start" type="button"></button>
+
+    <!-- 이어하기 분기. 패널 자체가 확인 절차라 모달을 따로 띄우지 않는다. -->
+    <div id="nz-resume" hidden>
+      <p id="nz-resume-line"></p>
+      <button id="nz-btn-resume" type="button"></button>
+      <button id="nz-btn-fresh"  type="button"></button>
+    </div>
+
+    <p id="nz-storage-note" hidden></p>
+  </section>
+
+  <!-- ── LOBBY ───────────────────────────────────────────────────────── -->
+  <section id="nz-lobby" class="nz-screen" tabindex="-1" aria-labelledby="nz-lobby-title" hidden>
+    <h2 id="nz-lobby-title"></h2>
+    <p  id="nz-lobby-progress" class="nz-nb"></p>
+
+    <div id="nz-lobby-bar" role="progressbar"
+         aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" aria-label="완료한 사건">
+      <!-- 채움 폭은 aria-valuenow 를 읽는 CSS 가 정한다. 진실은 접근 이름 쪽에 있고
+           그림이 그것을 따라간다 — 두 곳이 어긋날 수 없다. -->
+      <span id="nz-lobby-bar-fill" aria-hidden="true"></span>
+    </div>
+
+    <!-- 카드 10장은 ui.js 가 #nz-tpl-file 로 찍는다. -->
+    <ul id="nz-file-list" role="list"></ul>
+
+    <p id="nz-lobby-hint"></p>
+    <button id="nz-btn-lobby-result" type="button" hidden></button>
+  </section>
+
+  <!-- ── CASE ────────────────────────────────────────────────────────
+       문제와 피드백이 한 화면이다. 자식 순서를 바꾸지 마라 — 세로 예산과
+       낭독 순서가 이 순서 위에 계산되어 있다. -->
+  <section id="nz-case" class="nz-screen" tabindex="-1" aria-labelledby="nz-case-title"
+           data-case-id="" data-phase="ask" data-review="false" hidden>
+    <p  id="nz-case-no"></p>
+    <!-- 섹션이 아니라 제목에 포커스를 준다. 섹션에 주면 ChromeVox 가 번호·제목·본문·
+         선택지를 끊김 없이 한 번에 쏟아낸다. -->
+    <h2 id="nz-case-title" tabindex="-1"></h2>
+    <p  id="nz-case-body"></p>
+    <p  id="nz-case-hook"></p>
+    <p  id="nz-case-q" lang="en"></p>
+
+    <div id="nz-choices" role="group" aria-labelledby="nz-case-q">
+      <!-- data-label 의 1 / 2 는 렌더 순서가 붙이는 자리 이름일 뿐이다.
+           채점은 data-choice-id(cases.js 원본 ID)로만 한다. -->
+      <button class="nz-choice" id="nz-choice-1" type="button"
+              data-choice-id="" data-label="1" data-picked="false" data-expected="false">
+        <span class="nz-choice-key" aria-hidden="true">1</span><span class="nz-choice-text"></span>
+        <span class="nz-choice-badge" hidden></span>
+      </button>
+      <button class="nz-choice" id="nz-choice-2" type="button"
+              data-choice-id="" data-label="2" data-picked="false" data-expected="false">
+        <span class="nz-choice-key" aria-hidden="true">2</span><span class="nz-choice-text"></span>
+        <span class="nz-choice-badge" hidden></span>
+      </button>
+    </div>
+
+    <div id="nz-feedback" hidden>
+      <p id="nz-fb-verdict" tabindex="-1" data-verdict="match">
+        <span class="nz-fb-icon" aria-hidden="true"></span><span class="nz-fb-word"></span>
+      </p>
+      <p id="nz-fb-expected"></p>
+      <p id="nz-fb-reason"></p>
+      <p id="nz-fb-note"   hidden></p>
+      <p id="nz-fb-en" lang="en"></p>
+      <p id="nz-fb-linger" hidden></p>
+      <div id="nz-fb-nav">
+        <!-- '다음 사건'과 '결과 보기'는 같은 버튼이다. data-action 과 라벨만 갈린다. -->
+        <button id="nz-btn-next" type="button" data-action="next"></button>
+      </div>
+    </div>
+
+    <!-- 노직의 한 줄. 판정 카드 밖으로 나가 캔버스 열에 뜨는 말풍선이다.
+         같은 문장이 #nz-live 로 이미 낭독되므로 여기서는 중복 낭독을 막는다. -->
+    <p id="nz-fb-line" aria-hidden="true" hidden></p>
+  </section>
+
+  <!-- ── RESULT ──────────────────────────────────────────────────────
+       순서가 곧 메시지다: 제목 → 두 질문 → 점수 → 해석 → 시간 → 교사 문구 →
+       캡션 → 동의 설문. 점수를 헤드라인에서 내리고 질문을 가장 크게 보여 준다.
+       order 와 display:contents 로 순서를 다시 뒤집지 않는다. -->
+  <section id="nz-result" class="nz-screen" tabindex="-1" aria-labelledby="nz-result-title" hidden>
+    <h2 id="nz-result-title" tabindex="-1"></h2>
+
+    <div id="nz-result-q1" class="nz-result-q">
+      <p class="nz-q-en"   lang="en"></p>
+      <p class="nz-q-ko"></p>
+      <p class="nz-q-term" lang="en"></p>
+    </div>
+    <div id="nz-result-q2" class="nz-result-q">
+      <p class="nz-q-en"   lang="en"></p>
+      <p class="nz-q-ko"></p>
+      <p class="nz-q-term" lang="en"></p>
+    </div>
+
+    <p id="nz-result-score" class="nz-nb"></p>
+    <!-- 점수 바로 옆에 붙는 해석 문구. 이 줄이 없으면 숫자가 성향 점수로 읽힌다. -->
+    <p id="nz-result-score-note"></p>
+    <p id="nz-result-time"><span id="nz-result-time-v" class="nz-tnum nz-nb"></span></p>
+    <p id="nz-result-teacher"></p>
+    <p id="nz-result-caption"></p>
+
+    <!-- 동의 설문. 채점하지 않고, 고른 쪽이 화면에 남지 않는다. -->
+    <div id="nz-agree">
+      <p id="nz-agree-q"></p>
+      <button id="nz-btn-agree-yes" type="button"></button>
+      <button id="nz-btn-agree-no"  type="button"></button>
+      <p id="nz-agree-done" hidden></p>
+    </div>
+
+    <!-- 결과 화면에 '다시 하기'는 두지 않는다. 점수 갈이 루프의 입구가 된다. -->
+    <button id="nz-btn-result-lobby" type="button"></button>
+    <p id="nz-flat-note" hidden></p>
+  </section>
+
+  <!-- ── CONFIRM ─────────────────────────────────────────────────────
+       화면 위에 겹친다. data-screen 을 바꾸지 않는다.
+       배경 차단막은 #nz-confirm::before 다 — 요소를 하나도 더 만들지 않았다. -->
+  <div id="nz-confirm" role="dialog" aria-modal="true" aria-labelledby="nz-confirm-title" hidden>
+    <h2 id="nz-confirm-title"></h2>
+    <p  id="nz-confirm-text"></p>
+    <!-- 취소가 먼저다. 파괴적 동작을 기본 포커스로 두지 않는다. -->
+    <button id="nz-btn-confirm-no"  type="button"></button>
+    <button id="nz-btn-confirm-yes" type="button"></button>
+  </div>
+</div>
+
+<!-- ── 템플릿 ────────────────────────────────────────────────────────
+     <template> 안은 렌더되지 않는다. ui.js 가 content 를 cloneNode 해서 쓴다.
+     마크업을 JS 문자열로 조립하지 않게 하려고 둔 것이다 — 골격이 바뀌면
+     이 파일만 고치면 되고, ui.js 는 텍스트와 data-* 만 채운다.
+     (ui.js 가 createElement 로 직접 만들어도 계약은 깨지지 않는다. 그때는 이 둘이
+      쓰이지 않을 뿐 화면에는 아무 영향이 없다.) -->
+
+<template id="nz-tpl-file">
+  <li class="nz-file-slot">
+    <button class="nz-file" type="button"
+            data-case-id="" data-state="unread" data-current="false" tabindex="-1">
+      <span class="nz-file-no"    aria-hidden="true"></span>
+      <span class="nz-file-stamp" aria-hidden="true"></span>
+      <span class="nz-file-title"></span>
+      <span class="nz-file-badge" aria-hidden="true"></span>
+    </button>
+  </li>
+</template>
+
+<!-- 선택지의 진실은 위 #nz-choice-1 / #nz-choice-2 다(id 가 계약에 박혀 있다).
+     이 템플릿은 그 두 버튼의 속살을 다시 만들어야 할 때 쓰는 같은 모양의 사본이다. -->
+<template id="nz-tpl-choice">
+  <button class="nz-choice" type="button"
+          data-choice-id="" data-label="" data-picked="false" data-expected="false">
+    <span class="nz-choice-key" aria-hidden="true"></span><span class="nz-choice-text"></span>
+    <span class="nz-choice-badge" hidden></span>
+  </button>
+</template>
