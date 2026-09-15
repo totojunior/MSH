@@ -1488,7 +1488,7 @@ mark{ background:none; color:inherit; }
       hook: '노력? 그걸 왜 해? 아빠가 했잖아.',
       question: 'What would Nozick say?',
       options: [
-        { id: 'c01-effort', text: '자기 노력으로 번 돈이 아니라면 가질 권리가 없다.' },
+        { id: 'c01-effort', text: '자발적으로 받았어도 일해서 번 돈이 아니면 권리가 없다.' },
         { id: 'c01-gift',   text: '정당한 재산을 자발적으로 받았다면 가질 권리가 있다.' }
       ],
       answerId: 'c01-gift',
@@ -1515,7 +1515,7 @@ mark{ background:none; color:inherit; }
       ],
       answerId: 'c02-stolen',
       reason: '좋은 결과가 처음의 부당한 취득을 정당하게 만들지는 않는다.',
-      wrongLine: '기부 버튼 누르면 도둑질 기록이 삭제되는 줄 알아?',
+      wrongLine: '기부 버튼이 도둑질 기록까지 지워 주진 않아.',
       concept: 'Was it rightfully theirs?',
       conceptKo: '정당한 소유'
     },
@@ -1555,12 +1555,12 @@ mark{ background:none; color:inherit; }
       hook: '내가 협박했어? 네가 결제했잖아!',
       question: 'What would Nozick say?',
       options: [
-        { id: 'c04-hands-off', text: '직접 결제했으므로 국가는 개입하면 안 된다.' },
+        { id: 'c04-hands-off', text: '사기였어도 직접 결제했으니 국가는 개입하면 안 된다.' },
         { id: 'c04-fraud',     text: '사기이므로 사람들을 보호하는 국가 개입은 정당하다.' }
       ],
       answerId: 'c04-fraud',
       reason: '최소 국가도 사기로부터 사람들을 보호한다.',
-      wrongLine: '‘정품’이라고 속인 부분은 왜 건너뛰는데?',
+      wrongLine: '‘정품이라고 했다’ — 이 한 줄이 이 사건 전부야.',
       concept: 'Protect people against fraud.',
       conceptKo: '사기 방지'
     },
@@ -1600,11 +1600,11 @@ mark{ background:none; color:inherit; }
       question: 'What would Nozick say?',
       options: [
         { id: 'c06-gift',    text: '현명한지는 별개로, 자발적인 선물은 인정한다.' },
-        { id: 'c06-reverse', text: '가난한 쪽에서 부자 쪽으로 갔으니 강제로 취소해야 한다.' }
+        { id: 'c06-reverse', text: '자발적이어도 가난한 쪽에서 부자 쪽으로 갔으니 취소해야 한다.' }
       ],
       answerId: 'c06-gift',
       reason: '받는 사람이 부자라는 이유만으로 자발적 증여가 부당해지지는 않는다.',
-      wrongLine: '돈이 네가 원하는 방향으로 안 갔다고 취소할 수는 없거든?',
+      wrongLine: '방향이 마음에 안 든다고 취소되면, 취소 안 될 선물이 없지.',
       concept: 'Gifts voluntarily given.',
       conceptKo: '자발적 선물'
     },
@@ -1627,7 +1627,7 @@ mark{ background:none; color:inherit; }
       ],
       answerId: 'c07-stolen',
       reason: '이전이 자발적이어도, 넘겨준 사람이 정당한 소유자였는지 확인해야 한다.',
-      wrongLine: '‘정당하게 가진 돈’이라는 조건은 어디 갔어?',
+      wrongLine: '자발적으로 준 건 맞아. 그런데 그 돈은 원래 누구 거였지?',
       concept: 'Justice in initial holdings.',
       conceptKo: '최초 취득'
     },
@@ -1646,7 +1646,7 @@ mark{ background:none; color:inherit; }
       question: 'What would Nozick say?',
       options: [
         { id: 'c08-consent',  text: '다수가 찬성해도 남의 정당한 재산을 가져갈 권리는 없다.' },
-        { id: 'c08-majority', text: '압도적인 다수가 찬성했다면 가져가도 정당하다.' }
+        { id: 'c08-majority', text: '정당한 재산이어도 압도적인 다수가 찬성했다면 가져갈 수 있다.' }
       ],
       answerId: 'c08-consent',
       reason: '다수의 찬성은 소유자의 자발적인 동의를 대신하지 않는다.',
@@ -1667,7 +1667,7 @@ mark{ background:none; color:inherit; }
       hook: '원가 3천 원인데 100만 원?!',
       question: 'What would Nozick say?',
       options: [
-        { id: 'c09-overpriced', text: '원가보다 너무 비싸다면 그것만으로 부당한 거래다.' },
+        { id: 'c09-overpriced', text: '속임수가 없었어도 원가보다 너무 비싸면 부당한 거래다.' },
         { id: 'c09-honest',     text: '속임수나 강요가 없었다면 비싸다는 이유만으로 부당하지 않다.' }
       ],
       answerId: 'c09-honest',
@@ -1690,7 +1690,7 @@ mark{ background:none; color:inherit; }
       question: 'What would Nozick say?',
       options: [
         { id: 'c10-voluntary', text: '강요 없이 자발적으로 나눴다면 정당하다.' },
-        { id: 'c10-antiequal', text: '똑같이 나누는 것이라면 노직이 반대하므로 부당하다.' }
+        { id: 'c10-antiequal', text: '자발적이어도 똑같이 나누는 것은 노직이 반대하므로 부당하다.' }
       ],
       answerId: 'c10-voluntary',
       reason: '정당한 과정의 결과가 평등해지는 것은 문제 삼지 않는다.',
