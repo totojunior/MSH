@@ -1,0 +1,438 @@
+/* YM — 프로젝터. 읽기 전용.
+ *
+ * 토큰이 없다. 공개 테이블 세 개(rooms_public / seats / listings)만 직접 읽는다.
+ * 지갑도, 투표한 사람도, 관리자 토큰도 이 화면에서는 애초에 읽을 수가 없다 —
+ * 실수로 흘릴 여지를 코드가 아니라 권한으로 없앴다.
+ *
+ * ?demo=1 을 붙이면 Supabase 없이 미리 만들어 둔 숫자로 전 과정을 보여 준다.
+ * 학교 프록시가 wss 를 막거나 인터넷이 죽은 날, 수업을 그대로 진행하기 위한 길이다.
+ */
+(function () {
+  'use strict';
+
+  var U = YM.ui, C = YM.CONFIG, db = YM.db;
+  var $ = U.$, el = U.el;
+
+  var params = new URLSearchParams(location.search);
+  var ROOM = (params.get('room') || 'YM2-1').toUpperCase();
+  var DEMO = params.get('demo') === '1';
+
+  var room = null, seats = [], listings = [], shown = null;
+  var hotSeat = null, hotUntil = 0;
+  var yoStarted = false;
+
+  function show(p) {
+    if (shown === p) return;
+    shown = p;
+    document.querySelectorAll('[data-p]').forEach(function (n) {
+      n.hidden = n.getAttribute('data-p') !== p;
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // 소리 — 교실 스피커 하나만 울린다
+  // -------------------------------------------------------------------
+  // 학생 기기는 전부 조용하다. 크롬북 33대가 동시에 울리면 수업이 안 된다.
+  // 자동재생은 브라우저가 막으므로 수업 전에 한 번 눌러 둬야 한다.
+  $('#soundBtn').addEventListener('click', function () {
+    if (U.isMuted()) { U.soundEnable(); this.textContent = '🔊 소리 켜짐'; U.SFX.tick(); }
+    else { U.soundMuted(true); this.textContent = '🔇 소리 켜기'; }
+  });
+
+  // -------------------------------------------------------------------
+  // 데이터 — 공개 테이블만
+  // -------------------------------------------------------------------
+  async function pull() {
+    if (DEMO) return;
+    try {
+      var r1 = await db.sb.from('rooms_public').select('*').eq('room_code', ROOM).maybeSingle();
+      if (r1.error || !r1.data) return;
+      room = r1.data;
+      var r2 = await db.sb.from('seats').select('*').eq('room_id', room.id);
+      seats = r2.data || [];
+      var r3 = await db.sb.from('listings').select('*').eq('room_id', room.id);
+      listings = r3.data || [];
+      render();
+      // 프로젝터도 정산 재촉자 중 하나다. 교사 브라우저 하나에 기대지 않는다.
+      if (room.phase === 'auction') {
+        db.rpc('settle_expired_listings', { p_room_code: ROOM }).catch(function () {});
+      }
+    } catch (e) { /* 다음 주기에 다시 시도한다 */ }
+  }
+
+  function attach() {
+    if (DEMO || !room) return;
+    var ch = db.sb.channel('ym:room:' + room.id);
+    ['seats', 'listings'].forEach(function (t) {
+      ch.on('postgres_changes', { event: '*', schema: 'public', table: t, filter: 'room_id=eq.' + room.id }, pull);
+    });
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'rooms_public', filter: 'id=eq.' + room.id }, pull);
+    // 입찰 티커는 브로드캐스트로. 좌석과 금액만 오고 닉네임은 오지 않는다.
+    ch.on('broadcast', { event: 'bid' }, function (m) {
+      var p = m && m.payload; if (!p) return;
+      hotSeat = { label: p.seat_label, amount: p.amount };
+      hotUntil = Date.now() + 6000;
+      U.SFX.bid();
+      if (p.extended) {
+        var e = $('#ext'); e.hidden = false; U.SFX.extend();
+        setTimeout(function () { e.hidden = true; }, 1600);
+      }
+      paintAuction();
+    });
+    ch.subscribe();
+  }
+
+  // -------------------------------------------------------------------
+  // 각 화면
+  // -------------------------------------------------------------------
+  function paintLobby() {
+    $('#lobbyN').textContent = room.player_count || 0;
+    var url = location.href.replace(/screen\.html.*$/, '') + '?room=' + ROOM;
+    $('#joinUrl').textContent = url.replace(/^https?:\/\//, '');
+    var box = $('#qr');
+    if (box.dataset.url !== url && window.qrcode) {
+      var q = window.qrcode(0, 'M'); q.addData(url); q.make();
+      box.innerHTML = '';                                  // 라이브러리 생성 SVG (사용자 입력 아님)
+      box.insertAdjacentHTML('afterbegin', q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }));
+      box.dataset.url = url;
+    }
+    show('lobby');
+  }
+
+  function paintMap() {
+    var host = $('#pmap');
+    var sig = seats.map(function (s) { return s.id; }).join(',');
+    if (host.dataset.sig !== sig) {
+      U.clear(host);
+      var rows = {};
+      seats.forEach(function (s) { (rows[s.row_label] = rows[s.row_label] || []).push(s); });
+      Object.keys(rows).sort().forEach(function (k) {
+        var r = el('div', 'ym-prow');
+        rows[k].sort(function (a, b) { return a.seat_no - b.seat_no; }).forEach(function (s) {
+          var c = el('div', 'ym-pseat', s.seat_label);
+          c.dataset.id = s.id;
+          r.appendChild(c);
+        });
+        host.appendChild(r);
+      });
+      host.dataset.sig = sig;
+    }
+    var taken = 0;
+    seats.forEach(function (s) {
+      var c = host.querySelector('[data-id="' + s.id + '"]'); if (!c) return;
+      if (s.current_owner_id) {
+        taken++;
+        if (!c.classList.contains('is-taken')) { c.classList.add('is-taken', 'is-pop'); setTimeout(function () { c.classList.remove('is-pop'); }, 500); }
+      }
+    });
+    $('#claimed').textContent = taken;
+    $('#total').textContent = seats.length;
+    $('#soldout').hidden = !(seats.length && taken >= seats.length);
+  }
+
+  var VQ = {
+    pre:         ['BEFORE WE START', '좌석을 되파는 것을 허용해야 할까요?'],
+    post:        ['WAS THIS FAIR?',  '방금 일어난 일은 공정했나요?'],
+  };
+
+  function paintVote(key) {
+    var d = VQ[key];
+    $('#vKick').textContent = d[0];
+    $('#vQ').textContent = d[1];
+    var c = (room.vote_counts || {})[key] || {};
+    var y = c.yes || 0, n = c.no || 0, u = c.unsure || 0, t = y + n + u;
+    var host = $('#vBars'); U.clear(host);
+    [['YES', y, '그렇다'], ['NO', n, '아니다'], ['NOT SURE', u, '모르겠다']].forEach(function (row) {
+      var pct = t ? Math.round(row[1] / t * 100) : 0;
+      var b = el('div', 'ym-bar');
+      var lab = el('div', 'ym-bar__lab');
+      lab.appendChild(el('span', 'ym-bar__en', row[0]));
+      lab.appendChild(el('span', 'ym-bar__ko', row[2]));
+      b.appendChild(lab);
+      var track = el('div', 'ym-bar__track');
+      var fill = el('div', 'ym-bar__fill'); fill.style.width = pct + '%';
+      track.appendChild(fill);
+      b.appendChild(track);
+      // 퍼센트와 사람 수를 함께 쓴다. 막대 길이만으로는 뒷자리에서 안 읽힌다.
+      b.appendChild(el('div', 'ym-bar__pct', pct + '% · ' + row[1] + '명'));
+      host.appendChild(b);
+    });
+    $('#vCount').textContent = t + ' / ' + (room.player_count || 0) + ' 투표함';
+    show('vote');
+  }
+
+  function paintDecide() {
+    var owned = seats.filter(function (s) { return s.current_owner_id; }).length;
+    var sell = listings.filter(function (l) { return l.status === 'pending'; }).length;
+    $('#dOwn').textContent = owned;
+    $('#dSell').textContent = sell;
+    $('#dNone').textContent = Math.max(0, (room.player_count || 0) - owned);
+    show('decide');
+  }
+
+  function paintAuction() {
+    var open = listings.filter(function (l) { return l.status === 'open'; });
+    $('#pEmpty').hidden = open.length > 0;
+
+    // 방금 입찰이 들어온 매물을 크게. 교실 전체가 같은 곳을 보는 순간을 만든다.
+    var hot = null;
+    if (hotSeat && Date.now() < hotUntil) {
+      hot = open.filter(function (l) { return l.seat_label === hotSeat.label; })[0];
+    }
+    if (!hot) {
+      hot = open.slice().sort(function (a, b) { return (b.highest_bid || 0) - (a.highest_bid || 0); })[0];
+    }
+    if (hot) {
+      $('#spot').hidden = false;
+      $('#spotSeat').textContent = hot.seat_label;
+      $('#spotPrice').textContent = U.won(hot.highest_bid || hot.opening_bid);
+      $('#spotTime').textContent = U.secs(db.msUntil(hot.ends_at));
+    } else { $('#spot').hidden = true; }
+
+    var host = $('#plots'); U.clear(host);
+    open.sort(function (a, b) { return a.seat_label < b.seat_label ? -1 : 1; }).forEach(function (l) {
+      var c = el('div', 'ym-plot' + (hot && l.id === hot.id ? ' is-hot' : ''));
+      c.appendChild(el('span', 'ym-plot__s', l.seat_label));
+      c.appendChild(el('span', 'ym-plot__p', U.won(l.highest_bid || l.opening_bid)));
+      c.appendChild(el('span', 'ym-plot__t', U.secs(db.msUntil(l.ends_at))));
+      host.appendChild(c);
+    });
+    show('auction');
+  }
+
+  // 색과 숫자를 함께 쓴다. 색만으로 가격을 읽게 하지 않는다.
+  function heatClass(price, face, max) {
+    if (price <= face) return 'h0';
+    var t = (price - face) / Math.max(1, max - face);
+    return t < 0.25 ? 'h1' : t < 0.5 ? 'h2' : t < 0.75 ? 'h3' : 'h4';
+  }
+
+  var REASON_KO = {
+    need_money: '돈이 필요해서', wants_more: '나보다 더 원하는 사람이 있으니까',
+    my_seat: '내 좌석이니까 내 마음', free_trade: '자유로운 거래인데 뭐가 문제죠',
+  };
+
+  function paintResults() {
+    var r = room.results;
+    if (!r) { show('budget'); return; }
+    var face = r.face_value, max = r.max_price || face;
+
+    var host = $('#heat'); U.clear(host);
+    var rows = {};
+    (r.seats || []).forEach(function (s) { (rows[s.row] = rows[s.row] || []).push(s); });
+    Object.keys(rows).sort().forEach(function (k) {
+      var rowEl = el('div', 'ym-hrow');
+      rows[k].sort(function (a, b) { return a.no - b.no; }).forEach(function (s) {
+        var c = el('div', 'ym-hcell is-' + heatClass(s.price, face, max));
+        c.appendChild(el('span', 'ym-hcell__l', s.label));
+        c.appendChild(el('span', 'ym-hcell__p', U.wonShort(s.price)));
+        if (s.state === 'unsold') c.appendChild(el('span', 'ym-hcell__n', 'UNSOLD'));
+        rowEl.appendChild(c);
+      });
+      host.appendChild(rowEl);
+    });
+
+    $('#rSold').textContent = r.sold + ' / ' + r.seat_count;
+    $('#rRecv').textContent = U.won(r.received);
+    $('#rNone').textContent = r.no_seat + '명';
+    $('#rPriced').textContent = r.priced_out + '명';
+    $('#rPricedNote').textContent = r.min_price
+      ? '가진 돈 전부로도 가장 싸게 팔린 ' + U.won(r.min_price) + ' 좌석조차 살 수 없었음'
+      : '되팔린 좌석이 없었습니다';
+
+    var rh = $('#rReasons'); U.clear(rh);
+    var reasons = r.reasons || {};
+    Object.keys(reasons).forEach(function (k) {
+      var t = el('span', 'ym-rchip');
+      t.appendChild(el('span', 'ym-rchip__n', reasons[k]));
+      t.appendChild(el('span', null, REASON_KO[k] || k));
+      rh.appendChild(t);
+    });
+    show('results');
+  }
+
+  // -------------------------------------------------------------------
+  // P5 — 요세미티
+  // -------------------------------------------------------------------
+  // 지문의 논증을 미리 풀어 주지 않는다. 숫자 세 개와 질문 두 개만 남기고
+  // 나머지는 학생이 곧 읽을 글에 맡긴다.
+  function yosemiteScript(r) {
+    var mult = (r && r.multiple) || null;
+    var maxp = (r && r.max_price) || null;
+    return [
+      { t: 0,     kind: 'line',  text: 'WHAT IF IT WASN’T' },
+      { t: 1400,  kind: 'line',  text: 'A MOVIE TICKET?' },
+      { t: 4200,  kind: 'scene' },
+      { t: 7200,  kind: 'title', text: 'YOSEMITE NATIONAL PARK' },
+      { t: 10000, kind: 'nums',  items: [['900', '예약 가능한 야영지'], ['$20', '1박 정가'], ['$100–150', '2011년 되팔린 값']] },
+      { t: 16000, kind: 'bridge', ours: maxp, mult: mult },
+      { t: 22000, kind: 'q',     text: 'IS PAYING MORE', text2: 'THE SAME AS WANTING MORE?',
+        ko: '더 내는 것과 더 원하는 것은 같은 걸까요?' },
+      { t: 28000, kind: 'q',     text: 'IS NOTHING SACRED?', ko: '팔아서는 안 되는 것이 있을까요?' },
+      { t: 34000, kind: 'vote' },
+    ];
+  }
+
+  var YO_VOTE = [
+    ['q1_movie',    '1 / 3', '영화표를 되파는 것'],
+    ['q2_campsite', '2 / 3', '국립공원 야영지 예약을 되파는 것'],
+    ['q3_upfront',  '3 / 3', '영화관이 처음부터 ₩150,000에 파는 것'],
+  ];
+
+  function paintYosemite() {
+    show('yosemite');
+    var host = $('#yo');
+    if (!yoStarted) {
+      yoStarted = true;
+      var script = yosemiteScript(room.results);
+      script.forEach(function (beat) {
+        setTimeout(function () { drawBeat(host, beat); }, beat.t);
+      });
+    }
+    // 투표 막대는 계속 갱신된다
+    if (host.dataset.mode === 'vote') drawYoVote(host);
+  }
+
+  function drawBeat(host, b) {
+    if (b.kind === 'vote') { host.dataset.mode = 'vote'; drawYoVote(host); return; }
+    host.dataset.mode = b.kind;
+    U.clear(host);
+
+    if (b.kind === 'line')  { host.appendChild(el('p', 'ym-yoline', b.text)); }
+
+    if (b.kind === 'scene') {
+      // 저작권 걱정 없는 실루엣. 오프라인에서도 그대로 뜬다.
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 200 100');
+      svg.setAttribute('class', 'ym-yosvg');
+      svg.innerHTML =
+        '<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#16233d"/><stop offset="1" stop-color="#3a4a63"/></linearGradient></defs>' +
+        '<rect width="200" height="100" fill="url(#sky)"/>' +
+        '<circle cx="158" cy="26" r="7" fill="#f2e6c8" opacity=".85"/>' +
+        '<path d="M0 84 L26 52 L44 66 L60 44 L78 70 L96 58 L112 78 L200 78 L200 100 L0 100 Z" fill="#0d1526"/>' +
+        '<path d="M96 78 C104 48 120 34 134 34 C146 34 152 46 152 78 Z" fill="#17203a"/>' +
+        '<path d="M0 88 L200 88 L200 100 L0 100 Z" fill="#070b14"/>';
+      host.appendChild(svg);
+    }
+
+    if (b.kind === 'title') { host.appendChild(el('p', 'ym-yotitle', b.text)); }
+
+    if (b.kind === 'nums') {
+      var wrap = el('div', 'ym-yonums');
+      b.items.forEach(function (it) {
+        var d = el('div', 'ym-yonum');
+        d.appendChild(el('span', 'ym-yonum__v', it[0]));
+        d.appendChild(el('span', 'ym-yonum__k', it[1]));
+        wrap.appendChild(d);
+      });
+      host.appendChild(wrap);
+    }
+
+    if (b.kind === 'bridge') {
+      var w = el('div', 'ym-yobridge');
+      var a = el('div', 'ym-yoside');
+      a.appendChild(el('p', 'ym-yoside__h', '우리 교실'));
+      a.appendChild(el('p', 'ym-yoside__v', b.ours ? U.won(b.ours) : '—'));
+      a.appendChild(el('p', 'ym-yoside__k', b.mult ? '정가의 ' + b.mult + '배' : ''));
+      var c = el('div', 'ym-yoside');
+      c.appendChild(el('p', 'ym-yoside__h', 'YOSEMITE'));
+      c.appendChild(el('p', 'ym-yoside__v', '$100–150'));
+      c.appendChild(el('p', 'ym-yoside__k', '정가의 5–7.5배'));
+      w.appendChild(a); w.appendChild(c);
+      host.appendChild(w);
+    }
+
+    if (b.kind === 'q') {
+      var q = el('div', 'ym-yoq');
+      q.appendChild(el('p', 'ym-yoq__en', b.text));
+      if (b.text2) q.appendChild(el('p', 'ym-yoq__en', b.text2));
+      q.appendChild(el('p', 'ym-yoq__ko', b.ko));
+      host.appendChild(q);
+    }
+  }
+
+  // 세 문항의 막대가 서로 다른 기울기로 서는 것 자체가 지문의 두 번째 반론이다.
+  // 사이트가 "어떤 것은 팔면 안 된다"고 말하지 않고, 교실이 그렇게 답하게 둔다.
+  function drawYoVote(host) {
+    if (host.dataset.built !== '1') {
+      U.clear(host);
+      host.appendChild(el('p', 'ym-yoq__ko', '되팔아도 괜찮을까요?'));
+      var wrap = el('div', 'ym-yovote'); wrap.id = 'yoVote';
+      host.appendChild(wrap);
+      host.dataset.built = '1';
+    }
+    var wrap = $('#yoVote'); U.clear(wrap);
+    YO_VOTE.forEach(function (q) {
+      var c = (room.vote_counts || {})[q[0]] || {};
+      var y = c.yes || 0, n = c.no || 0, u = c.unsure || 0, t = y + n + u;
+      var box = el('div', 'ym-yov');
+      box.appendChild(el('p', 'ym-yov__n', q[1]));
+      box.appendChild(el('p', 'ym-yov__q', q[2]));
+      var bar = el('div', 'ym-yov__bar');
+      [['yes', y], ['no', n], ['unsure', u]].forEach(function (p) {
+        var seg = el('div', 'ym-yov__seg is-' + p[0]);
+        seg.style.width = (t ? p[1] / t * 100 : 0) + '%';
+        bar.appendChild(seg);
+      });
+      box.appendChild(bar);
+      box.appendChild(el('p', 'ym-yov__num',
+        t ? ('괜찮다 ' + y + ' · 안 된다 ' + n + ' · 모름 ' + u) : '아직 투표 없음'));
+      wrap.appendChild(box);
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // 라우팅
+  // -------------------------------------------------------------------
+  function render() {
+    if (!room) return;
+    $('#dryBadge').hidden = !room.dry_run;
+    var p = room.phase;
+
+    if (p === 'lobby')   return paintLobby();
+    if (p === 'booking') {
+      var left = db.msUntil(room.booking_opens_at);
+      if (left !== null && left > 0) {
+        $('#cd').textContent = Math.ceil(left / 1000);
+        return show('countdown');
+      }
+      return (paintMap(), show('booking'));
+    }
+    if (p === 'prevote')  return paintVote('pre');
+    if (p === 'decide')   return paintDecide();
+    if (p === 'budget')   return show('budget');
+    if (p === 'auction')  return paintAuction();
+    if (p === 'results')  {
+      // 투표를 먼저 받고, 통계는 그다음에 연다. 순서를 뒤집으면 숫자가 표를 끌고 간다.
+      var vc = (room.vote_counts || {}).post || {};
+      var voted = (vc.yes || 0) + (vc.no || 0) + (vc.unsure || 0);
+      var due = db.msUntil(room.postvote_ends_at);
+      if (voted < (room.player_count || 0) && due > 0) return paintVote('post');
+      return paintResults();
+    }
+    if (p === 'yosemite') return paintYosemite();
+    show('lobby');
+  }
+
+  // 초 단위 표시는 스스로 센다. 마감 시각은 이미 알고 있다.
+  setInterval(function () {
+    if (!room) return;
+    if (shown === 'countdown' || shown === 'auction' || shown === 'vote') render();
+    if (shown === 'auction') paintAuction();
+  }, 500);
+
+  // -------------------------------------------------------------------
+  // 시작
+  // -------------------------------------------------------------------
+  if (DEMO) {
+    YM.demo.start(function (r, s, l) { room = r; seats = s; listings = l; render(); });
+  } else {
+    db.syncClock().then(function () {
+      return pull();
+    }).then(function () {
+      attach();
+      setInterval(pull, 2500);
+    });
+  }
+})();

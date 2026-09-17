@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YM 조종석 — 교사용</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<!-- 이 화면은 선생님 '휴대폰'에서 엽니다.
+     교탁 PC 는 보통 프로젝터에 미러링되므로, 여기서 열면 관리자 토큰이
+     교실 벽에 그대로 걸립니다. 토큰을 본 학생은 단계를 넘기고 경매를 끝낼 수 있습니다. -->
+<body class="ym-admin">
+
+<header class="ym-adminbar">
+  <span class="ym-adminbar__room" id="barRoom">—</span>
+  <span class="ym-conn" id="conn"><span class="ym-conn__dot"></span><span id="connText">—</span></span>
+  <span class="ym-adminbar__clock" id="barClock">00:00</span>
+</header>
+
+<main class="ym-adminwrap">
+
+  <!-- 로그인 ------------------------------------------------------- -->
+  <section class="ym-card2" id="authBox">
+    <h1 class="ym-h2">조종석</h1>
+    <label class="ym-label" for="roomSel">반</label>
+    <select class="ym-input" id="roomSel"></select>
+    <label class="ym-label" for="tokenIn">관리자 토큰</label>
+    <input class="ym-input ym-input--mono" id="tokenIn" type="password" autocomplete="off"
+           placeholder="붙여넣기">
+    <button class="ym-btn ym-btn--primary ym-btn--xl" id="authBtn">열기</button>
+    <p class="ym-error" id="authErr" hidden></p>
+    <p class="ym-note ym-note--dim">
+      토큰은 이 기기에만 저장됩니다. 프로젝터에 이 화면을 띄우지 마세요.
+    </p>
+  </section>
+
+  <!-- 조종석 ------------------------------------------------------- -->
+  <section id="deck" hidden>
+
+    <div class="ym-stats" id="stats"></div>
+
+    <p class="ym-phase" id="phaseLine">—</p>
+    <p class="ym-hint" id="hint"></p>
+
+    <div class="ym-steps" id="steps"></div>
+
+    <details class="ym-more">
+      <summary>리허설 · 복구</summary>
+      <div class="ym-tools">
+        <button class="ym-btn" data-act="spawn">봇 20명 불러오기</button>
+        <button class="ym-btn" data-act="house">기기 없는 학생 추가</button>
+        <button class="ym-btn" data-act="reopenJoin">입장 다시 열기</button>
+        <button class="ym-btn" data-act="reopenDecide">되팔기 30초 더</button>
+        <button class="ym-btn" data-act="forceSettle">경매 지금 끝내기</button>
+        <button class="ym-btn" data-act="extend">방 기한 30일 연장</button>
+        <button class="ym-btn" data-act="copy">이 반 결과 복사</button>
+        <button class="ym-btn ym-btn--danger" data-act="reset">이 반 초기화</button>
+        <button class="ym-btn" data-act="logout">토큰 지우기</button>
+      </div>
+      <p class="ym-note ym-note--dim" id="roster"></p>
+    </details>
+
+    <p class="ym-note ym-note--dim" id="urls"></p>
+  </section>
+
+</main>
+
+<script src="js/vendor/supabase.umd.js"></script>
+<script src="js/config.js"></script>
+<script src="js/client.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/bots.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

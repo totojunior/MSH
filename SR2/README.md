@@ -5,6 +5,7 @@
 > | **1차시** | 지문 1 · 트롤리 문제 | 3D 체험형 도입 | https://totojunior.github.io/MSH/SR2/ |
 > | **2차시** | 지문 2 · 롤스 무지의 베일 | 출생 추첨 ([설명](BL/)) | https://totojunior.github.io/MSH/SR2/BL/ |
 > | **3차시** | 지문 3 · 노직 소유권리론 | 노직의 철학 법정 ([설명](NZ/)) | https://totojunior.github.io/MSH/SR2/NZ/ |
+> | **4차시** | 지문 4 · 샌델 요세미티 | 되팔기 시장 — 실시간 ([설명](YM/)) | https://totojunior.github.io/MSH/SR2/YM/ |
 
 ---
 
