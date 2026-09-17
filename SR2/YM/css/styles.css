@@ -513,6 +513,9 @@ select.ym-input { text-align: left; }
 .ym-kick:hover { border-color: var(--ym-off); color: var(--ym-ink); }
 .ym-kick__x { color: var(--ym-faint); font-weight: 800; }
 .ym-kick:hover .ym-kick__x { color: var(--ym-off); }
+/* 한 번 더 눌러야 실행되는 상태. 대화상자를 못 쓰니 색으로 말한다. */
+.ym-kick.is-armed { border-color: var(--ym-off); color: var(--ym-off); font-weight: 700; }
+.ym-kick.is-armed .ym-kick__x { color: var(--ym-off); }
 
 /* 연습용 방을 실제 수업에서 쓰고 있으면 상단 바가 노랗게 경고한다 */
 .ym-adminbar__room.is-dry { color: var(--ym-slow); }
