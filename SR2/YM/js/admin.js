@@ -370,11 +370,32 @@
     }
   });
 
+  // 교사는 하루에 반을 서너 번 바꾼다. 되돌아가는 길이 접힌 섹션 안에만
+  // 있으면 사실상 없는 것과 같다 — 막대에 항상 보이게 둔다.
+  $('#barSwap').addEventListener('click', function () {
+    var b = this;
+    if (b.dataset.armed !== '1') {
+      b.dataset.armed = '1';
+      b.textContent = '한 번 더 — 반 바꾸기';
+      setTimeout(function () {
+        if (b.dataset.armed !== '1') return;
+        b.dataset.armed = ''; b.textContent = '반 바꾸기';
+      }, 4000);
+      return;
+    }
+    try { localStorage.removeItem(KEY_T); localStorage.removeItem(KEY_R); } catch (e) {}
+    location.href = location.pathname;
+  });
+
   function open() {
     $('#authBox').hidden = true;
     $('#deck').hidden = false;
+    $('#barSwap').hidden = false;
     db.syncClock().then(poll);
-    if (!timer) timer = setInterval(poll, 2000);
-    setInterval(function () { if (state) render(); }, 1000);
+    // open() 이 두 번 불리면 타이머가 두 벌 돌아 화면이 깜빡인다.
+    if (!timer) {
+      timer = setInterval(poll, 2000);
+      setInterval(function () { if (state) render(); }, 1000);
+    }
   }
 })();

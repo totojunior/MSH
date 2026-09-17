@@ -17,6 +17,9 @@
   // 학생도 원인을 못 찾는다. 기본값은 없앤다.
   var params = new URLSearchParams(location.search);
   var urlRoom = (params.get('room') || '').trim().toUpperCase();
+  // ?pick=1 — '반 다시 고르기' 로 돌아온 경우. 이때는 자동 입장을 하지 않는다.
+  // 안 그러면 방금 나온 그 방으로 곧장 되돌아가서 버튼이 죽은 것처럼 보인다.
+  var forcePick = params.get('pick') === '1';
   var ROOM = urlRoom;
 
   var store = null;           // boot() 전까지는 없다
@@ -662,7 +665,7 @@
 
   // 틀린 반을 골랐을 때의 탈출구. 아직 참가 전이라 지울 세션도 없다.
   $('#backPick').addEventListener('click', function () {
-    location.href = location.pathname;
+    location.href = location.pathname + '?pick=1';
   });
 
   // -------------------------------------------------------------------
@@ -696,14 +699,14 @@
 
   var tries = 0;
 
-  async function findRoom() {
+  async function findRoom(auto) {
     if (booted) return;
     var open = await db.openRooms();
     if (booted) return;
 
     // 열린 방이 딱 하나이고 이 기기에 다른 반 세션이 없다 — 거의 모든 경우가
     // 여기다. 학생은 아무것도 고르지 않고 바로 참가 화면으로 간다.
-    if (open && open.length === 1 && (!savedRoom || savedRoom === open[0])) {
+    if (auto && open && open.length === 1 && (!savedRoom || savedRoom === open[0])) {
       boot(open[0]);
       return;
     }
@@ -716,9 +719,10 @@
         ? '입장이 닫혀 있습니다. 하던 수업을 이어서 하세요.'
         : '선생님이 입장을 열면 자동으로 시작됩니다. 이 화면을 그대로 두세요.';
     } else if (open.length === 1) {
-      // 이 기기에 다른 반 세션이 남아 있다. 조용히 고르지 않고 물어본다.
-      $('#pickLead').textContent = '어느 쪽인가요?';
+      // 이 기기에 다른 반 세션이 남아 있거나, 학생이 직접 다시 고르러 왔다.
+      $('#pickLead').textContent = auto ? '어느 쪽인가요?' : '우리 반을 고르세요';
       offer('#pickGo', open[0], roomLabel(open[0]) + ' 참가하기');
+      if (!auto) { buildManual(); $('#pickMore').open = true; }
     } else {
       $('#pickLead').textContent = '우리 반을 고르세요';
       buildManual(); $('#pickMore').open = true;
@@ -728,9 +732,18 @@
 
     // 수업 전에 미리 열어 둔 화면이 선생님의 "입장 열기" 를 기다린다.
     tries++;
-    setTimeout(findRoom, tries < 20 ? 3000 : 10000);
+    setTimeout(function () { findRoom(auto); }, tries < 20 ? 3000 : 10000);
   }
 
-  if (urlRoom) { boot(urlRoom); }
-  else { screen('pick'); findRoom(); }
+  if (urlRoom && !forcePick) {
+    boot(urlRoom);
+  } else {
+    screen('pick');
+    if (forcePick) {
+      $('#pickLead').textContent = '우리 반을 고르세요';
+      buildManual();
+      $('#pickMore').open = true;
+    }
+    findRoom(!forcePick);
+  }
 })();
