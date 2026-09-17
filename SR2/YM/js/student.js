@@ -573,6 +573,11 @@
     if (p === 'yosemite') {
       var q = currentQuestion(s);
       var finLeft = db.msUntil(s.room.finalvote_ends_at);
+      // 프로젝터 연출이 질문에 닿기 전에는 학생 손에 문항을 주지 않는다.
+      // 예전에는 단계가 바뀌는 순간 33대에 세 문항이 다 떠서, 학생들이
+      // 화면의 질문을 보기도 전에 투표를 끝내 버렸다. 그 막대가 결론인데.
+      // 교사는 95초를 주고, 마지막 60초만 투표 시간이다.
+      if (finLeft !== null && finLeft > 60000) { screen('watch'); return; }
       if (q && (finLeft === null || finLeft > 0)) {
         showVote(q, s.room.finalvote_ends_at, s); return;
       }

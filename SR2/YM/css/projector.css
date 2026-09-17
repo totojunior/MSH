@@ -22,9 +22,12 @@
 .ym-pq      { margin: 0; font-size: 6vmin; font-weight: 800; line-height: 1.2; }
 .ym-pq--sm  { font-size: 4.2vmin; }
 .ym-plead   { margin: 0; font-size: 3.4vmin; color: var(--ym-dim); }
-.ym-pnote   { margin: 0; font-size: 1.9vmin; color: var(--ym-faint); }
+.ym-pnote   { margin: 0; font-size: max(16px, 1.9vmin); color: var(--ym-dim); }
 .ym-pbig    { margin: 0; font-size: 9vmin; font-weight: 800; font-variant-numeric: tabular-nums; }
-.ym-plabel  { margin: 0; font-size: 1.8vmin; letter-spacing: .26em; color: var(--ym-faint); text-transform: uppercase; }
+/* 캡션은 모든 큰 숫자 아래에 붙는 설명이다. 1024x768 프로젝터에서 vmin 은
+   7.68px 이라 1.8vmin 이면 13.8px — 교실 뒷자리에서 안 읽힌다.
+   최소 크기를 px 로 바닥에 깔고, 색도 한 단계 밝힌다. */
+.ym-plabel  { margin: 0; font-size: max(17px, 1.9vmin); letter-spacing: .2em; color: var(--ym-dim); text-transform: uppercase; }
 .ym-pcount  { margin: 0; font-size: 42vmin; font-weight: 800; line-height: .85; }
 .ym-purl    { margin: 1vmin 0 0; font-size: 2.2vmin; color: var(--ym-dim); word-break: break-all; }
 
@@ -63,7 +66,7 @@
 .ym-bar  { display: grid; grid-template-columns: 22vmin 1fr 18vmin; align-items: center; gap: 2vmin; }
 .ym-bar__lab { text-align: left; }
 .ym-bar__en  { display: block; font-size: 3vmin; font-weight: 800; letter-spacing: .06em; }
-.ym-bar__ko  { display: block; font-size: 1.7vmin; color: var(--ym-faint); }
+.ym-bar__ko  { display: block; font-size: max(16px, 1.8vmin); color: var(--ym-dim); }
 .ym-bar__track { height: 5vmin; background: #14141c; border-radius: .8vmin; overflow: hidden; }
 .ym-bar__fill  { height: 100%; background: var(--ym-hot); transition: width .5s cubic-bezier(.2,.7,.2,1); }
 .ym-bar__pct   { font-size: 2.4vmin; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
@@ -105,9 +108,9 @@
   display: flex; flex-direction: column; gap: .2vmin;
   border: .25vmin solid var(--ym-line);
 }
-.ym-hcell__l { font-size: 1.6vmin; color: var(--ym-faint); }
+.ym-hcell__l { font-size: max(15px, 1.7vmin); color: var(--ym-dim); }
 .ym-hcell__p { font-size: 3.2vmin; font-weight: 800; font-variant-numeric: tabular-nums; }
-.ym-hcell__n { font-size: 1.3vmin; letter-spacing: .1em; color: var(--ym-faint); }
+.ym-hcell__n { font-size: max(13px, 1.4vmin); letter-spacing: .1em; color: var(--ym-dim); }
 .ym-hcell.is-h0 { background: #12121a; }
 .ym-hcell.is-h1 { background: #1e2438; }
 .ym-hcell.is-h2 { background: #3a2f2a; }
@@ -117,7 +120,7 @@
 /* 두 칸을 대칭으로 둔다. 한쪽만 크게 하면 사이트가 편을 드는 것이 된다. */
 .ym-cols { display: flex; gap: 8vmin; margin-top: 2vmin; }
 .ym-col  { min-width: 34vmin; }
-.ym-colh { margin: 0 0 1vmin; font-size: 2vmin; letter-spacing: .2em; color: var(--ym-faint); }
+.ym-colh { margin: 0 0 1vmin; font-size: max(18px, 2.1vmin); letter-spacing: .2em; color: var(--ym-dim); }
 .ym-colv { margin: 0; font-size: 5.4vmin; font-weight: 800; font-variant-numeric: tabular-nums; }
 .ym-colv--hot { color: var(--ym-hot); }
 
@@ -136,7 +139,7 @@
 
 .ym-yonums { display: flex; gap: 9vmin; animation: ym-fade .8s ease-out; }
 .ym-yonum__v { display: block; font-size: 9vmin; font-weight: 800; color: var(--ym-hot); }
-.ym-yonum__k { display: block; font-size: 1.9vmin; color: var(--ym-faint); margin-top: .6vmin; }
+.ym-yonum__k { display: block; font-size: max(17px, 2vmin); color: var(--ym-dim); margin-top: .6vmin; }
 
 .ym-yobridge { display: flex; gap: 10vmin; animation: ym-fade .8s ease-out; }
 .ym-yoside__h { margin: 0; font-size: 2vmin; letter-spacing: .24em; color: var(--ym-faint); }
@@ -156,7 +159,7 @@
 .ym-yov__seg.is-yes    { background: var(--ym-hot); }
 .ym-yov__seg.is-no     { background: #3c4a6b; }
 .ym-yov__seg.is-unsure { background: #2a2a38; }
-.ym-yov__num { margin: .8vmin 0 0; font-size: 1.9vmin; color: var(--ym-dim); font-variant-numeric: tabular-nums; }
+.ym-yov__num { margin: .8vmin 0 0; font-size: max(17px, 2vmin); color: var(--ym-ink); font-variant-numeric: tabular-nums; }
 
 @keyframes ym-fade { from { opacity: 0; transform: translateY(1.6vmin); } to { opacity: 1; } }
 

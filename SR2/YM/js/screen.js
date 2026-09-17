@@ -44,11 +44,33 @@
   // -------------------------------------------------------------------
   // 데이터 — 공개 테이블만
   // -------------------------------------------------------------------
+  var pullFails = 0;
+
+  function fatalScreen(msg, detail) {
+    var host = document.querySelector('[data-p="lobby"]');
+    if (!host) return;
+    U.clear(host);
+    host.appendChild(el('p', 'ym-pkick', 'CANNOT OPEN'));
+    host.appendChild(el('h1', 'ym-pq', msg));
+    host.appendChild(el('p', 'ym-plead', detail));
+    host.appendChild(el('p', 'ym-pnote', '주소의 room= 값을 확인하거나, 조종석에서 방 기한을 연장하세요.'));
+    show('lobby');
+  }
+
   async function pull() {
     if (DEMO) return;
     try {
       var r1 = await db.sb.from('rooms_public').select('*').eq('room_code', ROOM).maybeSingle();
-      if (r1.error || !r1.data) return;
+      // 방이 없는데 대기 화면을 그대로 띄우면, 교사는 '아무도 안 들어오네'
+      // 하고 서 있게 된다. 반 코드 오타든 만료든 화면이 말해 줘야 한다.
+      if (r1.error || !r1.data) {
+        if (++pullFails >= 3) {
+          fatalScreen(ROOM + ' 방을 찾을 수 없습니다',
+            r1.error ? '데이터베이스에 연결하지 못했습니다.' : '이 반 코드의 방이 없거나 기한이 지났습니다.');
+        }
+        return;
+      }
+      pullFails = 0;
       room = r1.data;
       var r2 = await db.sb.from('seats').select('*').eq('room_id', room.id);
       seats = r2.data || [];
