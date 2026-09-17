@@ -677,6 +677,13 @@
     if (_prev && _prev.room_code) savedRoom = _prev.room_code;
   } catch (e) { savedRoom = null; }
 
+  // 비상문을 열어 준다. 평소에는 아예 없는 것처럼 둔다.
+  function showManual() {
+    var d = $('#pickMore');
+    d.hidden = false;
+    d.open = true;
+  }
+
   function buildManual() {
     var host = $('#roomPick');
     if (host.firstChild) return;
@@ -713,7 +720,7 @@
 
     if (open === null) {
       $('#pickLead').textContent = '연결이 안 됩니다. 잠시 뒤 다시 시도합니다.';
-      buildManual(); $('#pickMore').open = true;
+      buildManual(); showManual();
     } else if (open.length === 0) {
       $('#pickLead').textContent = savedRoom
         ? '입장이 닫혀 있습니다. 하던 수업을 이어서 하세요.'
@@ -722,10 +729,10 @@
       // 이 기기에 다른 반 세션이 남아 있거나, 학생이 직접 다시 고르러 왔다.
       $('#pickLead').textContent = auto ? '어느 쪽인가요?' : '우리 반을 고르세요';
       offer('#pickGo', open[0], roomLabel(open[0]) + ' 참가하기');
-      if (!auto) { buildManual(); $('#pickMore').open = true; }
+      if (!auto) { buildManual(); showManual(); }
     } else {
       $('#pickLead').textContent = '우리 반을 고르세요';
-      buildManual(); $('#pickMore').open = true;
+      buildManual(); showManual();
     }
 
     if (savedRoom) offer('#resumeBtn', savedRoom, roomLabel(savedRoom) + ' — 이어서 하기');
@@ -742,7 +749,7 @@
     if (forcePick) {
       $('#pickLead').textContent = '우리 반을 고르세요';
       buildManual();
-      $('#pickMore').open = true;
+      showManual();
     }
     findRoom(!forcePick);
   }
