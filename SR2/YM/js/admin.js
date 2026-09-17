@@ -189,8 +189,22 @@
         chip.title = '눌러서 내보내기';
         chip.appendChild(el('span', null, p.nickname + (p.bot ? ' (봇)' : p.house ? ' (대리)' : '')));
         chip.appendChild(el('span', 'ym-kick__x', '×'));
+        // 여기도 confirm() 을 쓰지 않는다 — 막히면 칩이 죽은 것처럼 보인다.
+        // 한 번 누르면 칩이 '정말?' 로 바뀌고, 한 번 더 눌러야 내보낸다.
         chip.addEventListener('click', function () {
-          if (!confirm('"' + p.nickname + '" 을(를) 내보낼까요?')) return;
+          if (chip.dataset.armed !== '1') {
+            chip.dataset.armed = '1';
+            chip.classList.add('is-armed');
+            chip.firstChild.textContent = p.nickname + ' 내보낼까요?';
+            setTimeout(function () {
+              if (chip.dataset.armed !== '1') return;
+              chip.dataset.armed = '';
+              chip.classList.remove('is-armed');
+              chip.firstChild.textContent =
+                p.nickname + (p.bot ? ' (봇)' : p.house ? ' (대리)' : '');
+            }, 4000);
+            return;
+          }
           doAct('kick:' + p.id);
         });
         rh.appendChild(chip);
@@ -265,12 +279,28 @@
       if (act === 'extend')       { var x = await call('admin_extend_room', { p_days: 30 }); U.toast('30일 연장'); }
       if (act === 'copy')           copyResults();
       if (act === 'reset') {
-        if (confirm(ROOM + ' 의 참가자·좌석·경매·투표를 모두 지웁니다.\n다른 반은 영향받지 않습니다.\n\n계속할까요?')) {
-          if (YM.bots && YM.bots.isRunning()) YM.bots.stop();
-          await call('admin_reset_room');
-          startedAt = null;
-          U.toast('초기화했습니다. 연습하려면 봇을 다시 부르세요.');
+        // confirm() 을 쓰지 않는다. 브라우저가 대화상자를 막으면 버튼이 아무
+        // 반응 없이 죽은 것처럼 보인다 — 수업 중에 이보다 나쁜 건 없다.
+        // 대신 버튼 자신이 '한 번 더 눌러야 실행되는' 상태로 바뀐다.
+        if (b && b.dataset.armed !== '1') {
+          b.dataset.armed = '1';
+          b.dataset.label = b.textContent;
+          b.textContent = ROOM + ' 를 정말 지웁니다 — 한 번 더';
+          setTimeout(function () {
+            if (b.dataset.armed === '1') {
+              b.dataset.armed = '';
+              b.textContent = b.dataset.label || '이 반 초기화';
+            }
+          }, 5000);
+          b.disabled = false;
+          return;
         }
+        b.dataset.armed = '';
+        b.textContent = b.dataset.label || '이 반 초기화';
+        if (YM.bots && YM.bots.isRunning()) YM.bots.stop();
+        await call('admin_reset_room');
+        startedAt = null;
+        U.toast(ROOM + ' 초기화 완료 — 「입장 열기」를 다시 누르세요.');
       }
       if (act === 'logout') {
         try { localStorage.removeItem(KEY_T); localStorage.removeItem(KEY_R); } catch (e) {}
