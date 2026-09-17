@@ -6,7 +6,7 @@
 <title>THE ODYSSEY — 용산 IMAX · 교실 시뮬레이션</title>
 <meta name="description" content="외부지문 2 · 4차시 — Selling Yosemite 도입 활동 (학생용)">
 <link rel="icon" href="favicon.svg">
-<link rel="stylesheet" href="css/styles.css?v=20260918b">
+<link rel="stylesheet" href="css/styles.css?v=20260918c">
 </head>
 <body class="ym-student">
 
@@ -31,7 +31,9 @@
       <p class="ym-lead" id="pickLead">수업을 찾는 중…</p>
       <button class="ym-btn ym-btn--primary ym-btn--xl" id="pickGo" type="button" hidden></button>
       <button class="ym-btn ym-btn--xl" id="resumeBtn" type="button" hidden></button>
-      <details class="ym-pickmore" id="pickMore">
+      <!-- 비상문. 자동으로 반을 못 고른 경우에만 보인다 — 선생님을 기다리는
+           동안 이게 보이면 학생이 눌러 엉뚱한 반으로 들어간다. -->
+      <details class="ym-pickmore" id="pickMore" hidden>
         <summary>반 직접 고르기</summary>
         <div class="ym-rooms" id="roomPick"></div>
       </details>
@@ -238,11 +240,11 @@
 
 </main>
 
-<script src="js/vendor/supabase.umd.js?v=20260918b"></script>
-<script src="js/config.js?v=20260918b"></script>
-<script src="js/client.js?v=20260918b"></script>
-<script src="js/ui.js?v=20260918b"></script>
-<script src="js/state.js?v=20260918b"></script>
-<script src="js/student.js?v=20260918b"></script>
+<script src="js/vendor/supabase.umd.js?v=20260918c"></script>
+<script src="js/config.js?v=20260918c"></script>
+<script src="js/client.js?v=20260918c"></script>
+<script src="js/ui.js?v=20260918c"></script>
+<script src="js/state.js?v=20260918c"></script>
+<script src="js/student.js?v=20260918c"></script>
 </body>
 </html>
