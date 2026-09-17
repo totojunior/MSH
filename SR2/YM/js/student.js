@@ -497,7 +497,18 @@
   // -------------------------------------------------------------------
   function render(s, status) {
     conn(status || store.status());
-    if (!s) { screen('join'); return; }
+    if (!s) {
+      // 참가 화면으로 돌아올 때는 버튼을 반드시 되살린다.
+      // 한 번 참가에 성공하면 버튼을 잠근 채 다음 화면으로 넘어가는데,
+      // 방이 초기화되면 여기로 되돌아오면서 그 잠금이 남는다. 그러면
+      // 학생이 눌러도 아무 일도 안 일어나고 오류도 안 뜬다 — 33명 전원이.
+      var jb = $('#joinBtn');
+      if (jb) jb.disabled = false;
+      var je = $('#joinErr');
+      if (je) je.hidden = true;
+      screen('join');
+      return;
+    }
 
     var p = s.room.phase, me = s.me;
     $('#lobbyNick').textContent = me.nickname || '—';
