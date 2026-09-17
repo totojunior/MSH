@@ -887,7 +887,6 @@
     var tok = keyGet();
     if (tok) { enterRoom(rc, tok); return; }
     $('#tvSetupH').textContent = '교사 암호를 한 번만 입력하세요';
-    $('#tvPwRoom').textContent = roomLabel(rc);
     $('#tvPw').hidden = false;
     $('#tvErr').hidden = true;
     var inp = $('#tvKey');
@@ -963,7 +962,6 @@
     if (mode === 'sheet' && ROOM) {
       pickedRoom = ROOM;
       $('#tvSetupH').textContent = '중계 중 — 조종하려면 교사 암호가 필요합니다';
-      $('#tvPwRoom').textContent = roomLabel(ROOM);
       $('#tvPw').hidden = false;
       // 방은 이미 정해져 있다. 반 버튼을 같이 띄우면 교사가 "여기서도
       // 골라야 하나" 하고 멈춘다 — 물어보는 것은 암호 하나뿐이어야 한다.
