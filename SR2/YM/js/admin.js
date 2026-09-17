@@ -16,6 +16,8 @@
   var state = null;
   var timer = null;
   var startedAt = null;       // 활동 전체 경과 시계
+  var busyUntil = 0;          // 이 시각까지는 큰 버튼을 다시 그리지도, 받지도 않는다
+  var shownStepId = null;     // 지금 화면에 있는 버튼이 어느 단계인지
 
   var KEY_T = 'ym.admin_token', KEY_R = 'ym.admin_room';
 
@@ -35,7 +37,11 @@
     { id: 'decide',  label: '가질까 팔까 (90초)', sub: '좌석 주인들이 정합니다',   target: 100,
       when: function (s) { return s.room.phase === 'prevote'; } },
     { id: 'budget',  label: '예산 배정',        sub: '전원에게 불평등하게',        target: 45,
-      when: function (s) { return s.room.phase === 'decide'; } },
+      when: function (s) { return s.room.phase === 'decide' && !s.room.wealth_distributed_at; } },
+    // 예산을 이미 나눠 준 뒤에 '되팔기 30초 더'를 눌러 decide 로 돌아온 경우.
+    // 이 줄이 없으면 예산 배정(단발)만 계속 뜨고 경매로 갈 길이 없어진다.
+    { id: 'auction', label: '경매 시작 (60초)', sub: '여기가 절정입니다',          target: 90,
+      when: function (s) { return s.room.phase === 'decide' && s.room.wealth_distributed_at; } },
     { id: 'auction', label: '경매 시작 (60초)', sub: '여기가 절정입니다',          target: 90,
       when: function (s) { return s.room.phase === 'budget'; } },
     { id: 'results', label: '결과 보기',        sub: '투표 먼저, 통계는 그다음',   target: 240,
@@ -125,9 +131,22 @@
                      budget: '예산 배정', auction: '경매', results: '결과', yosemite: '요세미티' };
     $('#phaseLine').textContent = PHASE_KO[r.phase] || r.phase;
 
-    // 다음 버튼 하나만 크게
+    // 다음 버튼 하나만 크게.
+    //
+    // 누른 직후 잠깐은 아예 다시 그리지 않는다. 예전에는 1초마다 버튼을
+    // 통째로 새로 만들었는데, 그러면 눌러서 잠가 둔 disabled 가 날아간다.
+    // 교사가 휴대폰에서 예매 시작을 습관적으로 두 번 탭하면 250ms 뒤에
+    // 같은 자리에 '사전 투표' 버튼이 들어와 있고, 두 번째 탭이 그걸 눌러
+    // 8초 카운트다운 중에 예매창을 닫아 버린다. 좌석 0개, 되돌릴 방법 없음.
     var step = nextStep(s);
-    var host = $('#steps'); U.clear(host);
+    var host = $('#steps');
+    var stepId = step ? step.id : '__end__';
+
+    if (Date.now() < busyUntil) return;          // 누른 직후 — 손대지 않는다
+    if (shownStepId === stepId && host.firstChild) return;   // 같은 단계 — 그대로 둔다
+    shownStepId = stepId;
+    U.clear(host);
+
     if (step) {
       var b = el('button', 'ym-btn ym-btn--primary ym-btn--step');
       b.appendChild(el('span', 'ym-btn__main', step.label));
@@ -169,6 +188,8 @@
   // 서버가 막아 주더라도 화면이 반응하지 않으면 세 번째를 누르게 된다.
   async function doStep(id, btn) {
     btn.disabled = true;
+    // 1.2초 동안은 render() 가 이 버튼을 갈아치우지 못하게 막는다.
+    busyUntil = Date.now() + 1200;
     try {
       if (id === 'open')     await call('admin_open_join', { p_max: 45 });
       if (id === 'lock')     { var r = await call('admin_lock_roster', { p_seat_override: null });
@@ -188,7 +209,11 @@
       U.toast('실패했습니다. 다시 눌러 주세요.', 'warn');
     }
     await poll();
-    setTimeout(function () { btn.disabled = false; }, 600);
+    setTimeout(function () {
+      busyUntil = 0;
+      shownStepId = null;      // 다음 render 에서 새 단계 버튼을 그린다
+      if (state) render();
+    }, 1200);
   }
 
   // -------------------------------------------------------------------

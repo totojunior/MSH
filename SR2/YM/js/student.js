@@ -210,7 +210,17 @@
       $('#voteDone').hidden = false;
       document.querySelectorAll('[data-vote]').forEach(function (x) { x.disabled = true; });
       b.classList.add('is-picked');
-      try { await store.call('cast_vote', { p_question: qkey, p_choice: b.dataset.vote }); } catch (e) {}
+      try {
+        var vr = await store.call('cast_vote', { p_question: qkey, p_choice: b.dataset.vote });
+        if (!vr || !vr.ok) throw new Error('vote');
+      } catch (e) {
+        // 조용히 삼키면 학생은 투표한 줄 알고, 프로젝터 막대에는 안 잡힌다.
+        // 그 막대가 이 수업의 결론이라 한 표도 잃으면 안 된다.
+        delete votedThis[qkey];
+        $('#voteDone').hidden = true;
+        document.querySelectorAll('[data-vote]').forEach(function (x) { x.disabled = false; x.classList.remove('is-picked'); });
+        U.toast('투표가 저장되지 않았습니다. 다시 눌러 주세요.', 'warn');
+      }
       store.refresh();
     });
   });
@@ -327,10 +337,21 @@
       banner.hidden = true;
     }
 
-    U.clear(host);
+    // 카드를 매번 지웠다 새로 만들지 않는다. 입찰이 초당 몇 건씩 들어오면
+    // 120ms 마다 화면이 통째로 새로 그려지고, 학생이 막 누르려던 버튼이
+    // 손가락 밑에서 사라진다. 탭은 조용히 허공으로 간다.
+    // 매물 구성이 달라졌을 때만 다시 만들고, 평소에는 숫자만 고쳐 넣는다.
     open.sort(function (a, b) { return a.seat_label < b.seat_label ? -1 : 1; });
+    var sig = open.map(function (l) { return l.id; }).join(',') + '|' + iHaveSeat + '|' + (leading ? leading.listing_id : '');
+    if (host.dataset.sig === sig) {
+      open.forEach(function (l) { updateLot(host, l, s, leading, iHaveSeat); });
+      return;
+    }
+    host.dataset.sig = sig;
+    U.clear(host);
     open.forEach(function (l) {
       var card = el('div', 'ym-lot' + (l.leading ? ' is-lead' : '') + (l.mine ? ' is-mine' : ''));
+      card.dataset.lot = l.id;
       card.appendChild(el('p', 'ym-lot__seat', l.seat_label));
 
       var cur = el('p', 'ym-lot__price');
@@ -361,7 +382,11 @@
           b.disabled = !afford || blocked;
           if (!afford) b.title = '가진 금액을 넘습니다';
           if (blocked) b.title = '다른 좌석에서 1등입니다';
-          b.addEventListener('click', function () { bid(l.id, amt); });
+          b.dataset.amt = amt;
+          b.addEventListener('click', function () {
+            // 화면이 갱신됐을 수 있으니 항상 현재 표시 금액을 쓴다
+            bid(l.id, parseInt(b.dataset.amt, 10));
+          });
           if (idx === 0) b.classList.add('is-min');
           row.appendChild(b);
         });
@@ -369,6 +394,34 @@
       }
       host.appendChild(card);
     });
+  }
+
+  // 카드를 다시 만들지 않고 값만 바꾼다. 버튼 요소가 그대로 살아 있으므로
+  // 누르는 중이던 탭이 사라지지 않는다.
+  function updateLot(host, l, s, leading, iHaveSeat) {
+    var card = host.querySelector('[data-lot="' + l.id + '"]');
+    if (!card) return;
+    card.className = 'ym-lot' + (l.leading ? ' is-lead' : '') + (l.mine ? ' is-mine' : '');
+    var price = card.querySelector('.ym-lot__price');
+    var label = card.querySelector('.ym-lot__label');
+    if (price) price.textContent = l.highest_bid ? U.won(l.highest_bid) : U.won(l.opening_bid);
+    if (label) label.textContent = l.highest_bid ? '현재가' : '시작가';
+    var t = card.querySelector('.ym-lot__time');
+    if (t) { t.dataset.ends = l.ends_at || ''; t.textContent = U.secs(db.msUntil(l.ends_at)); }
+
+    var btns = card.querySelectorAll('.ym-bid');
+    if (!btns.length) return;
+    var base = minBidFor(l);
+    var opts = [base, base + stepAt(base), base + stepAt(base) + stepAt(base + stepAt(base))];
+    for (var i = 0; i < btns.length && i < opts.length; i++) {
+      var amt = opts[i];
+      btns[i].textContent = U.won(amt);
+      btns[i].dataset.amt = amt;
+      var afford = amt <= s.me.balance;
+      var blocked = !!leading || iHaveSeat;
+      btns[i].disabled = !afford || blocked;
+      btns[i].title = !afford ? '가진 금액을 넘습니다' : blocked ? '다른 좌석에서 1등입니다' : '';
+    }
   }
 
   var bidding = false;
@@ -469,7 +522,11 @@
       return;
     }
 
-    if (p === 'prevote') { showVote('pre', s.room.prevote_ends_at, s); return; }
+    if (p === 'prevote') {
+      var preLeft = db.msUntil(s.room.prevote_ends_at);
+      if (preLeft === null || preLeft > 0) { showVote('pre', s.room.prevote_ends_at, s); return; }
+      screen('watch'); return;
+    }
 
     if (p === 'decide') {
       if (!me.my_seat) { screen('waitmarket'); return; }
@@ -503,7 +560,11 @@
 
     if (p === 'results') {
       // 투표를 먼저 받고, 통계는 프로젝터가 보여 준다.
-      if (!(me.votes && me.votes.post) && !votedThis.post && s.room.postvote_ends_at) {
+      // 단, 시간이 끝나면 안 한 학생도 내보낸다. 예전에는 투표하지 않으면
+      // 남은 수업 내내 끝난 투표 화면에 갇혀서 자기 결과도 못 봤다.
+      var postLeft = db.msUntil(s.room.postvote_ends_at);
+      if (!(me.votes && me.votes.post) && !votedThis.post
+          && s.room.postvote_ends_at && postLeft > 0) {
         showVote('post', s.room.postvote_ends_at, s); return;
       }
       drawMyResult(s); return;
@@ -511,7 +572,10 @@
 
     if (p === 'yosemite') {
       var q = currentQuestion(s);
-      if (q) { showVote(q, s.room.finalvote_ends_at, s); return; }
+      var finLeft = db.msUntil(s.room.finalvote_ends_at);
+      if (q && (finLeft === null || finLeft > 0)) {
+        showVote(q, s.room.finalvote_ends_at, s); return;
+      }
       screen('watch'); return;
     }
 
