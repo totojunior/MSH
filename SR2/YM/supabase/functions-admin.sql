@@ -496,6 +496,13 @@ begin
     return jsonb_build_object('ok', false, 'error', 'BAD_COUNT');
   end if;
 
+  -- 정원을 지킨다. 예전에는 검사가 없어서 연습 중에 봇을 몇 번 부르면
+  -- 참가자가 240명까지 불어났고, 명단을 잠그면 좌석 수가 그 인원 기준으로
+  -- 계산돼 버렸다.
+  if v_base + p_count > (select r.max_players from public.rooms_public r where r.id = v_room) then
+    return jsonb_build_object('ok', false, 'error', 'ROOM_FULL', 'current', v_base);
+  end if;
+
   for i in 1..p_count loop
     v_nick := public._nickname_for(v_base + i);
     v_tok  := encode(extensions.gen_random_bytes(32), 'base64');

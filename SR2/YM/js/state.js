@@ -43,7 +43,7 @@
     // 스냅샷 — 유일한 진실
     // -----------------------------------------------------------------
     async function refresh() {
-      if (!session) return null;
+      if (!session) { emit(); return null; }
       try {
         var data = await db.rpc('get_my_state', {
           p_room_code: roomCode,
@@ -63,8 +63,10 @@
         emit();
         return snap;
       } catch (e) {
-        if (e && e.code === '42501') {
-          // 토큰이 안 먹는다 — 다른 반의 크롬북을 물려받았거나 방이 지워졌다.
+        var msg = String((e && e.message) || '');
+        if ((e && e.code === '42501') || /unauthorized/i.test(msg)) {
+          // 토큰이 진짜로 거부됐다 — 방이 초기화됐거나 다른 반 크롬북이다.
+          // 이때만 지우고, 참가 화면으로 되돌린다.
           clearSession();
           emit();
         }
@@ -82,7 +84,11 @@
       // 공개 3개 테이블의 변화는 "뭔가 바뀌었다"는 신호로만 쓰고,
       // 실제 값은 스냅샷에서 가져온다. 이벤트 본문을 그대로 믿고 화면을
       // 조립하면, 놓친 이벤트 하나에 화면이 영구히 어긋난다.
-      ['rooms_public', 'seats', 'listings'].forEach(function (t) {
+      // room_id 로 거르는 것은 seats 와 listings 뿐이다.
+      // rooms_public 에는 room_id 컬럼이 아예 없다 — 거기에 그 필터를 걸면
+      // Realtime 이 채널 '전체'를 거부해서, 세 테이블 모두 죽고 33대가
+      // 조용히 폴링으로 내려간다. 활동은 그래도 돌아가기 때문에 아무도 모른다.
+      ['seats', 'listings'].forEach(function (t) {
         channel.on('postgres_changes',
           { event: '*', schema: 'public', table: t, filter: 'room_id=eq.' + roomId },
           function (p) {
@@ -92,7 +98,7 @@
           });
       });
 
-      // rooms_public 은 room_id 컬럼이 없다. id 로 따로 건다.
+      // 방은 기본키가 id 다.
       channel.on('postgres_changes',
         { event: '*', schema: 'public', table: 'rooms_public', filter: 'id=eq.' + roomId },
         function () { scheduleRefresh(); });
@@ -171,6 +177,11 @@
 
     function clearSession() {
       session = null;
+      // 스냅샷도 같이 버린다. 안 그러면 방이 초기화된 뒤에도 마지막 화면이
+      // 그대로 남아 33대가 옛 결과를 보며 얼어 있게 된다 — 참가 버튼도 없이.
+      snap = null;
+      haveSnap = false;
+      buffer = [];
       try { localStorage.removeItem(KEY); } catch (e) {}
     }
 
@@ -182,10 +193,23 @@
       session = loadSession();
 
       if (session) {
+        // 한 번 실패했다고 세션을 지우면 안 된다. 학교 와이파이가 3초 끊기거나
+        // 무료 플랜이 깨어나는 중이어도 실패한다. 그걸로 지워 버리면 학생은
+        // 참가 화면으로 떨어지고, 명단은 이미 잠겨 있어서 영영 못 돌아온다.
+        // 토큰이 실제로 거부된 경우(42501)에만 refresh() 안에서 지운다.
         var ok = await refresh();
-        if (!ok) { clearSession(); }
+        if (!ok && session) {
+          // 재시도 한 번 더. 그래도 안 되면 세션은 남겨 두고 하트비트에 맡긴다.
+          await new Promise(function (r) { setTimeout(r, 1200); });
+          await refresh();
+        }
       }
       if (!session) { emit(); return { needJoin: true }; }
+      if (!snap) {
+        // 세션은 살아 있는데 아직 상태를 못 받았다. 하트비트가 곧 가져온다.
+        beat(); wakeHooks();
+        return { needJoin: false };
+      }
 
       attach(snap.room.id);
       beat();

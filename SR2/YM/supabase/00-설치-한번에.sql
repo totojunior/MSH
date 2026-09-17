@@ -2,12 +2,7 @@
 --  YM 설치 — 이 파일 하나만 복사해서 Supabase SQL Editor 에 붙여넣고 Run
 -- =====================================================================
 --  외부지문 2 · 4차시 — Selling Yosemite (용산 IMAX 교실 시뮬레이션)
---
---  들어 있는 것: schema.sql + functions.sql + functions-admin.sql + policies.sql
---  두 번 돌려도 안전하다 (전부 create or replace / if not exists).
---
---  이 파일을 돌린 뒤, seed-rooms.sql 을 따로 한 번만 돌린다.
---  거기서 반별 관리자 토큰이 딱 한 번 화면에 찍힌다.
+--  두 번 돌려도 안전하다. 이 파일 뒤에 seed-rooms.sql 을 한 번만 돌린다.
 -- =====================================================================
 
 
@@ -1614,6 +1609,13 @@ begin
     return jsonb_build_object('ok', false, 'error', 'BAD_COUNT');
   end if;
 
+  -- 정원을 지킨다. 예전에는 검사가 없어서 연습 중에 봇을 몇 번 부르면
+  -- 참가자가 240명까지 불어났고, 명단을 잠그면 좌석 수가 그 인원 기준으로
+  -- 계산돼 버렸다.
+  if v_base + p_count > (select r.max_players from public.rooms_public r where r.id = v_room) then
+    return jsonb_build_object('ok', false, 'error', 'ROOM_FULL', 'current', v_base);
+  end if;
+
   for i in 1..p_count loop
     v_nick := public._nickname_for(v_base + i);
     v_tok  := encode(extensions.gen_random_bytes(32), 'base64');
@@ -1623,7 +1625,9 @@ begin
          values (v_id, extensions.digest(v_tok, 'sha256'));
     insert into public.wallets (player_id, room_id, initial, balance, seeded)
          values (v_id, v_room, 0, v_face, true);
-    v_out := v_out || jsonb_build_object('player_id', v_id, 'token', v_tok, 'nickname', v_nick);
+    -- 키 이름을 join_room 의 반환값과 똑같이 맞춘다. 다르면 클라이언트가
+    -- 조용히 undefined 를 보내고 인증이 계속 실패한다.
+    v_out := v_out || jsonb_build_object('player_id', v_id, 'player_token', v_tok, 'nickname', v_nick);
   end loop;
 
   update public.rooms_public r
@@ -1978,7 +1982,4 @@ revoke execute on function public.create_room(text) from public, anon, authentic
 
 
 
--- 스키마 캐시를 다시 읽게 한다. 이게 없으면 첫 RPC 호출이
--- 'not found in the schema cache' 404 로 떨어져서, SQL 이 실패한 줄 알고
--- 한 시간을 버리게 된다.
 notify pgrst, 'reload schema';

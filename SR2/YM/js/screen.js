@@ -20,6 +20,8 @@
   var room = null, seats = [], listings = [], shown = null;
   var hotSeat = null, hotUntil = 0;
   var yoStarted = false;
+  var yoGen = null;           // 어느 '판'의 연출을 틀었는지
+  var yoTimers = [];
 
   function show(p) {
     if (shown === p) return;
@@ -282,15 +284,32 @@
   function paintYosemite() {
     show('yosemite');
     var host = $('#yo');
+
+    // 반이 바뀌면(초기화로 generation 이 오르면) 연출을 처음부터 다시 튼다.
+    // 예전에는 이 플래그가 탭 안에 그대로 남아서, 교탁 PC 를 종일 켜 두는
+    // 2반·3반은 요세미티 연출을 아예 못 봤다 — 수업의 마지막 장면인데.
+    if (yoStarted && yoGen !== room.generation) resetYosemite();
+
     if (!yoStarted) {
       yoStarted = true;
+      yoGen = room.generation;
+      host.dataset.built = '';
       var script = yosemiteScript(room.results);
       script.forEach(function (beat) {
-        setTimeout(function () { drawBeat(host, beat); }, beat.t);
+        yoTimers.push(setTimeout(function () { drawBeat(host, beat); }, beat.t));
       });
     }
     // 투표 막대는 계속 갱신된다
     if (host.dataset.mode === 'vote') drawYoVote(host);
+  }
+
+  function resetYosemite() {
+    yoTimers.forEach(clearTimeout);
+    yoTimers = [];
+    yoStarted = false;
+    yoGen = null;
+    var host = $('#yo');
+    if (host) { U.clear(host); host.dataset.mode = ''; host.dataset.built = ''; }
   }
 
   function drawBeat(host, b) {
@@ -412,6 +431,9 @@
       return paintResults();
     }
     if (p === 'yosemite') return paintYosemite();
+
+    // 다른 단계로 돌아왔다 = 다음 반이 시작됐다. 연출을 되감아 둔다.
+    if (yoStarted) resetYosemite();
     show('lobby');
   }
 
