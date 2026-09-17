@@ -171,6 +171,37 @@
 
   function say(code) { return MESSAGES[code] || '처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'; }
 
+  // -------------------------------------------------------------------
+  // 새 버전 자동 감지 — 캐시된 HTML 때문에 고친 코드가 안 가는 것을 막는다
+  // -------------------------------------------------------------------
+  // GitHub Pages 는 index.html 에 Cache-Control: max-age=600 을 붙인다.
+  // js/css 에 ?v= 를 달아도, 그 태그를 '들고 있는 HTML' 자체가 10분간
+  // 캐시되면 새 주소가 학생 기기에 영영 도달하지 않는다.
+  // 수업 직전에 뭘 고쳤을 때 이게 제일 위험하다 — 교사 기기에서는 우연히
+  // 새 걸 받아 잘 되는데 크롬북 33대는 옛 코드를 쓴다.
+  //
+  // 그래서 페이지가 스스로 확인한다. version.json 은 타임스탬프를 붙여
+  // 항상 새로 받고, 페이지가 들고 있는 버전과 다르면 딱 한 번 새로고침한다.
+  (function checkVersion() {
+    var tag = document.querySelector('script[src*="client.js"]');
+    var here = tag ? (tag.getAttribute('src').split('?v=')[1] || '') : '';
+    if (!here) return;
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (v) {
+        var latest = v && v.asset_version;
+        if (!latest || latest === here) return;
+        // 새로고침 고리에 빠지지 않게, 같은 버전으로는 한 번만 시도한다.
+        var key = 'ym.reloaded.' + latest;
+        try {
+          if (sessionStorage.getItem(key)) return;
+          sessionStorage.setItem(key, '1');
+        } catch (e) { return; }
+        location.reload();
+      })
+      .catch(function () { /* 확인 못 해도 수업은 계속된다 */ });
+  })();
+
   YM.db = {
     sb: sb,
     rpc: rpc,
