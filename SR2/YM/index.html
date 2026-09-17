@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>THE ODYSSEY — 용산 IMAX · 교실 시뮬레이션</title>
+<meta name="description" content="외부지문 2 · 4차시 — Selling Yosemite 도입 활동 (학생용)">
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="ym-student">
+
+<!-- 연결 상태. 색만으로 구분하지 않도록 글자를 항상 같이 둔다. -->
+<div class="ym-conn" id="conn" hidden>
+  <span class="ym-conn__dot" aria-hidden="true"></span>
+  <span class="ym-conn__text" id="connText">연결됨</span>
+</div>
+
+<main id="root" class="ym-root">
+
+  <!-- ================================================================
+       참가
+       ================================================================ -->
+  <section class="ym-screen" data-screen="join">
+    <div class="ym-hero">
+      <p class="ym-kicker">YONGSAN IMAX</p>
+      <h1 class="ym-title">THE ODYSSEY</h1>
+      <p class="ym-sub">THE TICKET DROP</p>
+    </div>
+    <div class="ym-panel ym-panel--center">
+      <p class="ym-lead" id="joinRoomLine">반 코드를 확인하는 중…</p>
+
+      <label class="ym-label" for="nickInput">별명을 정하세요</label>
+      <div class="ym-nickrow">
+        <input class="ym-input" id="nickInput" type="text" maxlength="12"
+               autocomplete="off" autocapitalize="off" spellcheck="false"
+               placeholder="예: 팝콘도둑" aria-describedby="nickHelp">
+        <button class="ym-btn ym-btn--dice" id="diceBtn" type="button"
+                title="아무거나 하나 골라 주기" aria-label="별명 랜덤으로 정하기">🎲</button>
+      </div>
+      <p class="ym-note" id="nickHelp">
+        12자까지. <strong>본명은 쓰지 마세요.</strong> 반 전체 화면에 보일 수 있습니다.
+      </p>
+
+      <button class="ym-btn ym-btn--primary ym-btn--xl" id="joinBtn">참가하기</button>
+      <p class="ym-error" id="joinErr" hidden></p>
+    </div>
+    <p class="ym-fineprint">교실 시뮬레이션 — 실제 좌석 배치가 아닙니다.</p>
+  </section>
+
+  <!-- ================================================================
+       대기실
+       ================================================================ -->
+  <section class="ym-screen" data-screen="lobby" hidden>
+    <div class="ym-hero">
+      <p class="ym-kicker">YONGSAN IMAX</p>
+      <h1 class="ym-title">THE ODYSSEY</h1>
+    </div>
+    <div class="ym-panel ym-panel--center">
+      <p class="ym-nick" id="lobbyNick">—</p>
+      <p class="ym-lead">잠시 후 예매가 시작됩니다.</p>
+      <p class="ym-count"><span id="lobbyCount">0</span>명 참가</p>
+      <p class="ym-note">화면을 보고 계세요. 선생님이 시작합니다.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       P1 — 카운트다운 + 좌석
+       ================================================================ -->
+  <section class="ym-screen ym-screen--full" data-screen="countdown" hidden>
+    <p class="ym-kicker">TICKETS OPEN IN</p>
+    <p class="ym-bignum" id="cdNum">5</p>
+  </section>
+
+  <section class="ym-screen ym-screen--wide" data-screen="booking" hidden>
+    <div class="ym-stage">
+      <p class="ym-screenlabel">SCREEN</p>
+      <div class="ym-seatmap" id="seatmap" role="group" aria-label="좌석 선택"></div>
+      <p class="ym-fineprint">교실 시뮬레이션 — 실제 좌석 배치가 아닙니다.</p>
+    </div>
+    <aside class="ym-side">
+      <p class="ym-nick" id="bookNick">—</p>
+      <p class="ym-side__big" id="bookLeft">—</p>
+      <p class="ym-side__label">남은 좌석</p>
+      <p class="ym-side__time" id="bookTime">--</p>
+      <p class="ym-side__label">초</p>
+      <p class="ym-note" id="bookHint">원하는 좌석을 누르세요. 한 사람에 한 자리입니다.</p>
+      <p class="ym-note ym-note--dim">연속으로 두드리면 오히려 느려집니다.</p>
+    </aside>
+  </section>
+
+  <!-- 결과: 좌석을 얻음 / 못 얻음 -->
+  <section class="ym-screen" data-screen="got" hidden>
+    <div class="ym-panel ym-panel--center">
+      <p class="ym-kicker">YOU GOT IT</p>
+      <p class="ym-seatbig" id="gotSeat">—</p>
+      <p class="ym-lead">정가 <span id="gotFace">₩20,000</span></p>
+    </div>
+  </section>
+
+  <section class="ym-screen" data-screen="missed" hidden>
+    <div class="ym-panel ym-panel--center">
+      <p class="ym-kicker ym-kicker--quiet">SOLD OUT</p>
+      <p class="ym-lead">좌석을 구하지 못했습니다.</p>
+      <p class="ym-note">화면을 보고 기다려 주세요.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       투표 (사전 / 사후 / 최종 3문항이 이 화면 하나를 재사용한다)
+       ================================================================ -->
+  <section class="ym-screen" data-screen="vote" hidden>
+    <div class="ym-panel ym-panel--center">
+      <p class="ym-kicker" id="voteKicker">VOTE</p>
+      <h2 class="ym-q" id="voteQ">—</h2>
+      <p class="ym-note" id="voteGloss"></p>
+      <div class="ym-choices">
+        <button class="ym-btn ym-btn--choice" data-vote="yes">YES<small>그렇다</small></button>
+        <button class="ym-btn ym-btn--choice" data-vote="no">NO<small>아니다</small></button>
+        <button class="ym-btn ym-btn--choice" data-vote="unsure">NOT SURE<small>모르겠다</small></button>
+      </div>
+      <p class="ym-done" id="voteDone" hidden>선택했습니다. 선생님도 누가 무엇을 골랐는지 볼 수 없습니다.</p>
+      <p class="ym-side__time ym-side__time--inline" id="voteTime">--</p>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       P2 — 가질까 팔까
+       ================================================================ -->
+  <section class="ym-screen" data-screen="decide" hidden>
+    <div class="ym-panel">
+      <p class="ym-kicker">KEEP OR SELL</p>
+      <p class="ym-seatbig" id="decSeat">—</p>
+      <p class="ym-lead">정가 <span id="decFace">₩20,000</span></p>
+      <p class="ym-demand" id="decDemand">—</p>
+
+      <div class="ym-twobtn" id="decChoice">
+        <button class="ym-btn ym-btn--keep" id="btnKeep">가지고 있겠다<small>KEEP</small></button>
+        <button class="ym-btn ym-btn--sell" id="btnSell">팔겠다<small>SELL</small></button>
+      </div>
+
+      <div id="sellForm" hidden>
+        <p class="ym-lead">시작가를 정하세요</p>
+        <div class="ym-prices" id="priceRow"></div>
+        <p class="ym-note">이건 시작가입니다. 최종 가격이 아닙니다.</p>
+
+        <p class="ym-lead">왜 팔기로 했나요?</p>
+        <div class="ym-reasons" id="reasonRow"></div>
+
+        <button class="ym-btn ym-btn--primary ym-btn--xl" id="btnList" disabled>내 좌석 올리기</button>
+      </div>
+
+      <p class="ym-done" id="decDone" hidden></p>
+      <p class="ym-side__time ym-side__time--inline" id="decTime">--</p>
+    </div>
+  </section>
+
+  <section class="ym-screen" data-screen="waitmarket" hidden>
+    <div class="ym-panel ym-panel--center">
+      <p class="ym-lead">좌석을 가진 학생들이 고민하고 있습니다.</p>
+      <p class="ym-note">잠시 기다려 주세요.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       P3A — 예산
+       ================================================================ -->
+  <section class="ym-screen" data-screen="budget" hidden>
+    <div class="ym-panel ym-panel--center">
+      <p class="ym-kicker">YOUR BUDGET</p>
+      <div class="ym-card" id="budgetCard">
+        <span class="ym-card__back">?</span>
+        <span class="ym-card__front" id="budgetAmt">—</span>
+      </div>
+      <p class="ym-q ym-q--small" id="budgetAsk" hidden>DID YOU EARN THIS?</p>
+      <p class="ym-note">게임 머니입니다. 실제 돈이 아닙니다.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       P3B — 경매
+       ================================================================ -->
+  <section class="ym-screen ym-screen--wide" data-screen="auction" hidden>
+    <div class="ym-stage">
+      <p class="ym-kicker">LIVE · 되팔기 시장</p>
+      <div class="ym-listings" id="listings"></div>
+      <p class="ym-empty" id="auctionEmpty" hidden>올라온 좌석이 없습니다.</p>
+    </div>
+    <aside class="ym-side">
+      <p class="ym-side__label">내 예산</p>
+      <p class="ym-side__big" id="aucBal">—</p>
+      <p class="ym-banner" id="aucBanner" hidden></p>
+      <p class="ym-note ym-note--rule">ONE PERSON. ONE TICKET.<br><span class="ym-note--dim">한 사람이 한 좌석에서만 1등이 될 수 있습니다.</span></p>
+    </aside>
+  </section>
+
+  <!-- ================================================================
+       P4 / P5 — 결과와 요세미티는 프로젝터가 주인공.
+       학생 기기는 자기 결과만 조용히 보여 준다.
+       ================================================================ -->
+  <section class="ym-screen" data-screen="results" hidden>
+    <div class="ym-panel ym-panel--center">
+      <p class="ym-kicker" id="resKicker">—</p>
+      <p class="ym-seatbig" id="resSeat">—</p>
+      <p class="ym-lead" id="resLine">—</p>
+      <p class="ym-note" id="resSub"></p>
+      <p class="ym-note ym-note--dim">앞 화면을 보세요.</p>
+    </div>
+  </section>
+
+  <section class="ym-screen" data-screen="watch" hidden>
+    <div class="ym-panel ym-panel--center">
+      <p class="ym-lead">앞 화면을 보세요.</p>
+    </div>
+  </section>
+
+</main>
+
+<script src="js/vendor/supabase.umd.js"></script>
+<script src="js/config.js"></script>
+<script src="js/client.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/state.js"></script>
+<script src="js/student.js"></script>
+</body>
+</html>

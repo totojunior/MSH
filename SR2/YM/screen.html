@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THE ODYSSEY — 프로젝터</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/projector.css">
+</head>
+<!-- 교탁 PC 에서 전체화면으로. 읽기 전용이다.
+     학생 개인의 돈도, 누가 무엇에 투표했는지도 절대 나오지 않는다.
+     입찰 티커는 좌석과 금액만 보여 준다 — 닉네임과 금액을 나란히 두면
+     "쟤가 15만원 썼대" 가 교실에 남는다. -->
+<body class="ym-proj">
+
+<div class="ym-dry" id="dryBadge" hidden>DRY RUN · 연습</div>
+<button class="ym-sound" id="soundBtn">🔇 소리 켜기</button>
+
+<main id="proj">
+
+  <!-- 대기 ---------------------------------------------------------- -->
+  <section class="ym-pscreen" data-p="lobby">
+    <p class="ym-pkick">YONGSAN IMAX</p>
+    <h1 class="ym-ptitle">THE ODYSSEY</h1>
+    <p class="ym-psub">LAST-MINUTE TICKET DROP</p>
+    <div class="ym-joinbox">
+      <div class="ym-qr" id="qr" aria-hidden="true"></div>
+      <div>
+        <p class="ym-pbig" id="lobbyN">0</p>
+        <p class="ym-plabel">CONNECTED</p>
+        <p class="ym-purl" id="joinUrl">—</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 카운트다운 ---------------------------------------------------- -->
+  <section class="ym-pscreen" data-p="countdown" hidden>
+    <p class="ym-pkick">TICKETS OPEN IN</p>
+    <p class="ym-pcount" id="cd">5</p>
+  </section>
+
+  <!-- 예매 ---------------------------------------------------------- -->
+  <section class="ym-pscreen" data-p="booking" hidden>
+    <p class="ym-pscreenline">SCREEN</p>
+    <div class="ym-pmap" id="pmap"></div>
+    <p class="ym-pbig"><span id="claimed">0</span> / <span id="total">0</span> CLAIMED</p>
+    <p class="ym-soldout" id="soldout" hidden>SOLD OUT</p>
+  </section>
+
+  <!-- 투표 (사전/사후) ---------------------------------------------- -->
+  <section class="ym-pscreen" data-p="vote" hidden>
+    <p class="ym-pkick" id="vKick">VOTE</p>
+    <h2 class="ym-pq" id="vQ">—</h2>
+    <div class="ym-bars" id="vBars"></div>
+    <p class="ym-plabel" id="vCount">—</p>
+  </section>
+
+  <!-- 가질까 팔까 — 집계만 ----------------------------------------- -->
+  <section class="ym-pscreen" data-p="decide" hidden>
+    <p class="ym-pkick">KEEP OR SELL</p>
+    <h2 class="ym-pq">좌석 주인들이 정하고 있습니다</h2>
+    <div class="ym-three">
+      <div><p class="ym-pbig" id="dOwn">0</p><p class="ym-plabel">좌석 보유</p></div>
+      <div><p class="ym-pbig" id="dSell">0</p><p class="ym-plabel">팔겠다</p></div>
+      <div><p class="ym-pbig" id="dNone">0</p><p class="ym-plabel">좌석 없음</p></div>
+    </div>
+  </section>
+
+  <!-- 예산 — 개인 금액은 절대 안 보여 준다 -------------------------- -->
+  <section class="ym-pscreen" data-p="budget" hidden>
+    <p class="ym-pkick">YOUR BUDGET</p>
+    <h2 class="ym-pq">모두가 돈을 받았습니다</h2>
+    <p class="ym-plead">각자 화면을 보세요</p>
+    <p class="ym-pnote">게임 머니입니다. 실제 돈이 아닙니다.</p>
+  </section>
+
+  <!-- 경매 ---------------------------------------------------------- -->
+  <section class="ym-pscreen ym-pscreen--auction" data-p="auction" hidden>
+    <div class="ym-spot" id="spot">
+      <p class="ym-plabel">HOT RIGHT NOW</p>
+      <p class="ym-spot__seat" id="spotSeat">—</p>
+      <p class="ym-spot__price" id="spotPrice">—</p>
+      <p class="ym-spot__time" id="spotTime">--</p>
+    </div>
+    <div class="ym-lots" id="plots"></div>
+    <p class="ym-ext" id="ext" hidden>연장! EXTENDED</p>
+    <p class="ym-empty" id="pEmpty" hidden>올라온 좌석이 없습니다</p>
+  </section>
+
+  <!-- 결과 ---------------------------------------------------------- -->
+  <section class="ym-pscreen" data-p="results" hidden>
+    <p class="ym-pkick">WHAT THE MARKET DID</p>
+    <h2 class="ym-pq ym-pq--sm">시장은 무엇을 했나</h2>
+    <div class="ym-heat" id="heat"></div>
+    <div class="ym-cols">
+      <div class="ym-col">
+        <p class="ym-colh">좌석이 움직였다</p>
+        <p class="ym-colv" id="rSold">—</p><p class="ym-plabel">되팔린 좌석</p>
+        <p class="ym-colv" id="rRecv">—</p><p class="ym-plabel">판 학생들이 받은 금액</p>
+      </div>
+      <div class="ym-col">
+        <p class="ym-colh">좌석이 없다</p>
+        <p class="ym-colv" id="rNone">—</p><p class="ym-plabel">끝까지 좌석 없음</p>
+        <p class="ym-colv ym-colv--hot" id="rPriced">—</p><p class="ym-plabel" id="rPricedNote">—</p>
+      </div>
+    </div>
+    <div class="ym-reasons2" id="rReasons"></div>
+  </section>
+
+  <!-- 요세미티 ------------------------------------------------------ -->
+  <section class="ym-pscreen" data-p="yosemite" hidden>
+    <div class="ym-yo" id="yo"></div>
+  </section>
+
+</main>
+
+<script src="js/vendor/supabase.umd.js"></script>
+<script src="js/config.js"></script>
+<script src="js/client.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/vendor/qrcode.js"></script>
+<script src="js/demo.js"></script>
+<script src="js/screen.js"></script>
+</body>
+</html>

@@ -70,6 +70,11 @@ EUC-KR 로 추측하고 본문을 전부 깨뜨린다. `serve.js` 가 그래서 
   빌드가 검사한다. `CapsuleGeometry`, `OrbitControls`, `EffectComposer`, `BufferGeometryUtils`,
   `outputColorSpace`, `texture.colorSpace` 등은 **존재하지 않는다.** r134 가 cdnjs 의 마지막 UMD 빌드다.
 - **학생 개인정보를 어떤 형태로도 수집·저장하지 마라.** 이름·학번·점수 전부. 서버도 DB도 로그인도 없다.
+  - **예외: `SR2/YM/`(4차시) 은 서버를 쓴다.** 실시간 멀티플레이는 서버 없이 불가능하다.
+    개인정보 규칙은 그대로 지킨다 — 실명·학번·점수를 저장하지 않고, 별명은 학생이 짓고,
+    투표에는 시각조차 기록하지 않으며, 방은 30일 뒤 만료된다.
+    `assemble.js` 파이프라인도 쓰지 않는다(그 빌드는 `fetch(` 를 만나면 실패한다).
+    **되돌리지 마라.** 근거는 `SR2/YM/docs/00-아키텍처-예외.md`.
 
 ---
 

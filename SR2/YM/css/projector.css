@@ -1,0 +1,184 @@
+/* YM — 프로젝터 전용. screen.html 만 불러온다.
+ *
+ * 교실 뒷자리에서, 불을 켠 채로 읽혀야 한다.
+ * 글자 크기는 전부 vmin 기준이다 — 교실 프로젝터는 해상도가 제각각이라
+ * px 로 잡으면 어떤 교실에서는 깨알같이 작아진다.
+ * 가장자리 5% 는 비운다. 프로젝터는 끝을 잘라 먹는다.
+ */
+
+.ym-proj { overflow: hidden; }
+
+.ym-pscreen {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 2.4vmin; padding: 5vmin;
+  text-align: center;
+}
+
+.ym-pkick   { margin: 0; font-size: 2.2vmin; letter-spacing: .4em; color: var(--ym-hot); font-weight: 700; }
+.ym-ptitle  { margin: 0; font-size: 13vmin; font-weight: 800; letter-spacing: .03em; line-height: 1; }
+.ym-psub    { margin: 0; font-size: 2.6vmin; letter-spacing: .34em; color: var(--ym-dim); }
+.ym-pq      { margin: 0; font-size: 6vmin; font-weight: 800; line-height: 1.2; }
+.ym-pq--sm  { font-size: 4.2vmin; }
+.ym-plead   { margin: 0; font-size: 3.4vmin; color: var(--ym-dim); }
+.ym-pnote   { margin: 0; font-size: 1.9vmin; color: var(--ym-faint); }
+.ym-pbig    { margin: 0; font-size: 9vmin; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ym-plabel  { margin: 0; font-size: 1.8vmin; letter-spacing: .26em; color: var(--ym-faint); text-transform: uppercase; }
+.ym-pcount  { margin: 0; font-size: 42vmin; font-weight: 800; line-height: .85; }
+.ym-purl    { margin: 1vmin 0 0; font-size: 2.2vmin; color: var(--ym-dim); word-break: break-all; }
+
+.ym-joinbox { display: flex; align-items: center; gap: 6vmin; margin-top: 2vmin; }
+.ym-qr      { width: 30vmin; height: 30vmin; background: #fff; padding: 1.6vmin; border-radius: 1.4vmin; }
+.ym-qr svg  { width: 100%; height: 100%; display: block; }
+
+.ym-pscreenline {
+  margin: 0 auto 3vmin; width: 56%; border-bottom: .4vmin solid var(--ym-line);
+  padding-bottom: 1vmin; font-size: 1.7vmin; letter-spacing: .5em; color: var(--ym-faint);
+}
+.ym-pmap  { display: flex; flex-direction: column; gap: 1.4vmin; }
+.ym-prow  { display: flex; gap: 1.4vmin; justify-content: center; }
+.ym-pseat {
+  width: 8vmin; height: 8vmin; display: grid; place-items: center;
+  border: .35vmin solid var(--ym-hot); border-radius: 1.2vmin;
+  color: var(--ym-hot); font-size: 2.2vmin; font-weight: 700;
+  transition: transform .18s, background .18s;
+}
+/* 나간 좌석은 색만이 아니라 빗금으로도 구분된다 */
+.ym-pseat.is-taken {
+  border-color: transparent; color: var(--ym-faint);
+  background: repeating-linear-gradient(135deg, #1a1a24 0 6px, #14141c 6px 12px);
+}
+.ym-pseat.is-pop { transform: scale(1.22); background: var(--ym-hot); color: var(--ym-hot-ink); }
+
+.ym-soldout {
+  margin: 0; font-size: 11vmin; font-weight: 800; letter-spacing: .1em; color: var(--ym-hot);
+  animation: ym-stamp .5s cubic-bezier(.2,1.6,.4,1);
+}
+@keyframes ym-stamp { from { transform: scale(2.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* 투표 막대 — 퍼센트와 사람 수를 항상 같이 쓴다.
+   막대 길이만으로는 교실 뒷자리에서 안 읽힌다. */
+.ym-bars { width: min(74vw, 110vmin); display: flex; flex-direction: column; gap: 2vmin; }
+.ym-bar  { display: grid; grid-template-columns: 22vmin 1fr 18vmin; align-items: center; gap: 2vmin; }
+.ym-bar__lab { text-align: left; }
+.ym-bar__en  { display: block; font-size: 3vmin; font-weight: 800; letter-spacing: .06em; }
+.ym-bar__ko  { display: block; font-size: 1.7vmin; color: var(--ym-faint); }
+.ym-bar__track { height: 5vmin; background: #14141c; border-radius: .8vmin; overflow: hidden; }
+.ym-bar__fill  { height: 100%; background: var(--ym-hot); transition: width .5s cubic-bezier(.2,.7,.2,1); }
+.ym-bar__pct   { font-size: 2.4vmin; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+
+.ym-three { display: flex; gap: 8vmin; margin-top: 2vmin; }
+
+/* 경매 — 방금 입찰이 들어온 좌석을 크게. 교실 전체가 한 곳을 보게 만든다. */
+.ym-pscreen--auction { justify-content: center; gap: 3vmin; }
+.ym-spot {
+  border: .4vmin solid var(--ym-hot); border-radius: 2vmin;
+  padding: 3vmin 8vmin; min-width: 46vmin;
+}
+.ym-spot__seat  { margin: .6vmin 0; font-size: 11vmin; font-weight: 800; letter-spacing: .04em; }
+.ym-spot__price { margin: 0; font-size: 7vmin; font-weight: 800; color: var(--ym-hot); font-variant-numeric: tabular-nums; }
+.ym-spot__time  { margin: .6vmin 0 0; font-size: 3.4vmin; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.ym-lots { display: flex; flex-wrap: wrap; gap: 1.6vmin; justify-content: center; }
+.ym-plot {
+  display: flex; flex-direction: column; align-items: center; gap: .3vmin;
+  border: .25vmin solid var(--ym-line); border-radius: 1.2vmin; padding: 1.4vmin 2.4vmin;
+  min-width: 18vmin;
+}
+.ym-plot.is-hot { border-color: var(--ym-hot); }
+.ym-plot__s { font-size: 2.6vmin; font-weight: 800; }
+.ym-plot__p { font-size: 3vmin; font-weight: 800; color: var(--ym-hot); font-variant-numeric: tabular-nums; }
+.ym-plot__t { font-size: 1.8vmin; color: var(--ym-faint); font-variant-numeric: tabular-nums; }
+
+.ym-ext {
+  position: fixed; left: 0; right: 0; top: 40%;
+  margin: 0; padding: 2vmin; background: rgba(220,38,38,.92);
+  font-size: 7vmin; font-weight: 800; letter-spacing: .2em; text-align: center;
+}
+
+/* 결과 히트맵 — 색과 숫자를 항상 같이 쓴다 */
+.ym-heat  { display: flex; flex-direction: column; gap: 1vmin; }
+.ym-hrow  { display: flex; gap: 1vmin; justify-content: center; }
+.ym-hcell {
+  width: 13vmin; padding: 1.2vmin .4vmin; border-radius: 1vmin;
+  display: flex; flex-direction: column; gap: .2vmin;
+  border: .25vmin solid var(--ym-line);
+}
+.ym-hcell__l { font-size: 1.6vmin; color: var(--ym-faint); }
+.ym-hcell__p { font-size: 3.2vmin; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ym-hcell__n { font-size: 1.3vmin; letter-spacing: .1em; color: var(--ym-faint); }
+.ym-hcell.is-h0 { background: #12121a; }
+.ym-hcell.is-h1 { background: #1e2438; }
+.ym-hcell.is-h2 { background: #3a2f2a; }
+.ym-hcell.is-h3 { background: #5c3a1e; }
+.ym-hcell.is-h4 { background: #8a3c10; border-color: var(--ym-hot); }
+
+/* 두 칸을 대칭으로 둔다. 한쪽만 크게 하면 사이트가 편을 드는 것이 된다. */
+.ym-cols { display: flex; gap: 8vmin; margin-top: 2vmin; }
+.ym-col  { min-width: 34vmin; }
+.ym-colh { margin: 0 0 1vmin; font-size: 2vmin; letter-spacing: .2em; color: var(--ym-faint); }
+.ym-colv { margin: 0; font-size: 5.4vmin; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ym-colv--hot { color: var(--ym-hot); }
+
+.ym-reasons2 { display: flex; flex-wrap: wrap; gap: 1.2vmin; justify-content: center; margin-top: 1vmin; }
+.ym-rchip {
+  border: .2vmin solid var(--ym-line); border-radius: 99px; padding: .8vmin 2vmin;
+  font-size: 1.9vmin; color: var(--ym-dim);
+}
+.ym-rchip__n { color: var(--ym-hot); font-weight: 800; margin-right: .8vmin; }
+
+/* 요세미티 */
+.ym-yo { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 3vmin; }
+.ym-yoline  { margin: 0; font-size: 8vmin; font-weight: 800; letter-spacing: .04em; animation: ym-fade .9s ease-out; }
+.ym-yosvg   { width: min(82vw, 120vmin); border-radius: 1.6vmin; animation: ym-fade 1.4s ease-out; }
+.ym-yotitle { margin: 0; font-size: 6vmin; font-weight: 800; letter-spacing: .12em; animation: ym-fade .9s ease-out; }
+
+.ym-yonums { display: flex; gap: 9vmin; animation: ym-fade .8s ease-out; }
+.ym-yonum__v { display: block; font-size: 9vmin; font-weight: 800; color: var(--ym-hot); }
+.ym-yonum__k { display: block; font-size: 1.9vmin; color: var(--ym-faint); margin-top: .6vmin; }
+
+.ym-yobridge { display: flex; gap: 10vmin; animation: ym-fade .8s ease-out; }
+.ym-yoside__h { margin: 0; font-size: 2vmin; letter-spacing: .24em; color: var(--ym-faint); }
+.ym-yoside__v { margin: 1vmin 0 0; font-size: 7vmin; font-weight: 800; }
+.ym-yoside__k { margin: .6vmin 0 0; font-size: 2.2vmin; color: var(--ym-hot); }
+
+.ym-yoq__en { margin: 0; font-size: 6.4vmin; font-weight: 800; line-height: 1.15; }
+.ym-yoq__ko { margin: 1.6vmin 0 0; font-size: 2.6vmin; color: var(--ym-dim); }
+
+/* 세 문항의 막대가 서로 다른 기울기로 서는 것 자체가 지문의 두 번째 반론이다.
+   사이트가 말하지 않고 교실이 답하게 둔다. */
+.ym-yovote { display: flex; flex-direction: column; gap: 2.4vmin; width: min(76vw, 116vmin); }
+.ym-yov__n   { margin: 0; font-size: 1.6vmin; letter-spacing: .2em; color: var(--ym-faint); }
+.ym-yov__q   { margin: .3vmin 0 1vmin; font-size: 3vmin; font-weight: 700; }
+.ym-yov__bar { display: flex; height: 4vmin; border-radius: .8vmin; overflow: hidden; background: #14141c; }
+.ym-yov__seg { transition: width .6s cubic-bezier(.2,.7,.2,1); }
+.ym-yov__seg.is-yes    { background: var(--ym-hot); }
+.ym-yov__seg.is-no     { background: #3c4a6b; }
+.ym-yov__seg.is-unsure { background: #2a2a38; }
+.ym-yov__num { margin: .8vmin 0 0; font-size: 1.9vmin; color: var(--ym-dim); font-variant-numeric: tabular-nums; }
+
+@keyframes ym-fade { from { opacity: 0; transform: translateY(1.6vmin); } to { opacity: 1; } }
+
+/* 보조 표시 */
+.ym-dry {
+  position: fixed; top: 1.4vmin; left: 1.4vmin; z-index: 60;
+  background: var(--ym-slow); color: #1a1200; font-weight: 800;
+  font-size: 1.7vmin; letter-spacing: .18em; padding: .7vmin 1.8vmin; border-radius: 99px;
+}
+.ym-sound {
+  position: fixed; top: 1.4vmin; right: 1.4vmin; z-index: 60;
+  background: var(--ym-panel); color: var(--ym-dim); border: 1px solid var(--ym-line);
+  border-radius: 99px; padding: .8vmin 1.8vmin; font-size: 1.6vmin; cursor: pointer;
+}
+.ym-demohint {
+  position: fixed; bottom: 1.4vmin; left: 50%; transform: translateX(-50%); z-index: 60;
+  background: var(--ym-panel); border: 1px solid var(--ym-line); border-radius: 99px;
+  padding: .8vmin 2.4vmin; font-size: 1.7vmin; color: var(--ym-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ym-yoline, .ym-yosvg, .ym-yotitle, .ym-yonums, .ym-yobridge, .ym-soldout {
+    animation: none !important;
+  }
+}
