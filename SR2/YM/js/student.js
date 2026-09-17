@@ -9,11 +9,17 @@
   var U = YM.ui, C = YM.CONFIG, db = YM.db;
   var $ = U.$, el = U.el;
 
-  // 방 코드는 주소에서. 없으면 기본 반.
+  // 방 코드는 주소에 있으면 그걸 쓰고, 없으면 지금 입장이 열린 방을 찾아간다.
+  //
+  // 예전에는 없을 때 'YM2-1'을 기본값으로 썼다. 그런데 학생들은 크롬북을
+  // 반마다 돌려 쓰고, 주소창 자동완성은 앞 반이 쓰던 링크를 물어 온다.
+  // 그러면 3반 학생이 아무 경고 없이 1반 방에 들어가 앉는다 — 교사도
+  // 학생도 원인을 못 찾는다. 기본값은 없앤다.
   var params = new URLSearchParams(location.search);
-  var ROOM = (params.get('room') || 'YM2-1').toUpperCase();
+  var urlRoom = (params.get('room') || '').trim().toUpperCase();
+  var ROOM = urlRoom;
 
-  var store = YM.makeStore(ROOM);
+  var store = null;           // boot() 전까지는 없다
   var shown = null;           // 지금 떠 있는 화면
   var lastPhase = null;
   var cdRAF = null;
@@ -52,7 +58,9 @@
   // -------------------------------------------------------------------
   // 참가
   // -------------------------------------------------------------------
-  $('#joinRoomLine').textContent = ROOM.replace('YM2-', '2학년 ') + '반';
+  function roomLabel(code) {
+    return code === 'YM2-TEST' ? '리허설' : code.replace('YM2-', '2학년 ') + '반';
+  }
 
   // 주사위 — 빈칸 앞에서 멈추는 학생을 위한 탈출구.
   // 서버에도 같은 성격의 목록이 있지만, 여기 것은 눈으로 보고 마음에 안 들면
@@ -601,6 +609,7 @@
   // 초 단위 표시는 1초마다 스스로 갱신한다. 스냅샷을 그만큼 자주 받을
   // 필요는 없다 — 마감 시각은 이미 알고 있고 시계는 보정돼 있다.
   setInterval(function () {
+    if (!store) return;
     var s = store.get(); if (!s) return;
 
     // 시간만으로 결정되는 전환은 여기서도 챙긴다. 서버 데이터가 안 바뀌면
@@ -629,10 +638,99 @@
     }
   }, 1000);
 
-  store.subscribe(render);
-  store.onBid(function () { if (shown === 'auction') U.SFX.bid(); });
+  // -------------------------------------------------------------------
+  // 시작 — 반이 정해진 뒤에야 store 가 생긴다
+  // -------------------------------------------------------------------
+  var booted = false;
 
-  store.start().then(function (r) {
-    if (r && r.needJoin) screen('join');
-  }).catch(function () { screen('join'); });
+  function boot(code) {
+    if (booted) return;
+    booted = true;
+    ROOM = code;
+    store = YM.makeStore(ROOM);
+    $('#joinRoomLine').textContent = roomLabel(ROOM);
+    $('#backPick').hidden = !!urlRoom;   // 주소로 들어왔으면 되돌아갈 곳이 없다
+    screen('join');
+
+    store.subscribe(render);
+    store.onBid(function () { if (shown === 'auction') U.SFX.bid(); });
+
+    store.start().then(function (r) {
+      if (r && r.needJoin) screen('join');
+    }).catch(function () { screen('join'); });
+  }
+
+  // 틀린 반을 골랐을 때의 탈출구. 아직 참가 전이라 지울 세션도 없다.
+  $('#backPick').addEventListener('click', function () {
+    location.href = location.pathname;
+  });
+
+  // -------------------------------------------------------------------
+  // 반 찾기 — 학생은 반 코드를 몰라도 된다
+  // -------------------------------------------------------------------
+  var savedRoom = null;
+  try {
+    var _prev = JSON.parse(localStorage.getItem('ym.session') || 'null');
+    if (_prev && _prev.room_code) savedRoom = _prev.room_code;
+  } catch (e) { savedRoom = null; }
+
+  function buildManual() {
+    var host = $('#roomPick');
+    if (host.firstChild) return;
+    for (var i = 1; i <= 11; i++) {
+      (function (n) {
+        var b = el('button', 'ym-btn ym-room', String(n));
+        b.type = 'button';
+        b.addEventListener('click', function () { boot('YM2-' + n); });
+        host.appendChild(b);
+      })(i);
+    }
+  }
+
+  function offer(sel, code, label) {
+    var b = $(sel);
+    b.textContent = label;
+    b.hidden = false;
+    b.onclick = function () { boot(code); };
+  }
+
+  var tries = 0;
+
+  async function findRoom() {
+    if (booted) return;
+    var open = await db.openRooms();
+    if (booted) return;
+
+    // 열린 방이 딱 하나이고 이 기기에 다른 반 세션이 없다 — 거의 모든 경우가
+    // 여기다. 학생은 아무것도 고르지 않고 바로 참가 화면으로 간다.
+    if (open && open.length === 1 && (!savedRoom || savedRoom === open[0])) {
+      boot(open[0]);
+      return;
+    }
+
+    if (open === null) {
+      $('#pickLead').textContent = '연결이 안 됩니다. 잠시 뒤 다시 시도합니다.';
+      buildManual(); $('#pickMore').open = true;
+    } else if (open.length === 0) {
+      $('#pickLead').textContent = savedRoom
+        ? '입장이 닫혀 있습니다. 하던 수업을 이어서 하세요.'
+        : '선생님이 입장을 열면 자동으로 시작됩니다. 이 화면을 그대로 두세요.';
+    } else if (open.length === 1) {
+      // 이 기기에 다른 반 세션이 남아 있다. 조용히 고르지 않고 물어본다.
+      $('#pickLead').textContent = '어느 쪽인가요?';
+      offer('#pickGo', open[0], roomLabel(open[0]) + ' 참가하기');
+    } else {
+      $('#pickLead').textContent = '우리 반을 고르세요';
+      buildManual(); $('#pickMore').open = true;
+    }
+
+    if (savedRoom) offer('#resumeBtn', savedRoom, roomLabel(savedRoom) + ' — 이어서 하기');
+
+    // 수업 전에 미리 열어 둔 화면이 선생님의 "입장 열기" 를 기다린다.
+    tries++;
+    setTimeout(findRoom, tries < 20 ? 3000 : 10000);
+  }
+
+  if (urlRoom) { boot(urlRoom); }
+  else { screen('pick'); findRoom(); }
 })();

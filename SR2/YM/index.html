@@ -6,7 +6,7 @@
 <title>THE ODYSSEY — 용산 IMAX · 교실 시뮬레이션</title>
 <meta name="description" content="외부지문 2 · 4차시 — Selling Yosemite 도입 활동 (학생용)">
 <link rel="icon" href="favicon.svg">
-<link rel="stylesheet" href="css/styles.css?v=20260917g">
+<link rel="stylesheet" href="css/styles.css?v=20260917h">
 </head>
 <body class="ym-student">
 
@@ -19,9 +19,30 @@
 <main id="root" class="ym-root">
 
   <!-- ================================================================
+       반 고르기 — 주소에 ?room= 이 없을 때만
+       ================================================================ -->
+  <section class="ym-screen" data-screen="pick" hidden>
+    <div class="ym-hero">
+      <p class="ym-kicker">YONGSAN IMAX</p>
+      <h1 class="ym-title">THE ODYSSEY</h1>
+      <p class="ym-sub">THE TICKET DROP</p>
+    </div>
+    <div class="ym-panel ym-panel--center">
+      <p class="ym-lead" id="pickLead">수업을 찾는 중…</p>
+      <button class="ym-btn ym-btn--primary ym-btn--xl" id="pickGo" type="button" hidden></button>
+      <button class="ym-btn ym-btn--xl" id="resumeBtn" type="button" hidden></button>
+      <details class="ym-pickmore" id="pickMore">
+        <summary>반 직접 고르기</summary>
+        <div class="ym-rooms" id="roomPick"></div>
+      </details>
+    </div>
+    <p class="ym-fineprint">교실 시뮬레이션 — 실제 좌석 배치가 아닙니다.</p>
+  </section>
+
+  <!-- ================================================================
        참가
        ================================================================ -->
-  <section class="ym-screen" data-screen="join">
+  <section class="ym-screen" data-screen="join" hidden>
     <div class="ym-hero">
       <p class="ym-kicker">YONGSAN IMAX</p>
       <h1 class="ym-title">THE ODYSSEY</h1>
@@ -44,6 +65,7 @@
 
       <button class="ym-btn ym-btn--primary ym-btn--xl" id="joinBtn">참가하기</button>
       <p class="ym-error" id="joinErr" hidden></p>
+      <button class="ym-btn ym-backpick" id="backPick" type="button" hidden>← 반 다시 고르기</button>
     </div>
     <p class="ym-fineprint">교실 시뮬레이션 — 실제 좌석 배치가 아닙니다.</p>
   </section>
@@ -216,11 +238,11 @@
 
 </main>
 
-<script src="js/vendor/supabase.umd.js?v=20260917g"></script>
-<script src="js/config.js?v=20260917g"></script>
-<script src="js/client.js?v=20260917g"></script>
-<script src="js/ui.js?v=20260917g"></script>
-<script src="js/state.js?v=20260917g"></script>
-<script src="js/student.js?v=20260917g"></script>
+<script src="js/vendor/supabase.umd.js?v=20260917h"></script>
+<script src="js/config.js?v=20260917h"></script>
+<script src="js/client.js?v=20260917h"></script>
+<script src="js/ui.js?v=20260917h"></script>
+<script src="js/state.js?v=20260917h"></script>
+<script src="js/student.js?v=20260917h"></script>
 </body>
 </html>
