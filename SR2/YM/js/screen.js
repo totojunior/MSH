@@ -45,6 +45,17 @@
     else { U.soundMuted(true); this.textContent = '🔇 소리 켜기'; }
   });
 
+  // 교탁에서 무엇을 클릭하든 그 첫 클릭으로 소리를 켠다.
+  //
+  // '사람이 한 번 눌러야 난다' 는 규칙은 그대로다 — 누르는 대상이 작은
+  // 소리 버튼일 필요가 없을 뿐이다. 수업 전에 그 버튼을 못 찾거나 잊으면
+  // 카운트다운과 입찰음이 통째로 사라지고, 교사는 수업이 끝날 때까지
+  // 그 사실을 모른다. 되돌리는 것은 같은 버튼을 한 번 더 누르는 것이다.
+  document.addEventListener('pointerdown', function () {
+    if (!U.isMuted()) return;
+    if (U.soundEnable()) $('#soundBtn').textContent = '🔊 소리 켜짐';
+  }, { passive: true });
+
   // -------------------------------------------------------------------
   // 데이터 — 공개 테이블만
   // -------------------------------------------------------------------
@@ -442,9 +453,13 @@
     if (p === 'booking') {
       var left = db.msUntil(room.booking_opens_at);
       if (left !== null && left > 0) {
-        $('#cd').textContent = Math.ceil(left / 1000);
+        var n = Math.ceil(left / 1000);
+        if ($('#cd').textContent !== String(n)) { $('#cd').textContent = String(n); U.SFX.tick(); }
         return show('countdown');
       }
+      // 0 이 되는 순간 딱 한 번. shown 이 아직 countdown 이라는 것이
+      // '방금 넘어왔다' 는 뜻이다.
+      if (shown === 'countdown') U.SFX.go();
       return (paintMap(), show('booking'));
     }
     if (p === 'prevote')  return paintVote('pre');
@@ -452,6 +467,7 @@
     if (p === 'budget')   return show('budget');
     if (p === 'auction')  return paintAuction();
     if (p === 'results')  {
+      if (shown === 'auction') U.SFX.close();
       // 투표를 먼저 받고, 통계는 그다음에 연다. 순서를 뒤집으면 숫자가 표를 끌고 간다.
       var vc = (room.vote_counts || {}).post || {};
       var voted = (vc.yes || 0) + (vc.no || 0) + (vc.unsure || 0);
