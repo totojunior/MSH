@@ -1,0 +1,299 @@
+/* YM — 교탁 TV 조종판. tv.html 만 불러온다.
+ *
+ * projector.css 와 규칙이 정반대다. 본문은 8m 뒤 33명이 '읽고',
+ * 조종판은 50cm 앞 한 사람이 읽고 '누른다'. 그래서:
+ *   - vmin 을 쓰지 않는다. 교실 프로젝터(1024x768)와 TV(1920x1080)는
+ *     같은 vmin 값이 40% 차이 난다 — 본문에는 장점이지만 클릭 타깃에는 사고다.
+ *   - 크기는 px / clamp() 로, 최소 타깃은 styles.css 의 .ym-btn 과 같은 48px.
+ *   - 색은 --ym-* 토큰만. 주황(--ym-hot)은 '지금 눌러야 할 버튼' 하나에만
+ *     쓴다. 조종판이 주황을 여러 개 쓰면 화면에 '지금 할 것' 이 둘이 되어
+ *     학생 시선이 연출에서 떨어진다.
+ *   - 상태는 색만으로 말하지 않는다. 연결·시계·연습방 모두 글자를 같이 쓴다.
+ *
+ * z 순서: ym-pwait 50 < ym-dry/ym-sound 60 < 조종 바 70 < 덮개 80 < 토스트 90
+ */
+
+/* 조종 영역에서는 더블클릭이 파란 선택 블록을 남기지 않게 한다.
+   저장소 어디에도 user-select 선언이 없어서 TV 에 그대로 남는다. */
+.tv-bar, .tv-handle, .tv-cover, .tv-dry { user-select: none; -webkit-user-select: none; }
+
+/* 3초 무동작이면 커서도 쉰다. 100인치에서는 커서가 가로지르는 것까지 다 보인다.
+   마우스를 움직이면 tvctl.js 가 이 클래스를 즉시 뗀다. */
+html.tv-nocursor, html.tv-nocursor * { cursor: none !important; }
+
+/* ------------------------------------------------------------------ */
+/* 연습방 경고 — 이 화면에서 가장 크게 보여야 하는 글자                 */
+/* ------------------------------------------------------------------ */
+/* .ym-dry(좌상단) · .ym-sound(우상단) 와 자리가 겹치지 않게 가운데 위. */
+.tv-dry {
+  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+  z-index: 65; margin: 0;
+  background: var(--ym-slow); color: #1a1200;
+  font-size: clamp(18px, 2.2vw, 30px); font-weight: 800; letter-spacing: .04em;
+  padding: 10px 28px; border-radius: 99px;
+  max-width: 92vw; text-align: center;
+}
+
+.tv-demonote {
+  position: fixed; bottom: 14px; right: 14px; z-index: 65; margin: 0;
+  background: var(--ym-panel); border: 1px solid var(--ym-line); color: var(--ym-dim);
+  border-radius: 99px; padding: 8px 18px; font-size: 15px;
+}
+
+/* ------------------------------------------------------------------ */
+/* 덮개 — 반 고르기 / 암호 / 반 불일치                                  */
+/* ------------------------------------------------------------------ */
+.tv-cover {
+  position: fixed; inset: 0; z-index: 80;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ym-void);   /* 반투명으로 두면 뒤의 연출 글자가 비쳐 읽기가 나빠진다 */
+  padding: max(24px, 5vmin);
+}
+/* 중계가 이미 돌고 있으면 화면을 덮지 않는다. 아래쪽에만 뜬다 —
+   수업 중에 암호가 풀렸다고 TV 를 까맣게 덮으면 그게 더 큰 사고다. */
+/* align-items:flex-end 로 두면 내용이 넘칠 때 위쪽이 스크롤로도 닿지 않는다
+   (플렉스 오버플로우). 아래에 붙이는 것은 inset 이 하고, 정렬은 위에서부터. */
+.tv-cover.is-sheet {
+  inset: auto 0 0 0;
+  max-height: 74vh; overflow: auto;
+  background: var(--ym-pitch);
+  border-top: 2px solid var(--ym-line);
+  padding: 16px max(20px, 4vmin);
+  align-items: flex-start;
+}
+/* 수업 중에 뜨는 화면이라 세로를 아낀다 */
+.tv-cover.is-sheet .tv-rooms { grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); margin-bottom: var(--ym-s4); }
+.tv-cover.is-sheet .tv-room  { min-height: 58px; }
+.tv-cover.is-sheet .tv-room__n { font-size: 19px; }
+
+.tv-cover__box {
+  width: min(880px, 92vw);
+  text-align: center;
+}
+.tv-cover.is-sheet .tv-cover__box { width: min(760px, 94vw); }
+
+.tv-cover__kick {
+  margin: 0 0 6px; font-size: 14px; letter-spacing: .34em;
+  color: var(--ym-hot); font-weight: 700; text-transform: uppercase;
+}
+.tv-cover__h {
+  margin: 0 0 18px; font-size: clamp(22px, 2.6vw, 34px); font-weight: 800; line-height: 1.3;
+}
+.tv-cover.is-sheet .tv-cover__h { font-size: clamp(18px, 2vw, 24px); margin-bottom: 12px; }
+.tv-cover__note { margin: 0 0 16px; font-size: 16px; color: var(--ym-dim); line-height: 1.6; }
+.tv-cover__btns { display: flex; gap: var(--ym-s3); justify-content: center; flex-wrap: wrap; }
+
+/* 반 버튼 — 1~11 과 연습. 큰 타깃으로. */
+.tv-rooms {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--ym-s3); margin-bottom: var(--ym-s5);
+}
+.tv-room {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 76px; padding: var(--ym-s3);
+  border: 2px solid var(--ym-line); border-radius: var(--ym-radius);
+  background: var(--ym-panel); color: var(--ym-ink);
+  font-family: inherit; cursor: pointer; touch-action: manipulation;
+}
+.tv-room:hover { border-color: var(--ym-hot); }
+.tv-room:focus-visible { outline: 3px solid var(--ym-cool); outline-offset: 2px; }
+.tv-room--test { border-style: dashed; }
+.tv-room__n { font-size: 24px; font-weight: 800; }
+.tv-room__k { font-size: 12px; letter-spacing: .08em; color: var(--ym-dim); }
+
+.tv-pw { display: grid; gap: var(--ym-s2); max-width: 460px; margin: 0 auto; text-align: left; }
+.tv-label { font-size: 14px; letter-spacing: .1em; color: var(--ym-dim); }
+.tv-input {
+  width: 100%; min-height: 52px; padding: 0 var(--ym-s4);
+  border: 2px solid var(--ym-line); border-radius: var(--ym-radius);
+  background: var(--ym-void); color: var(--ym-ink);
+  font-family: inherit; font-size: 18px; letter-spacing: .12em;
+}
+.tv-input:focus { outline: none; border-color: var(--ym-hot); }
+/* 이 입력칸은 TV 에 미러링된다. Edge/Chrome 이 password 칸에 붙이는
+   '눈' 버튼과 자동완성 버튼을 지운다 — 한 번의 클릭으로 암호가
+   6m 앞 33명에게, 그리고 사진으로 영구히 남는다. */
+.tv-input::-ms-reveal,
+.tv-input::-ms-clear,
+.tv-input::-webkit-credentials-auto-fill-button,
+.tv-input::-webkit-strong-password-auto-fill-button { display: none !important; }
+.tv-err { margin: 0; font-size: 15px; font-weight: 700; color: var(--ym-off); }
+.tv-note { margin: var(--ym-s2) 0 0; font-size: 13px; line-height: 1.6; color: var(--ym-dim); }
+.tv-note--dim { color: var(--ym-faint); }
+
+/* ------------------------------------------------------------------ */
+/* 버튼 공통                                                           */
+/* ------------------------------------------------------------------ */
+.tv-btn {
+  min-height: 48px; padding: var(--ym-s2) var(--ym-s4);
+  border: 2px solid var(--ym-line); border-radius: var(--ym-radius);
+  background: var(--ym-panel); color: var(--ym-ink);
+  font-family: inherit; font-size: 16px; font-weight: 700;
+  cursor: pointer; touch-action: manipulation;
+}
+.tv-btn:hover:not(:disabled) { border-color: var(--ym-hot); }
+.tv-btn:focus-visible { outline: 3px solid var(--ym-cool); outline-offset: 2px; }
+.tv-btn:disabled { opacity: .38; cursor: not-allowed; }
+.tv-btn--primary { background: var(--ym-hot); color: var(--ym-hot-ink); border-color: var(--ym-hot); }
+.tv-btn--danger { border-color: var(--ym-off); color: var(--ym-off); }
+/* 한 번 더 눌러야 실행되는 상태. 색만이 아니라 글자가 통째로 바뀐다. */
+.tv-btn.is-armed, .tv-kick.is-armed {
+  background: var(--ym-off); color: #1a0000; border-color: var(--ym-off); font-weight: 800;
+}
+
+/* ------------------------------------------------------------------ */
+/* 접힌 손잡이                                                         */
+/* ------------------------------------------------------------------ */
+/* 완전히 숨기지 않는다. 전체화면에서 커서가 사라지면 "마우스를 움직이면
+   나온다" 는 안내가 교사에게 닿을 방법이 없다. */
+.tv-handle {
+  position: fixed; right: 14px; bottom: 12px; z-index: 69;
+  min-height: 40px; padding: 8px 18px;
+  border: 1px solid var(--ym-line); border-radius: 99px;
+  background: rgba(21, 21, 31, .72); color: var(--ym-faint);
+  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.tv-handle:hover { color: var(--ym-ink); border-color: var(--ym-hot); }
+
+/* ------------------------------------------------------------------ */
+/* 조종 바                                                             */
+/* ------------------------------------------------------------------ */
+.tv-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
+  background: var(--ym-pitch);           /* 반투명으로 때우지 않는다. 경매 가격 숫자가 걸친다. */
+  border-top: 2px solid var(--ym-line);
+  padding: 10px max(20px, 3vmin) max(12px, 2vmin);
+  transform: translateY(102%);
+  transition: transform .18s ease-out;
+}
+.tv-bar.is-open { transform: none; }
+@media (prefers-reduced-motion: reduce) { .tv-bar { transition: none; } }
+
+.tv-row {
+  display: flex; align-items: center; gap: var(--ym-s4);
+  flex-wrap: wrap; justify-content: space-between;
+}
+
+.tv-now { display: flex; flex-direction: column; gap: 2px; min-width: 220px; }
+.tv-phase { font-size: clamp(24px, 2.6vw, 38px); font-weight: 800; line-height: 1.1; }
+.tv-meta  { font-size: 16px; color: var(--ym-dim); font-variant-numeric: tabular-nums; }
+
+/* 다음에 눌러야 할 버튼 하나. 화면에서 주황은 여기뿐이다. */
+.tv-stephost { flex: 1 1 340px; display: flex; justify-content: center; }
+.tv-step {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-height: 72px; min-width: min(360px, 80vw); padding: 10px var(--ym-s6);
+  border: 2px solid var(--ym-hot); border-radius: var(--ym-radius);
+  background: var(--ym-hot); color: var(--ym-hot-ink);
+  font-family: inherit; cursor: pointer; touch-action: manipulation;
+}
+.tv-step:active:not(:disabled) { transform: scale(.985); }
+.tv-step:focus-visible { outline: 3px solid var(--ym-cool); outline-offset: 3px; }
+.tv-step:disabled { opacity: .5; cursor: progress; }
+/* 교탁에서 0.5m 거리면 20px 로 충분하다. 32px 까지 키우면 1920 화면에서
+   3.7cm 가 되어 6m 뒤 학생이 「예산 배정」·「경매 시작」을 미리 읽는다. */
+.tv-step__main { font-size: 20px; font-weight: 800; }
+/* 보조 문구는 교탁 거리(≈0.5m) 크기로만. 6m 밖에서 미리 읽히면 안 된다. */
+.tv-step__sub  { font-size: 18px; font-weight: 600; opacity: .8; }
+
+.tv-end {
+  margin: 0; padding: 14px 20px; font-size: 20px; font-weight: 700;
+  color: var(--ym-dim); text-align: center;
+}
+.tv-end--odd { color: var(--ym-slow); }
+
+.tv-side {
+  display: flex; align-items: center; gap: var(--ym-s3);
+  flex-wrap: wrap; justify-content: flex-end;
+}
+.tv-conn  { font-size: 15px; font-weight: 700; color: var(--ym-dim); }
+.tv-conn.is-live { color: var(--ym-live); }
+.tv-conn.is-off  { color: var(--ym-off); }
+.tv-clock {
+  font-size: 20px; font-weight: 800; color: var(--ym-dim);
+  font-variant-numeric: tabular-nums;
+}
+.tv-clock.is-warn { color: var(--ym-slow); }
+.tv-clock.is-over { color: var(--ym-off); }
+
+.tv-mini {
+  min-height: 48px; padding: 0 var(--ym-s4);
+  border: 2px solid var(--ym-line); border-radius: var(--ym-radius);
+  background: var(--ym-panel); color: var(--ym-ink);
+  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.tv-mini:hover { border-color: var(--ym-hot); }
+.tv-mini:focus-visible { outline: 3px solid var(--ym-cool); outline-offset: 2px; }
+.tv-mini--quiet { color: var(--ym-dim); font-size: 14px; font-weight: 600; }
+
+/* 실패·알림은 바 안에서만 말한다. U.toast 는 화면 아래 한가운데에 뜨는데,
+   TV 에서는 그 자리가 학생 33명이 읽는 자리다. */
+.tv-msg {
+  margin: 0 0 8px; padding: 10px var(--ym-s4); border-radius: var(--ym-radius);
+  font-size: 18px; font-weight: 700; line-height: 1.5;
+}
+.tv-msg.is-warn { background: rgba(248, 113, 113, .14); color: var(--ym-off); border-left: 4px solid var(--ym-off); }
+.tv-msg.is-ok   { background: rgba(74, 222, 128, .12); color: var(--ym-live); border-left: 4px solid var(--ym-live); }
+
+.tv-tip {
+  margin: 0 0 8px; padding: 8px var(--ym-s4);
+  font-size: 16px; color: var(--ym-slow); font-weight: 600;
+  border-left: 4px solid var(--ym-slow); background: rgba(251, 191, 36, .1);
+  border-radius: var(--ym-radius);
+}
+
+/* ------------------------------------------------------------------ */
+/* 복구 서랍 — 접혀 있는 것이 기본                                      */
+/* ------------------------------------------------------------------ */
+.tv-drawer {
+  max-height: 52vh; overflow: auto;
+  margin-bottom: 10px; padding: var(--ym-s4);
+  border: 1px solid var(--ym-line); border-radius: var(--ym-radius);
+  background: var(--ym-panel);
+}
+.tv-drawer__h {
+  margin: var(--ym-s4) 0 var(--ym-s2); font-size: 13px; letter-spacing: .2em;
+  color: var(--ym-faint); text-transform: uppercase;
+}
+.tv-drawer__h:first-child { margin-top: 0; }
+.tv-drawer__h--danger { color: var(--ym-off); }
+
+.tv-hint { margin: 0 0 var(--ym-s3); font-size: 17px; color: var(--ym-ink); line-height: 1.5; }
+
+/* 학생이 읽으면 활동이 오염되는 숫자들. 서랍 안에서만 산다. */
+.tv-nums { display: flex; flex-wrap: wrap; gap: var(--ym-s3); margin-bottom: var(--ym-s2); }
+.tv-num {
+  display: flex; flex-direction: column; gap: 2px; min-width: 96px;
+  padding: var(--ym-s2) var(--ym-s3);
+  border: 1px solid var(--ym-line); border-radius: var(--ym-radius); background: var(--ym-void);
+}
+.tv-num__v { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.tv-num__k { font-size: 12px; letter-spacing: .1em; color: var(--ym-dim); }
+
+.tv-tools { display: flex; flex-wrap: wrap; gap: var(--ym-s2); }
+
+/* 별명은 여기에만, 그리고 교탁 거리에서만 읽히는 크기로.
+   33명 앞에서 별명 옆에 "○○ 내보낼까요?" 가 6m 크기로 뜨는 것은 공개 지목이다. */
+.tv-roster { margin-top: var(--ym-s3); }
+.tv-roster__h { margin: 0 0 var(--ym-s2); font-size: 13px; color: var(--ym-dim); line-height: 1.5; }
+.tv-roster__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.tv-kick {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 34px; padding: 4px 10px;
+  border: 1px solid var(--ym-line); border-radius: 99px;
+  background: var(--ym-void); color: var(--ym-dim);
+  font-family: inherit; font-size: 14px; cursor: pointer;
+}
+.tv-kick:hover { border-color: var(--ym-off); color: var(--ym-ink); }
+.tv-kick__x { color: var(--ym-faint); font-weight: 800; }
+
+/* 좁은 화면(교탁 PC 본체 화면에서 잠깐 열 때)에서도 무너지지 않게 */
+@media (max-width: 720px) {
+  .tv-row { flex-direction: column; align-items: stretch; }
+  .tv-side { justify-content: space-between; }
+  .tv-step { width: 100%; min-width: 0; }
+}
+
+/* 바가 올라와 있는 동안에는 연출을 그 위로 올린다. 바는 불투명이라
+   경매 매물 격자와 결과 화면 아래쪽이 그대로 덮인다. */
+.tv-baropen .ym-pscreen { bottom: 130px; }

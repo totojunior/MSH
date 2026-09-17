@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THE ODYSSEY — 교탁 TV</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="css/styles.css?v=20260918a">
+<link rel="stylesheet" href="css/projector.css?v=20260918a">
+<link rel="stylesheet" href="css/tvctl.css?v=20260918a">
+</head>
+<!-- 교탁 PC 를 TV 에 연결하고 이 페이지 하나만 엽니다. F11 로 전체화면.
+     중계 연출은 screen.html 과 똑같고(같은 마크업, 같은 js/screen.js),
+     거기에 '조종 바' 하나를 얹었습니다. 리모컨 휴대폰이 필요 없습니다.
+
+     ⚠ 이 화면에는 관리자 토큰이 절대 표시되지 않습니다.
+        암호 입력칸은 password 이고, 저장된 뒤에는 화면·주소 어디에도 나오지 않습니다.
+        주소에 ?token= 같은 것을 붙이지 마세요 — 주소창·히스토리·스크린샷에 남습니다.
+     ⚠ 학생 별명은 조종 바에 뜨지 않습니다. 「복구」 서랍 안, 교탁에서만 읽히는
+        작은 글씨로만 나옵니다. 33명 앞에서 별명을 크게 띄우는 것은 공개 지목입니다. -->
+<body class="ym-proj">
+
+<div class="ym-dry" id="dryBadge" hidden>DRY RUN · 연습</div>
+<button class="ym-sound" id="soundBtn">🔇 소리 켜기</button>
+
+<main id="proj">
+
+  <!-- 대기 ---------------------------------------------------------- -->
+  <section class="ym-pscreen" data-p="lobby">
+    <p class="ym-pkick">YONGSAN IMAX</p>
+    <h1 class="ym-ptitle">THE ODYSSEY</h1>
+    <p class="ym-psub">LAST-MINUTE TICKET DROP</p>
+    <div class="ym-joinbox">
+      <!-- screen.js 가 그리는 QR/주소는 자리만 남기고 숨긴다.
+           screen.js 의 주소 계산이 파일 이름 'screen.html' 을 전제하기 때문에
+           tv.html 에서는 "…/tv.html?room=X?room=X" 같은 주소가 나오고,
+           그 QR 을 찍은 학생은 학생 화면이 아니라 이 조종 화면으로 온다.
+           지우지는 않는다 — #qr/#joinUrl 이 없으면 screen.js 가 TypeError 로
+           죽고, 그 예외는 pull() 의 catch 가 조용히 삼켜 대기 화면이 영영 안 돌아온다.
+           보이는 QR·주소는 js/tvctl.js 가 학생용 주소로 다시 그린다. -->
+      <div class="ym-qr" id="qr" aria-hidden="true" hidden></div>
+      <p class="ym-purl" id="joinUrl" hidden>—</p>
+
+      <div class="ym-qr" id="tvQr" aria-hidden="true"></div>
+      <div>
+        <p class="ym-pbig" id="lobbyN">0</p>
+        <p class="ym-plabel">CONNECTED</p>
+        <p class="ym-purl" id="tvJoinUrl">—</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 카운트다운 ---------------------------------------------------- -->
+  <section class="ym-pscreen" data-p="countdown" hidden>
+    <p class="ym-pkick">TICKETS OPEN IN</p>
+    <p class="ym-pcount" id="cd">5</p>
+  </section>
+
+  <!-- 예매 ---------------------------------------------------------- -->
+  <section class="ym-pscreen" data-p="booking" hidden>
+    <p class="ym-pscreenline">SCREEN</p>
+    <div class="ym-pmap" id="pmap"></div>
+    <p class="ym-pbig"><span id="claimed">0</span> / <span id="total">0</span> CLAIMED</p>
+    <p class="ym-soldout" id="soldout" hidden>SOLD OUT</p>
+  </section>
+
+  <!-- 투표 (사전/사후) ---------------------------------------------- -->
+  <section class="ym-pscreen" data-p="vote" hidden>
+    <p class="ym-pkick" id="vKick">VOTE</p>
+    <h2 class="ym-pq" id="vQ">—</h2>
+    <div class="ym-bars" id="vBars"></div>
+    <p class="ym-plabel" id="vCount">—</p>
+  </section>
+
+  <!-- 가질까 팔까 — 집계만 ----------------------------------------- -->
+  <section class="ym-pscreen" data-p="decide" hidden>
+    <p class="ym-pkick">KEEP OR SELL</p>
+    <h2 class="ym-pq">좌석 주인들이 정하고 있습니다</h2>
+    <div class="ym-three">
+      <div><p class="ym-pbig" id="dOwn">0</p><p class="ym-plabel">좌석 보유</p></div>
+      <div><p class="ym-pbig" id="dSell">0</p><p class="ym-plabel">팔겠다</p></div>
+      <div><p class="ym-pbig" id="dNone">0</p><p class="ym-plabel">좌석 없음</p></div>
+    </div>
+  </section>
+
+  <!-- 예산 — 개인 금액은 절대 안 보여 준다 -------------------------- -->
+  <section class="ym-pscreen" data-p="budget" hidden>
+    <p class="ym-pkick">YOUR BUDGET</p>
+    <h2 class="ym-pq">모두가 돈을 받았습니다</h2>
+    <p class="ym-plead">각자 화면을 보세요</p>
+    <p class="ym-pnote">게임 머니입니다. 실제 돈이 아닙니다.</p>
+  </section>
+
+  <!-- 경매 ---------------------------------------------------------- -->
+  <section class="ym-pscreen ym-pscreen--auction" data-p="auction" hidden>
+    <div class="ym-spot" id="spot">
+      <p class="ym-plabel">HOT RIGHT NOW</p>
+      <p class="ym-spot__seat" id="spotSeat">—</p>
+      <p class="ym-spot__price" id="spotPrice">—</p>
+      <p class="ym-spot__time" id="spotTime">--</p>
+    </div>
+    <div class="ym-lots" id="plots"></div>
+    <p class="ym-ext" id="ext" hidden>연장! EXTENDED</p>
+    <p class="ym-empty" id="pEmpty" hidden>올라온 좌석이 없습니다</p>
+  </section>
+
+  <!-- 결과 ---------------------------------------------------------- -->
+  <section class="ym-pscreen" data-p="results" hidden>
+    <p class="ym-pkick">WHAT THE MARKET DID</p>
+    <h2 class="ym-pq ym-pq--sm">시장은 무엇을 했나</h2>
+    <div class="ym-heat" id="heat"></div>
+    <div class="ym-cols">
+      <div class="ym-col">
+        <p class="ym-colh">좌석이 움직였다</p>
+        <p class="ym-colv" id="rSold">—</p><p class="ym-plabel">되팔린 좌석</p>
+        <p class="ym-colv" id="rRecv">—</p><p class="ym-plabel">정가보다 더 받은 금액</p>
+      </div>
+      <div class="ym-col">
+        <p class="ym-colh">좌석이 없다</p>
+        <p class="ym-colv" id="rNone">—</p><p class="ym-plabel">끝까지 좌석 없음</p>
+        <p class="ym-colv ym-colv--hot" id="rPriced">—</p><p class="ym-plabel" id="rPricedNote">—</p>
+      </div>
+    </div>
+    <div class="ym-reasons2" id="rReasons"></div>
+  </section>
+
+  <!-- 요세미티 ------------------------------------------------------ -->
+  <section class="ym-pscreen" data-p="yosemite" hidden>
+    <div class="ym-yo" id="yo"></div>
+  </section>
+
+</main>
+
+<!-- ================================================================= -->
+<!-- 조종 오버레이 — 여기부터는 tv.html 에만 있다                       -->
+<!-- ================================================================= -->
+
+<!-- 연습방 경고. 색만이 아니라 글자로도 말한다. 가장 크게 보여야 하는 것. -->
+<p class="tv-dry" id="tvDry" hidden></p>
+
+<!-- 반이 어긋났을 때. 교사가 연습방을 조종하는데 학생 33명은 실제 반에
+     있는 사고는 한 화면에 섞여 있으면 더 알아채기 어렵다 — 화면을 덮는다. -->
+<div class="tv-cover" id="tvMismatch" hidden>
+  <div class="tv-cover__box">
+    <p class="tv-cover__kick">반이 서로 다릅니다</p>
+    <h1 class="tv-cover__h" id="tvMmText">—</h1>
+    <p class="tv-cover__note">어느 쪽이 지금 수업하는 반인지 고르세요. 고른 쪽으로 화면 전체가 다시 시작합니다.</p>
+    <div class="tv-cover__btns" id="tvMmBtns"></div>
+  </div>
+</div>
+
+<!-- 첫 방문: 반 고르기 + 교사 암호 한 번.
+     암호는 이 기기에만 저장되고, 저장된 뒤에는 화면 어디에도 나오지 않는다. -->
+<div class="tv-cover" id="tvSetup" hidden>
+  <div class="tv-cover__box">
+    <p class="tv-cover__kick">교탁 조종판</p>
+    <h1 class="tv-cover__h" id="tvSetupH">반을 고르세요</h1>
+    <div class="tv-rooms" id="tvRooms"></div>
+
+    <div class="tv-pw" id="tvPw" hidden>
+      <label class="tv-label" for="tvKey"><span id="tvPwRoom">—</span> 교사 암호</label>
+      <input class="tv-input" id="tvKey" type="password" autocomplete="off"
+             spellcheck="false" placeholder="이 반의 암호">
+      <button class="tv-btn tv-btn--primary" id="tvKeyGo" type="button">확인</button>
+      <p class="tv-err" id="tvErr" hidden></p>
+      <p class="tv-note">이 교탁 PC 에만 저장됩니다. 다음 시간부터는 묻지 않습니다.
+        암호는 화면에도 주소에도 표시되지 않습니다.</p>
+    </div>
+    <p class="tv-note tv-note--dim" id="tvSetupFoot"></p>
+  </div>
+</div>
+
+<!-- 접힌 손잡이. 완전히 숨기면 교사가 "버튼 어디 갔지" 하고 화면을 더듬는다.
+     전체화면에서 커서가 사라진 뒤에는 '마우스를 움직이면 나온다' 가
+     유일한 안내가 될 수 없다. -->
+<button class="tv-handle" id="tvHandle" type="button" hidden>조종 ▲</button>
+
+<!-- 조종 바. 평소에는 내려가 있고 마우스를 움직이면 올라온다. -->
+<div class="tv-bar" id="tvBar" hidden>
+
+  <!-- 복구 서랍 — 기본은 접혀 있다. 교사 전용 숫자는 전부 여기 안에. -->
+  <div class="tv-drawer" id="tvDrawer" hidden>
+    <p class="tv-hint" id="tvHint"></p>
+    <div class="tv-nums" id="tvNums"></div>
+
+    <p class="tv-drawer__h">되돌리기 — 자주 씁니다</p>
+    <div class="tv-tools">
+      <button class="tv-btn" data-tv="reopenJoin" type="button">입장 다시 열기</button>
+      <button class="tv-btn" data-tv="reopenDecide" type="button">되팔기 30초 더</button>
+    </div>
+
+    <p class="tv-drawer__h">그 밖에</p>
+    <div class="tv-tools">
+      <button class="tv-btn" data-tv="forceSettle" data-arm="경매를 지금 끝냅니다 — 한 번 더" type="button">경매 지금 끝내기</button>
+      <button class="tv-btn" data-tv="extend" type="button">방 기한 30일 연장</button>
+      <button class="tv-btn" data-tv="house" type="button">기기 없는 학생 추가</button>
+      <button class="tv-btn" data-tv="roster" type="button">명단 열기 · 내보내기</button>
+      <button class="tv-btn" data-tv="pickManual" type="button">반 직접 고르기</button>
+      <button class="tv-btn" data-tv="forget" data-arm="이 PC 에서 암호를 지웁니다 — 한 번 더" type="button">암호 지우기</button>
+      <button class="tv-btn" data-tv="copy" type="button" hidden>이 반 결과 복사</button>
+      <button class="tv-btn" data-tv="spawn" data-arm="연습용 봇 20명 — 한 번 더" type="button" hidden>봇 20명 불러오기</button>
+    </div>
+
+    <!-- 별명은 교탁 거리(≈0.5m)에서만 읽히는 크기로만. 평소에는 불러오지도 않는다. -->
+    <div class="tv-roster" id="tvRoster" hidden></div>
+
+    <p class="tv-drawer__h tv-drawer__h--danger">마지막 수단</p>
+    <div class="tv-tools">
+      <button class="tv-btn tv-btn--danger" data-tv="reset" type="button">이 반 초기화</button>
+    </div>
+    <p class="tv-note tv-note--dim" id="tvNote"></p>
+  </div>
+
+  <p class="tv-tip" id="tvTip" hidden></p>
+  <p class="tv-msg" id="tvMsg" hidden></p>
+
+  <div class="tv-row">
+    <div class="tv-now">
+      <span class="tv-phase" id="tvPhase">—</span>
+      <span class="tv-meta" id="tvMeta">—</span>
+    </div>
+
+    <!-- 다음에 눌러야 할 버튼 하나. 여기 말고는 아무 데도 없다. -->
+    <div class="tv-stephost" id="tvStep"></div>
+
+    <div class="tv-side">
+      <span class="tv-conn" id="tvConn">연결 확인 중</span>
+      <span class="tv-clock" id="tvClock">--:--</span>
+      <button class="tv-mini" id="tvDrawerBtn" type="button">복구 ▲</button>
+      <button class="tv-mini tv-mini--quiet" id="tvSwap" type="button">다음 수업 시작</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/vendor/supabase.umd.js?v=20260918a"></script>
+<script src="js/config.js?v=20260918a"></script>
+<script src="js/client.js?v=20260918a"></script>
+<script src="js/ui.js?v=20260918a"></script>
+<script src="js/vendor/qrcode.js?v=20260918a"></script>
+<script src="js/demo.js?v=20260918a"></script>
+<!-- 봇은 리허설 전용이다. 버튼은 연습방(dry_run / YM2-TEST)에서만 나타난다. -->
+<script src="js/bots.js?v=20260918a"></script>
+<!-- tvctl.js 가 screen.js 보다 먼저다. 저장해 둔 반을 주소의 ?room= 으로
+     먼저 써 넣어야 screen.js 가 "열린 방 자동 탐색"으로 새지 않는다.
+     (명단을 잠근 뒤에는 join_open=false 라 자동 탐색이 이 반을 못 찾는다.) -->
+<script src="js/tvctl.js?v=20260918a"></script>
+<script src="js/screen.js?v=20260918a"></script>
+</body>
+</html>
