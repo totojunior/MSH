@@ -185,3 +185,18 @@
     animation: none !important;
   }
 }
+
+/* 방을 기다리는 동안 덮는 막. */
+.ym-pwait {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--ym-void);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ym-s4);
+  text-align: center;
+  padding: var(--ym-s7);
+}

@@ -14,7 +14,11 @@
   var $ = U.$, el = U.el;
 
   var params = new URLSearchParams(location.search);
-  var ROOM = (params.get('room') || 'YM2-1').toUpperCase();
+  // 기본 반을 두지 않는다. 주소에 없으면 지금 입장이 열린 방을 찾아간다.
+  // 그래야 교사가 매 교시 주소를 고쳐 쓰지 않는다 — 고쳐 쓰다 빠뜨리면
+  // TV에 앞 반 데이터가 그대로 뜬다.
+  var urlRoom = (params.get('room') || '').trim().toUpperCase();
+  var ROOM = urlRoom;
   var DEMO = params.get('demo') === '1';
 
   var room = null, seats = [], listings = [], shown = null;
@@ -111,7 +115,10 @@
   // -------------------------------------------------------------------
   function paintLobby() {
     $('#lobbyN').textContent = room.player_count || 0;
-    var url = location.href.replace(/screen\.html.*$/, '') + '?room=' + ROOM;
+    // 방을 스스로 찾아온 경우엔 학생에게도 짧은 주소를 준다. 학생 화면도
+    // 같은 방식으로 열린 방을 찾아가므로 room= 을 적어 줄 필요가 없다.
+    var base = location.href.replace(/screen\.html.*$/, '');
+    var url = urlRoom ? (base + '?room=' + ROOM) : base;
     $('#joinUrl').textContent = url.replace(/^https?:\/\//, '');
     var box = $('#qr');
     if (box.dataset.url !== url && window.qrcode) {
@@ -469,14 +476,58 @@
   // -------------------------------------------------------------------
   // 시작
   // -------------------------------------------------------------------
-  if (DEMO) {
-    YM.demo.start(function (r, s, l) { room = r; seats = s; listings = l; render(); });
-  } else {
+  // 방을 기다리는 동안 덮는 막. lobby 패널을 지우지 않는다 — 거기엔
+  // QR과 접속 주소가 들어 있고, 한 번 지우면 다시 만들어 주지 않는다.
+  function waitBanner(msg, sub) {
+    var b = document.getElementById('ymWait');
+    if (!b) { b = el('div', 'ym-pwait'); b.id = 'ymWait'; document.body.appendChild(b); }
+    U.clear(b);
+    b.appendChild(el('p', 'ym-pkick', 'YONGSAN IMAX'));
+    b.appendChild(el('h1', 'ym-pq', msg));
+    b.appendChild(el('p', 'ym-plead', sub));
+  }
+
+  function waitDone() {
+    var b = document.getElementById('ymWait');
+    if (b && b.parentNode) b.parentNode.removeChild(b);
+  }
+
+  function startFor(code) {
+    ROOM = code;
+    waitDone();
     db.syncClock().then(function () {
       return pull();
     }).then(function () {
       attach();
       setInterval(pull, 2500);
     });
+  }
+
+  var findTries = 0;
+
+  async function findRoom() {
+    var open = await db.openRooms();
+    if (open && open.length === 1) { startFor(open[0]); return; }
+
+    if (open === null) {
+      waitBanner('연결을 기다리는 중', '학교 인터넷이 막고 있다면 조종석에도 같은 증상이 납니다.');
+    } else if (open.length === 0) {
+      waitBanner('수업을 기다리는 중', '조종석에서 「입장 열기」를 누르면 이 화면이 저절로 시작됩니다.');
+    } else {
+      waitBanner('열린 반이 ' + open.length + '개입니다',
+                 '앞 반 입장이 아직 열려 있습니다. 주소 끝에 ?room=YM2-번호 를 붙여 주세요.');
+    }
+
+    findTries++;
+    setTimeout(findRoom, findTries < 30 ? 2000 : 8000);
+  }
+
+  if (DEMO) {
+    YM.demo.start(function (r, s, l) { room = r; seats = s; listings = l; render(); });
+  } else if (urlRoom) {
+    startFor(urlRoom);
+  } else {
+    waitBanner('수업을 찾는 중', '잠시만 기다려 주세요.');
+    findRoom();
   }
 })();

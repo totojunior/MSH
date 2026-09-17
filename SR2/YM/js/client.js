@@ -202,9 +202,28 @@
       .catch(function () { /* 확인 못 해도 수업은 계속된다 */ });
   })();
 
+  // 지금 입장이 열려 있는 방들. 학생이 반 코드를 몰라도 들어올 수 있게 쓴다.
+  // rooms_public 은 anon 읽기가 열려 있으므로 RPC가 필요 없다.
+  // 실패는 null 로 돌려준다 — 빈 배열(열린 방 없음)과 구분해야 화면이 다르다.
+  async function openRooms() {
+    try {
+      var r = await sb.from('rooms_public')
+        .select('room_code, expires_at')
+        .eq('join_open', true)
+        .limit(20);
+      if (r.error) return null;
+      var now = nowMs();
+      return (r.data || [])
+        .filter(function (x) { return !x.expires_at || Date.parse(x.expires_at) > now; })
+        .map(function (x) { return x.room_code; })
+        .sort();
+    } catch (e) { return null; }
+  }
+
   YM.db = {
     sb: sb,
     rpc: rpc,
+    openRooms: openRooms,
     say: say,
     keyKind: check.kind,
     nowMs: nowMs,

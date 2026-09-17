@@ -516,3 +516,33 @@ select.ym-input { text-align: left; }
 
 /* 연습용 방을 실제 수업에서 쓰고 있으면 상단 바가 노랗게 경고한다 */
 .ym-adminbar__room.is-dry { color: var(--ym-slow); }
+
+/* 반 고르기 — 주소에 ?room= 이 없고 열린 방을 자동으로 못 고른 경우. */
+.ym-pickmore { margin-top: var(--ym-s4); width: 100%; }
+.ym-pickmore > summary {
+  cursor: pointer;
+  color: var(--ym-dim);
+  font-size: 14px;
+  padding: var(--ym-s2);
+  list-style: none;
+}
+.ym-pickmore > summary::-webkit-details-marker { display: none; }
+.ym-pickmore > summary::before { content: '▸ '; }
+.ym-pickmore[open] > summary::before { content: '▾ '; }
+.ym-rooms {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--ym-s2);
+  margin: var(--ym-s3) 0;
+}
+.ym-room {
+  min-height: 64px;
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 700;
+}
+.ym-backpick {
+  margin-top: var(--ym-s4);
+  min-height: 44px;
+  font-size: 14px;
+  color: var(--ym-dim);
+}
