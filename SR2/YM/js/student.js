@@ -602,6 +602,18 @@
   // 필요는 없다 — 마감 시각은 이미 알고 있고 시계는 보정돼 있다.
   setInterval(function () {
     var s = store.get(); if (!s) return;
+
+    // 시간만으로 결정되는 전환은 여기서도 챙긴다. 서버 데이터가 안 바뀌면
+    // 실시간 이벤트가 오지 않고, 하트비트는 10초 주기라 학생이 그만큼
+    // 늦게 넘어간다 — 투표 마감이나 요세미티 문항 열림이 그렇다.
+    var p = s.room.phase;
+    var gate =
+      (p === 'prevote'  && db.msUntil(s.room.prevote_ends_at) === 0) ||
+      (p === 'results'  && db.msUntil(s.room.postvote_ends_at) === 0) ||
+      (p === 'yosemite' && shown === 'watch' && db.msUntil(s.room.finalvote_ends_at) <= 60000) ||
+      (p === 'yosemite' && db.msUntil(s.room.finalvote_ends_at) === 0);
+    if (gate) render(s, store.status());
+
     if (shown === 'booking') $('#bookTime').textContent = U.secs(db.msUntil(s.room.booking_ends_at));
     if (shown === 'vote') {
       var e = s.room.phase === 'prevote' ? s.room.prevote_ends_at
