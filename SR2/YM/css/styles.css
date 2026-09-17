@@ -432,6 +432,19 @@ button { font-family: inherit; }
   background: var(--ym-pitch); border-bottom: 1px solid var(--ym-line);
 }
 .ym-adminbar__room  { font-weight: 800; letter-spacing: .06em; font-size: 16px; }
+.ym-barswap {
+  margin-left: var(--ym-s3);
+  padding: 6px 10px;
+  min-height: 34px;
+  border: 1px solid var(--ym-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ym-dim);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ym-barswap:hover { border-color: var(--ym-hot); color: var(--ym-ink); }
 /* 상단 바 안에 흐르게 둔다. 고정 위치면 경과 시계와 겹친다. */
 .ym-admin .ym-conn { position: static; background: none; padding: 0; }
 .ym-adminbar__clock {
