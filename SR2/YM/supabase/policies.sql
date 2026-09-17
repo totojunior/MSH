@@ -103,7 +103,13 @@ begin
       from pg_proc p
       join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public'
-       and (p.proname like '\_%' or p.proname = 'ym_bump_rev')
+       -- 밑줄로 시작하는 내부 함수 + 이름으로 짚는 것들.
+       -- 교사 키 함수(ym_set_teacher_key / ym_clear_teacher_key)는 밑줄
+       -- 그물에 걸리지 않는다. 그 둘은 05-교사키.sql 이 만들면서 직접
+       -- 회수하지만, 이 파일을 나중에 다시 부었을 때도 닫혀 있어야 해서
+       -- 여기 이름을 적어 둔다. 아직 없는 함수면 이 반복문이 그냥 지나간다.
+       and (p.proname like '\_%'
+            or p.proname in ('ym_bump_rev', 'ym_set_teacher_key', 'ym_clear_teacher_key'))
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
   end loop;

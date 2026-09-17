@@ -46,6 +46,13 @@ begin
 end;
 $$;
 
+-- 교사 키(모든 반에 통하는 암호 하나)를 쓰고 싶으면 05-교사키.sql 을 이어서
+-- 돌린다. 그 파일이 이 함수를 '반별 토큰 또는 교사 키' 판정으로 통째로
+-- 교체한다. 여기 있는 것이 반별 토큰 전용 원본이다.
+-- 왜 새 본문을 이 파일에 넣지 않았나: 새 본문은 teacher_secrets 표를 읽는데,
+-- 그 표는 05-교사키.sql 이 만든다. 여기에 넣어 두면 네 파일만 부은 프로젝트에서
+-- 교사용 RPC 전부가 "그런 표 없음"으로 죽는다 — 교사 키는커녕 반별 토큰도
+-- 못 쓰게 된다. 없는 기능은 없는 채로 두고, 있는 기능은 반드시 살려 둔다.
 create or replace function public._auth_admin(p_room_code text, p_admin_token text)
 returns uuid
 language plpgsql stable security definer set search_path = ''
@@ -61,6 +68,11 @@ begin
 end;
 $$;
 
+-- 교사용 RPC 스물몇 개가 전부 이 두 인자를 이름으로 넘기고 uuid 를 받는다.
+-- 인자 이름도 반환형도 바꾸지 않는다 — 바꾸는 순간 create or replace 가
+-- 아니라 drop 이 필요해지고, 스물몇 개가 동시에 깨진다.
+-- 판정 로직은 _auth_admin 한 곳에만 있고, 이 함수는 NULL 을 42501 로
+-- 바꾸는 껍데기다. 그래서 교사 키를 더할 때도 고칠 곳이 한 군데뿐이다.
 create or replace function public._require_admin(p_room_code text, p_admin_token text)
 returns uuid
 language plpgsql security definer set search_path = ''
@@ -69,6 +81,8 @@ declare v_room uuid;
 begin
   v_room := public._auth_admin(p_room_code, p_admin_token);
   if v_room is null then
+    -- 실패는 언제나 같은 메시지, 같은 errcode 다.
+    -- "그런 방 없음"과 "키 틀림"을 구분해 주면 대입 공격이 절반으로 줄어든다.
     raise exception 'unauthorized' using errcode = '42501';
   end if;
   return v_room;
