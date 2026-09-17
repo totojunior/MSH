@@ -135,6 +135,21 @@ node SR2/YM/src/serve.js      # http://127.0.0.1:8768/ 로 확인
 
 `python -m http.server` 는 쓰지 마세요 — charset 을 안 붙여서 한글이 깨집니다.
 
+### ⚠️ js/css 를 고쳤으면 `?v=` 를 올려야 한다
+
+세 HTML 의 `<script src="js/….js?v=20260917b">` 와 `<link href="css/….css?v=…">` 에
+붙은 버전 꼬리표를 **전부 같은 새 값으로** 바꾼다. `version.json` 의 `asset_version` 도 맞춘다.
+
+안 올리면 **서버에는 새 파일이 있는데 브라우저는 옛 파일을 계속 쓴다.** GitHub Pages 가
+자산을 10분쯤 캐시하기 때문이다. 교사 기기에서는 우연히 새 걸 받아서 잘 되는데
+학생 크롬북 33대는 옛 코드를 쓰는, 최악의 모양으로 나타난다.
+(실제로 한 번 겪었다 — 고친 버튼이 화면에 안 나왔다.)
+
+```bash
+# 한 번에 바꾸기 (새 버전 문자열로)
+cd SR2/YM && sed -i 's/?v=[a-z0-9]*/?v=20260918a/g' index.html admin.html screen.html
+```
+
 ---
 
 ## 6. 안 만든 것과 그 이유
