@@ -135,7 +135,14 @@
       b.addEventListener('click', function () { doStep(step.id, b); });
       host.appendChild(b);
     } else {
+      // 끝났다고만 하고 끝내면 막다른 길이 된다. 연습을 다시 돌리거나,
+      // 실제 수업에서 뭔가 꼬였을 때 되돌릴 길을 여기에 같이 둔다.
       host.appendChild(el('p', 'ym-note', '수업이 끝났습니다. 지문으로 넘어가세요.'));
+      var again = el('button', 'ym-btn ym-btn--restart');
+      again.appendChild(el('span', 'ym-btn__main', '이 반 다시 시작'));
+      again.appendChild(el('span', 'ym-btn__sub', '참가자·좌석·경매·투표를 모두 지웁니다'));
+      again.addEventListener('click', function () { doAct('reset'); });
+      host.appendChild(again);
     }
 
     // 상황별 안내 — 여기서 막히는 지점을 미리 말해 준다
@@ -187,10 +194,13 @@
   // -------------------------------------------------------------------
   // 보조 도구
   // -------------------------------------------------------------------
-  document.addEventListener('click', async function (ev) {
+  document.addEventListener('click', function (ev) {
     var b = ev.target.closest('[data-act]'); if (!b) return;
-    var act = b.dataset.act;
-    b.disabled = true;
+    doAct(b.dataset.act, b);
+  });
+
+  async function doAct(act, b) {
+    if (b) b.disabled = true;
     try {
       if (act === 'spawn') {
         var n = 20;
@@ -206,7 +216,10 @@
       if (act === 'copy')           copyResults();
       if (act === 'reset') {
         if (confirm(ROOM + ' 의 참가자·좌석·경매·투표를 모두 지웁니다.\n다른 반은 영향받지 않습니다.\n\n계속할까요?')) {
-          await call('admin_reset_room'); startedAt = null; U.toast('초기화했습니다');
+          if (YM.bots && YM.bots.isRunning()) YM.bots.stop();
+          await call('admin_reset_room');
+          startedAt = null;
+          U.toast('초기화했습니다. 연습하려면 봇을 다시 부르세요.');
         }
       }
       if (act === 'logout') {
@@ -215,8 +228,8 @@
       }
     } catch (e) { U.toast('처리하지 못했습니다.', 'warn'); }
     await poll();
-    b.disabled = false;
-  });
+    if (b) b.disabled = false;
+  }
 
   // 반별 비교용. 11개 반을 다 하고 나면 어느 반이 얼마까지 갔는지 보고 싶어진다.
   function copyResults() {

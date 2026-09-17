@@ -139,7 +139,16 @@
 
   YM.bots = {
     run: function (room, bots, log) {
-      if (running) return;
+      // 돌고 있으면 먼저 멈춘다. 방을 초기화하면 이전 봇들의 계정이 사라져서
+      // 그 반복문은 인증 실패만 반복하는 좀비가 된다. 예전 판본은 여기서
+      // 그냥 return 해 버려서, 초기화 뒤에 봇을 다시 불러도 아무 일도 없었다.
+      if (running) {
+        running = false;
+        // 각 반복문이 현재 await 를 빠져나올 시간을 준다
+        setTimeout(function () { YM.bots.run(room, bots, log); }, 2200);
+        if (log) log('이전 봇 정리 중…');
+        return;
+      }
       running = true;
       bots.forEach(function (b, i) { drive(room, b, persona(i), log); });
       if (log) log('봇 ' + bots.length + '명이 움직입니다');
