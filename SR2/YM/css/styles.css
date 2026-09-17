@@ -501,3 +501,18 @@ select.ym-input { text-align: left; }
   border-color: #5a2222; color: #ffb4b4;
 }
 .ym-btn--restart:hover:not(:disabled) { border-color: var(--ym-off); }
+
+/* 명단 칩 — 눌러서 내보낸다. 별명이 자유 입력이라 서버의 욕설 목록보다
+   이 버튼이 실질적인 방어선이다. */
+.ym-kick {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--ym-line); background: var(--ym-pitch); color: var(--ym-dim);
+  border-radius: 99px; padding: 6px 10px; margin: 0 4px 4px 0;
+  font-size: 12px; font-family: inherit; cursor: pointer; min-height: 32px;
+}
+.ym-kick:hover { border-color: var(--ym-off); color: var(--ym-ink); }
+.ym-kick__x { color: var(--ym-faint); font-weight: 800; }
+.ym-kick:hover .ym-kick__x { color: var(--ym-off); }
+
+/* 연습용 방을 실제 수업에서 쓰고 있으면 상단 바가 노랗게 경고한다 */
+.ym-adminbar__room.is-dry { color: var(--ym-slow); }

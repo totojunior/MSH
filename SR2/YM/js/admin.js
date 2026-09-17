@@ -95,6 +95,9 @@
     $('#conn').className = 'ym-conn is-live';
     $('#connText').textContent = '연결됨';
     $('#barRoom').textContent = ROOM + (r.dry_run ? ' · 연습' : '');
+    // 연습방을 실제 수업에서 쓰고 있으면 크게 경고한다
+    $('#barRoom').className = 'ym-adminbar__room' +
+      ((ROOM === 'YM2-TEST' || r.dry_run) ? ' is-dry' : '');
 
     // 경과 시계. 22분이 목표, 25분이 한계.
     if (startedAt) {
@@ -173,9 +176,26 @@
     else if (r.phase === 'booking') hint = '좌석이 다 나가면 사전 투표로 넘어가세요.';
     $('#hint').textContent = hint;
 
-    $('#roster').textContent = (s.roster || []).map(function (p) {
-      return p.nickname + (p.bot ? '(봇)' : p.house ? '(대리)' : '');
-    }).join(' · ');
+    // 명단을 눌러서 내보낼 수 있게 한다. 별명이 자유 입력이라, 서버의
+    // 욕설 목록(띄어쓰기 하나로 뚫린다)이 아니라 이 버튼이 진짜 방어선이다.
+    var rh = $('#roster');
+    var rsig = (s.roster || []).map(function (p) { return p.id; }).join(',');
+    if (rh.dataset.sig !== rsig) {
+      rh.dataset.sig = rsig;
+      U.clear(rh);
+      (s.roster || []).forEach(function (p) {
+        var chip = el('button', 'ym-kick');
+        chip.type = 'button';
+        chip.title = '눌러서 내보내기';
+        chip.appendChild(el('span', null, p.nickname + (p.bot ? ' (봇)' : p.house ? ' (대리)' : '')));
+        chip.appendChild(el('span', 'ym-kick__x', '×'));
+        chip.addEventListener('click', function () {
+          if (!confirm('"' + p.nickname + '" 을(를) 내보낼까요?')) return;
+          doAct('kick:' + p.id);
+        });
+        rh.appendChild(chip);
+      });
+    }
 
     var base = location.href.replace(/admin\.html.*$/, '');
     $('#urls').textContent = '학생 ' + base + '?room=' + ROOM + '   |   프로젝터 ' + base + 'screen.html?room=' + ROOM;
@@ -204,7 +224,8 @@
       if (id === 'results')  { await call('admin_force_settle');
                                await call('admin_compute_results');
                                await call('admin_set_phase', { p_phase: 'results', p_seconds: 45 }); }
-      if (id === 'yosemite') await call('admin_set_phase', { p_phase: 'yosemite', p_seconds: 60 });
+      // 95초 = 프로젝터 연출 34초 + 투표 60초. 학생 화면은 마지막 60초에만 문항을 연다.
+      if (id === 'yosemite') await call('admin_set_phase', { p_phase: 'yosemite', p_seconds: 95 });
     } catch (e) {
       U.toast('실패했습니다. 다시 눌러 주세요.', 'warn');
     }
@@ -231,6 +252,10 @@
         var n = 20;
         var res = await call('admin_spawn_bots', { p_count: n });
         if (res.ok) { YM.bots.run(ROOM, res.bots, function (m) { U.toast(m); }); U.toast('봇 ' + n + '명 합류'); }
+      }
+      if (act.indexOf('kick:') === 0) {
+        await call('admin_kick_player', { p_player: act.slice(5) });
+        U.toast('내보냈습니다');
       }
       if (act === 'house')        { var h = await call('admin_add_house_player'); U.toast('추가: ' + h.nickname); }
       if (act === 'reopenJoin')   { var j = await call('admin_reopen_join');
@@ -285,9 +310,20 @@
 
   try {
     var savedR = localStorage.getItem(KEY_R), savedT = localStorage.getItem(KEY_T);
-    if (savedR) { sel.value = savedR; }
+    if (savedR) sel.value = savedR;
     if (ROOM) sel.value = ROOM;
-    if (savedR && savedT) { ROOM = savedR; TOKEN = savedT; open(); }
+
+    // 자동 복원은 '주소로 다른 반을 지정하지 않았을 때'만 한다.
+    // 어젯밤 YM2-TEST 로 연습하면 그게 저장되는데, 다음 날 아침 조종석을 열면
+    // 저장된 방이 조용히 복원돼서 교사는 YM2-TEST 를, 학생 33명은 YM2-1 을
+    // 보고 있게 된다. 아무 화면도 그 사실을 말해 주지 않는다.
+    if (savedR && savedT && (!ROOM || ROOM === savedR)) {
+      ROOM = savedR; TOKEN = savedT; open();
+    } else if (savedT && ROOM && ROOM !== savedR) {
+      $('#authErr').textContent = '저장된 반(' + savedR + ')과 주소의 반(' + ROOM + ')이 다릅니다. 확인하고 열어 주세요.';
+      $('#authErr').hidden = false;
+      $('#tokenIn').value = '';
+    }
   } catch (e) {}
 
   $('#authBtn').addEventListener('click', async function () {
