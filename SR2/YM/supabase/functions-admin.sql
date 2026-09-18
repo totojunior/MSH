@@ -332,7 +332,7 @@ language plpgsql security definer set search_path = ''
 as $$
 declare
   v_room uuid; v_face int; v_n int;
-  v_res jsonb; v_minsold int; v_priced_out int; v_noseat int;
+  v_res jsonb; v_pub jsonb; v_minsold int; v_priced_out int; v_noseat int;
 begin
   v_room := public._require_admin(p_room_code, p_admin_token);
 
@@ -342,6 +342,12 @@ begin
   select min(l.final_price) into v_minsold
     from public.listings l where l.room_id = v_room and l.status = 'sold';
 
+  -- 다석이 되어도 식은 그대로다 — '좌석이 하나도 없는 학생 수' 가 정확히
+  -- 이것이다. 대신 의미가 커진다: 낙찰 좌석이 소수에게 몰리면
+  -- holders < seat_count 가 되어 이 숫자가 구조적으로 늘어난다.
+  -- 그리고 priced_out 보다 훨씬 빠르게 는다. 즉 "돈이 없어서 못 산 사람"
+  -- 보다 "돈은 있었는데 밀린 사람" 이 늘어난다. 결함이 아니라 더 강한
+  -- 논거다 — 경매는 지불 의사가 아니라 지불 능력의 서열로 배분한다.
   select count(*) into v_noseat
     from public.players p
    where p.room_id = v_room and p.kicked = false
@@ -388,18 +394,82 @@ begin
                      then round((select max(l.final_price) from public.listings l
                                   where l.room_id = v_room and l.status = 'sold')::numeric / v_face, 1)
                      else null end,
-    -- 좌석별 최종 가격. 되팔리지 않은 좌석은 액면가 그대로다.
+    -- 좌석별 최종 가격 + '누가 얼마에 샀는지'. 되팔리지 않은 좌석은 액면가 그대로다.
+    --
+    -- 기존 키(label / row / no / price / state)는 하나도 지우거나 이름을
+    -- 바꾸지 않는다. 프로젝터가 그 키로 히트맵을 그린다. buyer 와 via 는
+    -- 더하기만 한 것이고, null 이면 화면이 아무것도 그리지 않으면 된다.
+    --
+    -- players 는 잠긴 표지만 이 함수는 SECURITY DEFINER 라서 읽을 수 있다.
+    -- 결과는 rooms_public.results(공개)로 나가므로 여기 넣는 별명은 교실
+    -- 전체가 보게 된다. 별명은 학생이 직접 고른 가명이고, 입장 화면이
+    -- "반 전체 화면에 보일 수 있습니다" 를 이미 고지한다. 실명·학번·점수·
+    -- 순위는 여기에도 없다.
+    --
+    -- 판 사람 별명은 넣지 않는다 — seller 도, holder 도, owner 도 없다.
+    --   (1) reason_code 는 매물당 하나, 매물은 판 사람당 하나다. 좌석 칸에
+    --       판 사람 이름이 뜨고 그 옆에 익명 사유 칩이 있으면, 30초 안에
+    --       "내 좌석이니까 내 마음" 이라고 말한 사람이 특정된다. 사유 벽을
+    --       익명으로 설계한 이유가 그대로 무효가 된다.
+    --   (2) state='unsold' 의 현재 주인은 정의상 판 사람이다. 그래서
+    --       중립적인 이름의 키조차 쓸 수 없다 — 그건 "팔려고 했는데 아무도
+    --       안 사 줬다" 를 이름과 함께 띄우는 것이다.
+    --   (3) 산 사람의 이름은 논점을 향한다. 예산은 추첨으로 배정됐고, 그가
+    --       이긴 이유는 가장 원해서가 아니라 가장 돈이 많아서다 — 겨냥하는
+    --       대상이 제도다. 판 사람의 이름은 논점을 비껴가고, 활동이 시키는
+    --       대로 한 학생에게 돌아가는 교실 내 비난만 남긴다.
+    -- 교사가 정말 필요하면 조종석에 이미 길이 있다(admin_state.roster 와
+    -- 공개 표인 listings). 프로젝터에 띄우는 이 페이로드에만 넣지 않는다.
     'seats', coalesce((
       select jsonb_agg(jsonb_build_object(
                'label', s.seat_label, 'row', s.row_label, 'no', s.seat_no,
                'price', coalesce(l.final_price, v_face),
                'state', case when l.status = 'sold' then 'sold'
                              when l.status = 'unsold' then 'unsold'
-                             else 'kept' end)
+                             else 'kept' end,
+               'buyer', case when l.status = 'sold' then bp.nickname else null end,
+               'via',   s.acquired_via)
              order by s.row_label, s.seat_no)
         from public.seats s
         left join public.listings l on l.seat_id = s.id and l.status in ('sold','unsold')
+        left join public.players  bp on bp.id = l.highest_bidder_id and l.status = 'sold'
        where s.room_id = v_room), '[]'::jsonb),
+    -- 13석이 9명에게 갔다 — 이 한 줄이 다석 허용의 논점 전부다.
+    -- 좌석 없는 학생이 왜 늘었는지를 '돈이 없어서' 가 아니라 '몇 명이
+    -- 쓸어갔기 때문' 으로 말할 수 있게 해 준다. 점수도 순위도 아니다.
+    -- 분포이고, 그 분포를 만든 것은 추첨으로 배정된 예산이다.
+    -- 화면은 이 숫자 옆에 "예산은 추첨으로 정해졌습니다" 를 상설로 둬야
+    -- 한다. 이름만 크게 뜨면 논점이 제도에서 사람으로 옮겨간다.
+    'holders', (select count(distinct s.current_owner_id)::int from public.seats s
+                 where s.room_id = v_room and s.current_owner_id is not null),
+    'buyers', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'nickname', b.nickname, 'count', b.n, 'spent', b.spent, 'seats', b.labels)
+             order by b.n desc, b.spent desc, b.nickname)
+        from (select p.nickname,
+                     count(*)::int           as n,
+                     sum(l.final_price)::int as spent,
+                     -- text[] 를 jsonb_build_object 가 JSON 배열로 바꿔 준다.
+                     array_agg(l.seat_label order by l.seat_label) as labels
+                from public.listings l
+                join public.players p on p.id = l.highest_bidder_id
+               where l.room_id = v_room and l.status = 'sold'
+               -- nickname 으로 묶어도 안전하다 — players_nick_uq 가
+               -- (room_id, nickname) 을 유일하게 만든다.
+               group by p.nickname) b), '[]'::jsonb),
+    -- 두 개 이상 낙찰받은 사람 수, 그 사람들이 가져간 좌석 수, 한 사람의 최대.
+    'swept', (select count(*)::int from (
+                select 1 from public.listings l
+                 where l.room_id = v_room and l.status = 'sold'
+                 group by l.highest_bidder_id having count(*) > 1) z),
+    'swept_seats', coalesce((select sum(z.c)::int from (
+                select count(*) as c from public.listings l
+                 where l.room_id = v_room and l.status = 'sold'
+                 group by l.highest_bidder_id having count(*) > 1) z), 0),
+    'max_seats_one_buyer', coalesce((select max(z.c)::int from (
+                select count(*) as c from public.listings l
+                 where l.room_id = v_room and l.status = 'sold'
+                 group by l.highest_bidder_id) z), 0),
     -- 익명 사유 벽. 시장을 옹호하는 논거를 사이트가 아니라 학생이 낸다.
     'reasons', coalesce((
       select jsonb_object_agg(x.reason_code, x.n) from (
@@ -409,8 +479,23 @@ begin
     'votes', (select r.vote_counts from public.rooms_public r where r.id = v_room)
   ) into v_res;
 
+  -- 공개 테이블에는 별명을 뺀 사본만 넣는다.
+  --
+  -- rooms_public 은 anon 이 통째로 읽고 실시간으로 발행된다. 낙찰자 별명을
+  -- 여기 넣으면, 학생이 results.seats[].label 과 공개 seats.current_owner_id 를
+  -- 붙여 'UUID -> 별명' 사전을 만들 수 있다. 그 사전이 생기면 listings.seller_id
+  -- 에도 이름이 붙어서, 이 함수가 15줄로 '절대 하면 안 된다' 고 적어 둔 장면 —
+  -- "팔려고 했는데 아무도 안 사 줬다" 가 이름과 함께 — 이 그대로 재현된다.
+  --
+  -- 별명은 두 경로로만 나간다: 이 함수의 반환값(교사 토큰 필요)과
+  -- room_results(정책 0개인 잠긴 표). 교탁 TV 는 토큰이 있으므로 볼 수 있다.
+  v_pub := (v_res - 'buyers') || jsonb_build_object('seats',
+             coalesce((select jsonb_agg(x.v - 'buyer' order by x.i)
+                         from jsonb_array_elements(v_res -> 'seats')
+                              with ordinality as x(v, i)), '[]'::jsonb));
+
   update public.rooms_public r
-     set results = v_res, results_computed_at = clock_timestamp()
+     set results = v_pub, results_computed_at = clock_timestamp()
    where r.id = v_room;
 
   insert into public.room_results (room_id, payload) values (v_room, v_res)
@@ -436,6 +521,11 @@ begin
     'ok', true,
     'server_now', clock_timestamp(),
     'room', to_jsonb(v_r),
+    -- 별명이 붙은 원본 결과. rooms_public.results 에는 별명을 뺀 사본만
+    -- 들어 있으므로(학생이 읽는 표다), 교탁 TV 가 새로고침된 뒤에도
+    -- 낙찰자 이름을 그릴 수 있도록 여기로 함께 내보낸다.
+    'results_full', (select rr.payload from public.room_results rr
+                      where rr.room_id = v_r.id),
     'players',   (select count(*) from public.players p where p.room_id = v_room and p.kicked = false),
     'bots',      (select count(*) from public.players p where p.room_id = v_room and p.is_bot),
     'seats_total',  (select count(*) from public.seats s where s.room_id = v_room),
@@ -478,7 +568,7 @@ $$;
 -- ---------------------------------------------------------------------
 -- 교사가 33명 앞에서 처음 돌려 보는 일은 없어야 한다. 봇을 불러
 -- 혼자 전 과정을 두 번쯤 돌려 보면 버튼 순서가 몸에 익는다.
--- 정산·1인1좌석·빈 시장 분기도 이것 없이는 검증할 방법이 없다.
+-- 정산·다중 낙찰·약정 초과·빈 시장 분기도 이것 없이는 검증할 방법이 없다.
 create or replace function public.admin_spawn_bots(
   p_room_code text, p_admin_token text, p_count int)
 returns jsonb

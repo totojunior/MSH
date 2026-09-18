@@ -495,7 +495,9 @@
         // 버튼이 다시 「결과 보기」로 돌아온다 — 다시 누르면 된다.
         // 정산 경로가 하나뿐이라 두 번 정산은 구조적으로 불가능하다.
         msg = bad(await call('admin_force_settle'));
-        if (!msg) msg = bad(await call('admin_compute_results'));
+        var cr = await call('admin_compute_results');
+        if (!msg) msg = bad(cr);
+        if (cr && cr.results) shareBuyers(cr.results);
         if (!msg) msg = bad(await call('admin_set_phase', { p_phase: 'results', p_seconds: 45 }));
       } else if (step.id === 'yosemite') {
         // 95초 = 프로젝터 연출 34초 + 투표 60초.
@@ -782,6 +784,16 @@
     if (was !== next && (next === 'off' || next === 'noroom')) openBar();
   }
 
+  // 낙찰자 별명은 공개 결과에서 빠져 있다(학생이 읽는 표라서). 교사 토큰으로
+  // 받은 원본에서 좌석->별명 지도를 만들어 screen.js 가 읽을 자리에 놓는다.
+  // 서로 다른 IIFE 라 window 를 거치는 것 말고는 길이 없다.
+  function shareBuyers(full) {
+    if (!full || !full.seats) return;
+    var m = {};
+    full.seats.forEach(function (s) { if (s.buyer) m[s.label] = s.buyer; });
+    YM.tvBuyers = m;
+  }
+
   async function tvPull() {
     if (!ROOM) return;
     try {
@@ -1062,6 +1074,7 @@
     try {
       var st = await db.rpc('admin_state', { p_room_code: ROOM, p_admin_token: TOKEN });
       applyRoom(st.room);                  // roster 는 쓰지 않고 버린다
+      shareBuyers(st.results_full);        // 새로고침 뒤에도 낙찰자 이름이 남는다
     } catch (e) {
       if (e && (String(e.code) === '42501' || /unauthorized|permission/i.test(String(e.message || '')))) {
         // 암호가 틀렸다(또는 방을 다시 만들었다). 중계는 계속 돌려 둔다.

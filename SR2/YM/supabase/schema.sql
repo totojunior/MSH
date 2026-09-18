@@ -79,6 +79,16 @@ create table if not exists public.rooms_public (
 
   auction_seconds     int         not null default 60,
 
+  -- 한 사람이 경매로 가져갈 수 있는 좌석 수 상한. NULL = 무제한이고 그게 기본값이다.
+  -- 교사가 요구한 동작은 '무제한' 이다 — 돈이 많으면 여러 개 살 수 있어야
+  -- '경매는 가장 원하는 사람이 아니라 가장 돈 많은 사람에게 준다' 가 보인다.
+  -- 이 칸은 11개 반 중 한 반이 뒤집혀 한 명이 좌석을 쓸어가고 교실 절반이
+  -- 20분간 구경꾼이 되는 상황에서만 쓰는 손잡이다. SQL 편집기에서 한 줄:
+  --   update public.rooms_public set max_seats_per_bidder = 3 where room_code = 'YM2-1';
+  -- 다시 풀 때는 같은 줄에 null 을 넣는다. 조종석은 admin_state 가 room 을
+  -- to_jsonb 로 통째로 내보내므로 코드를 고치지 않아도 현재 값을 받는다.
+  max_seats_per_bidder int,
+
   -- {"pre":{"yes":0,"no":0,"unsure":0}, "post":{...}, "q1_movie":{...}, ...}
   -- 투표는 잠긴 테이블에 넣고, 화면에는 이 집계 숫자만 보여준다.
   vote_counts         jsonb       not null default '{}'::jsonb,
@@ -96,6 +106,11 @@ create table if not exists public.rooms_public (
   constraint rooms_seat_ck  check (seat_count is null or seat_count > 0),
   constraint rooms_max_ck   check (max_players between 1 and 60)
 );
+
+-- 이미 깔린 프로젝트에 이 파일을 다시 부을 때를 위한 보강.
+-- create table if not exists 는 표가 있으면 컬럼을 더해 주지 않는다.
+alter table public.rooms_public
+  add column if not exists max_seats_per_bidder int;
 
 drop trigger if exists rooms_public_rev on public.rooms_public;
 create trigger rooms_public_rev before insert or update on public.rooms_public
@@ -171,16 +186,90 @@ create table if not exists public.seats (
   seat_label        text not null,                       -- 'K12'
   current_owner_id  uuid references public.players(id) on delete set null,
   claimed_at        timestamptz,
+  -- 이 좌석을 '어떻게' 얻었나. 'booking' = 예매로 잡았다, 'auction' = 낙찰받았다.
+  -- 이 한 칸이 "예매는 1인 1석, 경매는 여러 개" 를 표 차원에서 갈라 준다.
+  -- 아래 부분 유일 인덱스가 이 값으로 셈에 넣을 좌석을 고른다.
+  acquired_via      text not null default 'booking',
   rev               bigint not null default 0,
-  constraint seats_room_label_uq unique (room_id, row_label, seat_no)
+  constraint seats_room_label_uq unique (room_id, row_label, seat_no),
+  constraint seats_via_ck        check (acquired_via in ('booking','auction'))
 );
 
--- 1인 1좌석. NULL 은 서로 다르게 취급되므로 빈 좌석끼리는 충돌하지 않는다.
--- 부분 인덱스가 아니라 CONSTRAINT 여야 한다 — 정산 트랜잭션 안에서
--- SET CONSTRAINTS ... DEFERRED 로 잠시 미뤄야 좌석이 손을 바꿀 수 있다.
+-- 이미 깔린 프로젝트에 이 파일을 다시 부을 때를 위한 보강. 세 줄이 순서대로
+-- 컬럼 · 검사 · 의미를 맞춘다. (PG11+ 는 기본값 있는 NOT NULL 컬럼 추가도
+-- 메타데이터만 바꾸므로 13행짜리 표에서는 즉시 끝난다.)
+alter table public.seats add column if not exists acquired_via text not null default 'booking';
+
+do $$
+begin
+  -- conrelid 까지 짚는다. 이름만 보면 다른 표의 같은 이름에 속아 건너뛴다.
+  if not exists (select 1 from pg_constraint
+                  where conname = 'seats_via_ck'
+                    and conrelid = 'public.seats'::regclass) then
+    alter table public.seats add constraint seats_via_ck
+      check (acquired_via in ('booking','auction'));
+  end if;
+end $$;
+
+-- 과거 수업에서 이미 낙찰된 좌석을 'auction' 으로 되돌린다. 없어도 아래
+-- 인덱스는 통과하지만(옛 제약이 1인 1석을 지켜 왔으므로), 의미를 맞춰 두지
+-- 않으면 나중 검증 쿼리가 거짓말을 한다.
+-- to_regclass 로 감싼 이유: 이 파일에서 listings 는 seats '뒤에' 만들어진다.
+-- 새로 설치하는 프로젝트에서는 아직 없는 표를 읽게 되므로 그냥 넘긴다.
+do $$
+begin
+  if to_regclass('public.listings') is not null then
+    update public.seats s
+       set acquired_via = 'auction'
+      from public.listings l
+     where l.seat_id = s.id
+       and l.status = 'sold'
+       and s.current_owner_id is not null
+       and s.current_owner_id = l.highest_bidder_id
+       and s.acquired_via <> 'auction';
+  end if;
+end $$;
+
+-- 인덱스를 만들기 '전에' 사람이 읽을 수 있는 말로 끊는다. 여기서 raise 가
+-- 나면 원인이 한 줄로 보이고, 통째로 붙여넣어 한 번에 실행한 경우 설치
+-- 전체가 취소된다 — 반쯤 바뀐 채 남는 것보다 아무것도 안 바뀐 편이 낫다.
+-- 백필 '뒤' 에 오는 것이 중요하다: 다석 낙찰이 한 번이라도 일어난 뒤에는
+-- 한 학생이 좌석을 여러 개 갖는 것이 정상이고, 그중 예매 좌석만 하나여야
+-- 한다. 그래서 세는 대상이 '예매 좌석' 이다 (이 파일을 두 번 부어도 통과한다).
+do $$
+declare v int;
+begin
+  select count(*) into v from (
+    select 1 from public.seats
+     where current_owner_id is not null and acquired_via = 'booking'
+     group by room_id, current_owner_id having count(*) > 1) x;
+  if v > 0 then
+    raise exception '예매 좌석을 두 개 이상 가진 학생이 % 명 있습니다. 먼저 확인이 필요합니다.', v;
+  end if;
+end $$;
+
+-- 예매는 1인 1석, 경매는 여러 개.
+--
+-- 왜 CONSTRAINT 가 아니라 부분 인덱스인가: 옛 제약(seats_one_per_player)은
+-- 좌석이 손을 바꾸는 정산 한 문장 '안' 에서 유일성이 순간 깨지기 때문에
+-- SET CONSTRAINTS ... DEFERRED 가 필요했다. 새 술어에서는 정산의 UPDATE 가
+-- 좌석을 술어 '밖' 으로 내보낸다('booking' -> 'auction'). 술어를 만족하지
+-- 않는 새 행 버전은 인덱스에 항목을 만들지 않고, 삽입이 없으면 충돌도 없다.
+-- 그래서 지연이 필요 없고, 부분 인덱스는 애초에 지연이 불가능하다는 사실도
+-- 문제가 되지 않는다. (정산에서 acquired_via 를 빠뜨리면 그 순간 배치 전체가
+-- unique_violation 으로 롤백된다 — 그것만 조심하면 된다.)
+--
+-- WHERE 절 검사로 대신하지 않는 이유는 옛 주석과 같다: 한 학생의 두 요청이
+-- 서로 '다른' 좌석을 동시에 집으면 두 트랜잭션이 서로 다른 행을 건드리므로
+-- 행 잠금도 EvalPlanQual 도 걸리지 않고, 두 WHERE 가 각자의 문장 스냅샷에서
+-- 나란히 통과한다. 최후의 그물은 인덱스뿐이다.
+create unique index if not exists seats_one_booking_per_player
+  on public.seats (room_id, current_owner_id)
+  where current_owner_id is not null and acquired_via = 'booking';
+
+-- 옛 그물은 새 그물을 건 '뒤에' 뗀다. 한 트랜잭션이라 논리적 차이는 없지만,
+-- 사람이 파일을 읽을 때 의도가 드러난다.
 alter table public.seats drop constraint if exists seats_one_per_player;
-alter table public.seats add  constraint seats_one_per_player
-  unique (room_id, current_owner_id) deferrable initially immediate;
 
 create index if not exists seats_room_idx on public.seats(room_id);
 
@@ -214,12 +303,21 @@ create table if not exists public.listings (
   constraint listings_open_ck   check (opening_bid > 0)
 );
 
--- 한 사람은 동시에 한 매물에서만 최고입찰자가 될 수 있다.
--- WHERE 절로 검사하면 동시 입찰에서 새어 나간다. 인덱스로 막아야 확실하다.
--- 닫힌 매물은 낙찰자를 그대로 들고 있어야 하므로 여기만 부분 인덱스다.
-create unique index if not exists listings_one_lead_per_bidder
-  on public.listings (room_id, highest_bidder_id)
-  where status = 'open' and highest_bidder_id is not null;
+-- 한 사람이 동시에 여러 매물의 최고입찰자가 될 수 있다.
+--
+-- 예전에는 여기에 listings_one_lead_per_bidder 부분 유일 인덱스가 있었고,
+-- "한 사람은 한 매물만 선두" 였다. 그 인덱스는 다석 낙찰을 막는 장치이면서
+-- 동시에 초과 지출 방어선 '전부' 였다 — 선두 매물이 하나뿐이면
+-- 'p_amount <= balance' 한 줄로 회계가 닫혔기 때문이다. 떼면 그 회계가
+-- 통째로 사라진다. 그 자리를 대신하는 것이 place_bid 의 약정 규칙이다:
+--
+--   이번 입찰액 + (이번 매물을 뺀) 내가 선두인 열린 매물들의 합 <= 내 잔액
+--
+-- 약정은 어디에도 저장하지 않는다. listings.highest_bidder_id / highest_bid
+-- 에서 매번 유도하므로, 남이 내 선두를 빼앗는 순간 셈에서 저절로 빠진다.
+-- 풀어 주는 코드도, 보상 트랜잭션도, 크론도 없다 — 이 프로젝트에는
+-- 스케줄러가 없으니(정적 사이트) 그게 유일하게 성립하는 설계다.
+drop index if exists public.listings_one_lead_per_bidder;
 
 create index if not exists listings_room_idx  on public.listings(room_id);
 create index if not exists listings_open_idx  on public.listings(room_id, status, ends_at);
