@@ -352,6 +352,9 @@ begin
         'seat_count', v_room.seat_count,
         'seat_rows', v_room.seat_rows,
         'auction_seconds', v_room.auction_seconds,
+        -- 보통은 null(무제한)이다. 교사가 한 반만 조였을 때 화면이
+        -- '한 사람 최대 n석' 이라고 말할 수 있게 같이 내보낸다.
+        'max_seats_per_bidder', v_room.max_seats_per_bidder,
         'booking_opens_at', v_room.booking_opens_at,
         'booking_ends_at', v_room.booking_ends_at,
         'prevote_ends_at', v_room.prevote_ends_at,
@@ -368,20 +371,69 @@ begin
         'nickname', (select p.nickname from public.players p where p.id = v_me),
         'balance',  (select w.balance  from public.wallets w where w.player_id = v_me),
         'initial',  (select w.initial  from public.wallets w where w.player_id = v_me),
+        -- 좌석은 이제 복수다. 여기를 스칼라 서브쿼리로 두면 좌석이 두 개인
+        -- 학생의 get_my_state 가 21000 (more than one row returned by a
+        -- subquery used as an expression) 으로 죽는다. 이 함수는 학생 화면의
+        -- 전부를 실어 오므로, 그 학생의 화면이 통째로 멈춘다 — 그것도
+        -- 경매 도중에, 이 수업이 주인공으로 삼은 부자 학생부터.
+        'my_seats', coalesce((
+            select jsonb_agg(jsonb_build_object(
+                     'id', s.id, 'label', s.seat_label,
+                     'row', s.row_label, 'no', s.seat_no, 'via', s.acquired_via)
+                   order by s.row_label, s.seat_no)
+              from public.seats s
+             where s.room_id = v_room.id and s.current_owner_id = v_me), '[]'::jsonb),
+        'seat_count_mine', (select count(*)::int from public.seats s
+                             where s.room_id = v_room.id and s.current_owner_id = v_me),
+        -- 옛 화면 호환용 별칭. limit 1 이 없으면 여기서 다시 21000 이 난다.
+        -- 이 셋(my_seat / my_listing / leading)을 남겨 두는 덕에 SQL 을 먼저
+        -- 배포하고 JS 를 나중에 배포할 수 있다. GitHub Pages 의 HTML 캐시가
+        -- 늦게 풀려 옛 화면이 한동안 남아도 교실이 멈추지 않는다.
+        -- 반대 순서(JS 먼저)는 하지 마라 — 새 키가 아직 없다.
         'my_seat',  (select jsonb_build_object('id', s.id, 'label', s.seat_label)
                        from public.seats s
-                      where s.room_id = v_room.id and s.current_owner_id = v_me),
+                      where s.room_id = v_room.id and s.current_owner_id = v_me
+                      order by s.row_label, s.seat_no limit 1),
+        'my_listings', coalesce((
+            select jsonb_agg(jsonb_build_object(
+                     'id', l.id, 'seat_label', l.seat_label, 'opening_bid', l.opening_bid,
+                     'highest_bid', l.highest_bid, 'status', l.status,
+                     'final_price', l.final_price, 'ends_at', l.ends_at)
+                   order by l.seat_label)
+              from public.listings l
+             where l.room_id = v_room.id and l.seller_id = v_me), '[]'::jsonb),
         'my_listing', (select jsonb_build_object(
                           'id', l.id, 'seat_label', l.seat_label, 'opening_bid', l.opening_bid,
                           'highest_bid', l.highest_bid, 'status', l.status,
                           'final_price', l.final_price, 'ends_at', l.ends_at)
                          from public.listings l
-                        where l.room_id = v_room.id and l.seller_id = v_me),
+                        where l.room_id = v_room.id and l.seller_id = v_me
+                        order by l.seat_label limit 1),
+        'leads', coalesce((
+            select jsonb_agg(jsonb_build_object('listing_id', l.id,
+                     'seat_label', l.seat_label, 'amount', l.highest_bid)
+                   order by l.seat_label)
+              from public.listings l
+             where l.room_id = v_room.id and l.status = 'open'
+               and l.highest_bidder_id = v_me), '[]'::jsonb),
         'leading',  (select jsonb_build_object('listing_id', l.id, 'seat_label', l.seat_label,
                                                'amount', l.highest_bid)
                        from public.listings l
                       where l.room_id = v_room.id and l.status = 'open'
-                        and l.highest_bidder_id = v_me),
+                        and l.highest_bidder_id = v_me
+                      order by l.seat_label limit 1),
+        -- 걸어 둔 돈(약정)과 남은 돈. 화면은 balance 가 아니라 available 로
+        -- 버튼을 그려야 한다. 그리고 학생에게는 두 숫자를 '글자로' 병기해야
+        -- 한다 — 입찰해도 balance 는 줄지 않으므로, 버튼만 비활성되면
+        -- 학생은 "돈이 사라졌다" 가 아니라 "고장났다" 로 읽는다.
+        'committed', (select coalesce(sum(l.highest_bid), 0)::int from public.listings l
+                       where l.room_id = v_room.id and l.status = 'open'
+                         and l.highest_bidder_id = v_me),
+        'available', greatest(
+            coalesce((select w.balance from public.wallets w where w.player_id = v_me), 0)
+            - (select coalesce(sum(l.highest_bid), 0)::int from public.listings l
+                where l.room_id = v_room.id and l.status = 'open'
+                  and l.highest_bidder_id = v_me), 0),
         'votes',    coalesce((select jsonb_object_agg(v.question, v.choice)
                                 from public.votes v
                                where v.room_id = v_room.id and v.player_id = v_me), '{}'::jsonb),
@@ -470,18 +522,39 @@ begin
   begin
     update public.seats s
        set current_owner_id = v_me,
-           claimed_at = clock_timestamp()
+           claimed_at = clock_timestamp(),
+           -- 예매로 얻은 좌석임을 못 박는다. 좌석은 명단 잠금 때 이미
+           -- 'booking' 으로 태어나므로 평소에는 같은 값을 다시 쓰는 것이다.
+           -- 그래도 적어 두는 이유: 낙찰됐던 좌석이 다시 빈 자리가 되는
+           -- 경로가 생기면 그 좌석이 'auction' 인 채로 남아 1인 1석 셈에서
+           -- 영영 빠진다. 한 줄로 그 구멍을 닫는다.
+           acquired_via = 'booking'
      where s.id = p_seat
        and s.room_id = v_room.id
        and s.current_owner_id is null
+       -- 예매에서는 한 사람 한 자리다. 출발선은 같아야 한다.
+       -- (경매의 다석 허용은 이 조건을 통과한 '뒤' 의 이야기다.)
+       and not exists (select 1 from public.seats t
+                        where t.room_id = v_room.id and t.current_owner_id = v_me)
     returning s.seat_label into v_label;
   exception
-    -- 1인 1좌석 제약에 걸렸다 = 이미 다른 좌석이 있다.
+    -- 내 두 요청이 같은 순간에 서로 '다른' 좌석을 집은 경우다. 두 트랜잭션이
+    -- 서로 다른 행을 건드리므로 행 잠금도 EvalPlanQual 도 걸리지 않고,
+    -- 위의 not exists 는 각자의 문장 스냅샷에서 평가돼 둘 다 통과한다.
+    -- 최후의 그물은 seats_one_booking_per_player 인덱스다.
+    -- (왕복 100ms 기기 33대가 20초 동안 두드리는 구간이다. 이 경합은
+    --  '혹시' 가 아니라 반드시 일어난다.)
     when unique_violation then
       return jsonb_build_object('ok', false, 'error', 'ALREADY_HAVE_SEAT');
   end;
 
   if v_label is null then
+    -- 0행의 이유가 둘이다. "남이 먼저 잡았다" 와 "내가 이미 가졌다" 를
+    -- 구분해 줘야 학생이 화면 앞에서 헷갈리지 않는다.
+    if exists (select 1 from public.seats t
+                where t.room_id = v_room.id and t.current_owner_id = v_me) then
+      return jsonb_build_object('ok', false, 'error', 'ALREADY_HAVE_SEAT');
+    end if;
     update public.players p
        set next_claim_allowed_at = clock_timestamp() + interval '400 milliseconds'
      where p.id = v_me;
@@ -524,8 +597,16 @@ begin
     return jsonb_build_object('ok', false, 'error', 'CLOSED');
   end if;
 
+  -- 다석 보유자에게 '임의의 한 좌석' 을 고르지 않는다. 정렬 키가 전순서라서
+  -- 같은 학생이 다시 눌러도 언제나 같은 좌석이 나온다.
+  -- (경매가 끝난 뒤 교사가 admin_reopen_decide 를 누르면 좌석을 여러 개
+  --  가진 학생이 이 경로에 들어올 수 있다. 그때 매물로 올라가는 것은
+  --  좌석표 순서로 첫 좌석 하나다.)
   select s.id, s.seat_label into v_seat, v_label
-    from public.seats s where s.room_id = v_room.id and s.current_owner_id = v_me;
+    from public.seats s
+   where s.room_id = v_room.id and s.current_owner_id = v_me
+   order by s.row_label, s.seat_no
+   limit 1;
   if v_seat is null then
     return jsonb_build_object('ok', false, 'error', 'NO_SEAT');
   end if;
@@ -575,10 +656,12 @@ declare
   v_room    public.rooms_public%rowtype;
   v_row     public.listings%rowtype;
   v_bal     int;
+  v_cmt     int;                  -- 약정: 지금 내가 선두인 '다른' 매물들의 합
   v_min     int;
   v_cap     timestamptz;
   v_newend  timestamptz;
   v_ext     boolean := false;
+  v_won     int;                  -- 이미 낙찰받은 좌석 수. 상한이 걸린 반에서만 쓴다
 begin
   v_me := public._auth_player(p_room_code, p_player, p_token);
   if v_me is null then
@@ -592,15 +675,59 @@ begin
 
   -- 같은 학생의 동시 요청을 한 줄로 세운다. 개발자도구에서 Promise.all 로
   -- 두 좌석에 동시에 지르거나, 통신이 느려 같은 버튼이 두 번 나가도
-  -- 여기서 막힌다. 잔액 검사와 '한 좌석만 1등' 검사가 이 잠금 덕에 안전해진다.
-  perform 1 from public.wallets w where w.player_id = v_me for update;
+  -- 여기서 막힌다. 아래 약정 검사가 이 잠금 덕에 안전해진다.
+  --
+  -- 지갑 행을 FOR UPDATE 로 잡지 않는다. 정산은 listings 를 먼저 잠그고
+  -- wallets 를 나중에 잠그는데, 입찰이 그 반대 순서로 잡으면 전형적인
+  -- AB-BA 교착(40P01)이 된다. 탐지에 1초(기본 deadlock_timeout)가 걸리고,
+  -- 그 1초가 마감 10초 전 연장 다툼 중일 수 있다. 다석을 허용하면 한
+  -- 입찰자가 걸치는 매물 수와 한 배치가 건드리는 (매물, 지갑) 쌍이 늘어
+  -- 창이 더 넓어진다. 잠금 대상을 플레이어 키로 옮기면 두 함수의 잠금
+  -- 집합이 아예 겹치지 않는다 — place_bid 는 wallets 를 읽기만 하고
+  -- 쓰지 않으므로 이렇게 바꿀 수 있다.
+  -- 키 이름은 기존 관례를 따른다 (ym:join: / ym:settle:).
+  perform pg_advisory_xact_lock(hashtextextended('ym:bid:' || v_me::text, 0));
 
   select w.balance into v_bal from public.wallets w where w.player_id = v_me;
 
-  -- 좌석을 가진 사람은 입찰하지 않는다. 한 사람 한 장.
-  if exists (select 1 from public.seats s
-              where s.room_id = v_room.id and s.current_owner_id = v_me) then
-    return jsonb_build_object('ok', false, 'error', 'HAVE_SEAT');
+  -- 약정(committed) — 지금 내가 선두인 '다른' 매물들의 highest_bid 합.
+  -- 이 돈은 이미 걸려 있다. 어디에도 저장하지 않고 매번 여기서 유도한다.
+  -- 저장하지 않으므로 "밀려날 때 풀어 주는" 코드가 존재하지 않는다.
+  --
+  -- clock_timestamp() 로 '마감된' 매물을 빼지 않는 것이 중요하다.
+  -- 마감됐지만 아직 정산 전(status='open')인 매물의 돈은 곧 빠져나간다.
+  -- 여기서 제외하면 정산 폴링 2초 사이에 같은 돈을 두 번 쓸 수 있고,
+  -- 학생은 '낙찰됐다' 는 화면을 본 '뒤에' 그 좌석을 잃는다.
+  select coalesce(sum(o.highest_bid), 0)::int into v_cmt
+    from public.listings o
+   where o.room_id = v_room.id
+     and o.status = 'open'
+     and o.highest_bidder_id = v_me
+     and o.id <> p_listing;
+
+  -- (좌석을 가진 사람의 입찰을 막던 HAVE_SEAT 검사는 사라졌다. 돈이 있으면
+  --  좌석이 있어도 살 수 있고, 여러 개도 살 수 있다. 1인 1석 제한은
+  --  '경매는 가장 원하는 사람이 아니라 가장 돈 많은 사람에게 준다' 는
+  --  이 수업의 논점을 인공적으로 가리고 있었다.)
+
+  -- 좌석 수 상한 — 기본값은 없다(NULL = 무제한). 교사가 rooms_public 의
+  -- max_seats_per_bidder 에 값을 넣은 반에서만 동작한다. 이 사전 검사는
+  -- '왜 안 되는지' 를 한국어로 돌려주기 위한 것이고, 실제 판정은 아래
+  -- '이기는 UPDATE' 의 WHERE 안에 한 번 더 있다.
+  if v_room.max_seats_per_bidder is not null then
+    select count(*)::int into v_won
+      from public.seats s
+     where s.room_id = v_room.id and s.current_owner_id = v_me
+       and s.acquired_via = 'auction';
+    -- 선두인 매물도 이미 '가진 것' 으로 센다. 아래 UPDATE 의 WHERE 와 같은
+    -- 식이어야 한국어 문구와 실제 판정이 어긋나지 않는다.
+    v_won := v_won + (select count(*)::int from public.listings o3
+                       where o3.room_id = v_room.id and o3.status = 'open'
+                         and o3.highest_bidder_id = v_me and o3.id <> p_listing);
+    if v_won >= v_room.max_seats_per_bidder then
+      return jsonb_build_object('ok', false, 'error', 'SEAT_LIMIT',
+                                'limit', v_room.max_seats_per_bidder, 'have', v_won);
+    end if;
   end if;
 
   select * into v_row from public.listings l where l.id = p_listing and l.room_id = v_room.id;
@@ -622,8 +749,14 @@ begin
     return jsonb_build_object('ok', false, 'error', 'TOO_LOW', 'min', v_min,
                               'current', v_row.highest_bid);
   end if;
-  if p_amount > v_bal then
-    return jsonb_build_object('ok', false, 'error', 'NO_MONEY', 'balance', v_bal);
+  -- 잔액이 아니라 '약정을 뺀 가용액' 으로 판정한다. 예산 10만원인 학생이
+  -- 6만·7만 두 곳에서 동시에 선두가 되는 것을 여기서 끊는다. 예전에는
+  -- listings_one_lead_per_bidder 인덱스가 "한 사람 한 매물" 을 보장해서
+  -- 'p_amount <= v_bal' 한 줄로 회계가 닫혔다. 그 인덱스는 이제 없다.
+  if p_amount + v_cmt > v_bal then
+    return jsonb_build_object('ok', false, 'error', 'NO_MONEY',
+                              'balance', v_bal, 'committed', v_cmt,
+                              'available', greatest(v_bal - v_cmt, 0));
   end if;
 
   -- 막판 입찰은 10초를 되돌려 준다. 안 그러면 55초는 침묵, 5초는 눈치싸움이 된다.
@@ -636,30 +769,66 @@ begin
   end if;
 
   -- 위의 검사들은 각각 자기 시점의 스냅샷에서 읽은 값이다. 그 사이에
-  -- 정산 트랜잭션이 커밋되면 "좌석 없음"과 "잔액 충분"이 둘 다 옛날 얘기가
-  -- 된다. 그러면 좌석을 이미 받은 학생이 다른 매물의 1등으로 올라앉고,
-  -- 정산은 1인 1좌석 제약에 걸려 COMMIT 시점에 통째로 롤백된다 —
-  -- 그리고 매물은 만료된 채 계속 남아 영원히 같은 실패를 반복한다.
-  -- 그래서 두 조건을 '이기는 UPDATE' 의 WHERE 안에서 다시 확인한다.
-  -- 여기서는 EvalPlanQual 이 최신 행을 다시 읽어 주므로 빈틈이 없다.
-  begin
-    update public.listings l
-       set highest_bid = p_amount,
-           highest_bidder_id = v_me,
-           ends_at = v_newend
-     where l.id = p_listing
-       and l.status = 'open'
-       and clock_timestamp() < l.ends_at
-       and coalesce(l.highest_bid, 0) = coalesce(v_row.highest_bid, 0)   -- 낙관적 잠금
-       and not exists (select 1 from public.seats s
-                        where s.room_id = v_room.id and s.current_owner_id = v_me)
-       and p_amount <= (select w.balance from public.wallets w where w.player_id = v_me)
-    returning l.* into v_row;
-  exception
-    -- 이미 다른 매물에서 1등이다. WHERE 가 아니라 인덱스가 잡아낸다.
-    when unique_violation then
-      return jsonb_build_object('ok', false, 'error', 'ALREADY_LEADING_ANOTHER');
-  end;
+  -- 정산 트랜잭션이 커밋되면 "잔액 이만큼" 과 "약정 이만큼" 이 둘 다 옛날
+  -- 얘기가 된다. 그래서 회계 판정을 '이기는 UPDATE' 의 WHERE 안에서 다시
+  -- 한다. 검사와 쓰기가 분리되면 33명이 동시에 누를 때 지갑이 음수가 된다.
+  --
+  -- 두 서브쿼리(약정 합계와 잔액)가 '한 문장 안' 에 있는 것이 핵심이다.
+  -- 스냅샷이 하나이므로 찢어진 읽기가 불가능하다. 그리고 정산은 약정과
+  -- 잔액을 같은 트랜잭션에서 같은 금액만큼 함께 줄이므로(매물이 open 에서
+  -- 빠지면서 지갑에서 final_price 가 빠진다), 정산이 보이든 안 보이든
+  -- 판정 결과가 같다 — 둘 다 등호로 통과한다.
+  --
+  -- 남이 나를 밀어내면 약정이 줄고, 내가 판 좌석 대금이 들어오면 잔액이
+  -- 는다. 동시 변경은 전부 '보수적인' 방향이라 최악이 거짓 거절이고,
+  -- 그건 다음 스냅샷에서 저절로 풀린다.
+  update public.listings l
+     set highest_bid = p_amount,
+         highest_bidder_id = v_me,
+         ends_at = v_newend
+   where l.id = p_listing
+     and l.room_id = v_room.id
+     and l.status = 'open'
+     and clock_timestamp() < l.ends_at
+     and coalesce(l.highest_bid, 0) = coalesce(v_row.highest_bid, 0)   -- 낙관적 잠금
+     -- 판 사람은 자기 매물에 못 지른다. 사전 검사가 이미 있지만 판정을
+     -- 이기는 UPDATE 안에도 둔다. 비용은 0이고, 나중에 좌석 재배정 RPC 가
+     -- 생겨도 무너지지 않는다. (기계적으로는 이제 무해해졌다 — 아래 정산의
+     --  통합 원장에서 판 사람과 산 사람이 같으면 순 델타가 0이다. 그래도
+     --  막는 이유는 회계가 아니라 경매의 의미다: 판 사람은 순 지출 0으로
+     --  자기 매물 값을 올릴 수 있고, 그러면 결과 화면의 max_price 와
+     --  multiple 이 가짜가 된다. 그 숫자가 지문의 배수와 같다고 말하려면
+     --  금액이 '제2자의 실제 지불 의사' 여야 한다.)
+     and l.seller_id <> v_me
+     -- 회계 규칙: 이번 입찰액 + (이번 매물을 뺀) 약정 <= 내 잔액.
+     -- o.id <> l.id 인 이유 둘: (1) 같은 매물의 옛 선두액을 중복으로 세지
+     -- 않는다. (2) 나중에 '자기 선두액 올리기' 를 허용해도 이 식이 그대로
+     -- 맞는다(증분만 검사하는 효과가 된다).
+     -- sum(int) 은 bigint 다. ::int 캐스팅을 넣지 마라 — 이론상 오버플로
+     -- 경로만 만든다. 비교 대상 int 는 알아서 승격된다.
+     and p_amount + coalesce((select sum(o.highest_bid)
+                                from public.listings o
+                               where o.room_id = l.room_id
+                                 and o.status = 'open'
+                                 and o.highest_bidder_id = v_me
+                                 and o.id <> l.id), 0)
+         <= (select w.balance from public.wallets w where w.player_id = v_me)
+     -- 좌석 수 상한. NULL(무제한)이면 이 줄은 언제나 참이다.
+     and (v_room.max_seats_per_bidder is null
+          or (select count(*) from public.seats s2
+               where s2.room_id = l.room_id and s2.current_owner_id = v_me
+                 and s2.acquired_via = 'auction')
+           -- 지금 선두인 매물도 같이 센다. 경매는 매물 마감 시각이 모두 같아서
+           -- 60초 내내 낙찰된 좌석이 0개다 — 정산이 끝난 것만 세면 이 상한은
+           -- 단 한 번도 걸리지 않고, 돈 많은 학생이 5개를 한 배치에 쓸어간다.
+           + (select count(*) from public.listings o2
+               where o2.room_id = l.room_id and o2.status = 'open'
+                 and o2.highest_bidder_id = v_me and o2.id <> l.id)
+           < v_room.max_seats_per_bidder)
+  returning l.* into v_row;
+  -- exception when unique_violation (ALREADY_LEADING_ANOTHER) 블록은 없다.
+  -- 그 예외는 listings_one_lead_per_bidder 가 던지던 것이고 그 인덱스는
+  -- 사라졌다. 이제 도달할 수 없는 코드다.
 
   if v_row.id is null or v_row.highest_bidder_id <> v_me then
     -- 내가 읽은 현재가가 그 사이에 바뀌었다. 클라이언트는 새 값으로 다시 그린다.
@@ -687,6 +856,12 @@ begin
   return jsonb_build_object('ok', true, 'amount', p_amount, 'seat_label', v_row.seat_label,
                             'ends_at', v_row.ends_at, 'extended', v_ext,
                             'next_min', public._min_bid(v_row.opening_bid, p_amount));
+exception
+  -- 40P01. 위의 자문 잠금 교체로 place_bid 와 정산 사이의 잠금 순환은
+  -- 사라졌지만, 남은 교착이 학생에게 빨간 에러로 보이면 안 된다.
+  -- CHANGED 와 같은 '다시 눌러 주세요' 계열로 내려앉힌다.
+  when deadlock_detected then
+    return jsonb_build_object('ok', false, 'error', 'BUSY');
 end;
 $$;
 
@@ -712,26 +887,28 @@ begin
 
   perform pg_advisory_xact_lock(hashtextextended('ym:settle:' || v_room::text, 0));
 
-  -- 좌석이 손을 바꾸는 동안만 1인 1좌석 제약을 미룬다.
-  set constraints public.seats_one_per_player deferred;
+  -- 'set constraints public.seats_one_per_player deferred' 는 사라졌다.
+  -- 그 제약 자체가 없기 때문이다. 이 문장을 남겨 두면 정산이 매번
+  -- 42704 (constraint does not exist) 로 죽는다. 이 함수는 학생·프로젝터·
+  -- 조종석이 2초마다 부르는 것이고 강제 마감도 여기를 지나가므로,
+  -- 그 반의 경매는 영원히 정산되지 않고 교사에게 탈출구가 없다.
+  -- 새 그물(seats_one_booking_per_player)은 부분 인덱스이고, 아래 moved 가
+  -- 좌석을 술어 밖('auction')으로 내보내므로 중간 위반이 생기지 않는다.
+  -- 지연할 것이 없다.
 
   -- 낙찰 여부를 '입찰 시점의 판단'이 아니라 '지금 이 순간의 실제 상태'로
-  -- 다시 정한다. 낙찰자가 그 사이에 다른 좌석을 갖게 되었거나 잔액이
-  -- 모자라면 그 매물만 조용히 유찰로 떨어뜨린다.
+  -- 다시 정한다. 낙찰자가 쫓겨났거나 잔액이 모자라면 그 매물만 조용히
+  -- 유찰로 떨어뜨린다.
   --
   -- 이게 핵심이다. 예전 판본은 그런 이상 상태를 만나면 제약 위반으로
   -- 트랜잭션 전체가 롤백됐고, 매물은 만료된 채 그대로 남아 다음 호출이
   -- 똑같이 실패했다. 초당 17번씩, 수업이 끝날 때까지. 교사가 쓸 수 있는
   -- 탈출구도 없었다 — 강제 마감도 같은 함수를 지나가기 때문이다.
   -- 이상은 한 건만 잃고, 배치는 반드시 커밋된다.
-  with expired as (
-    select l.id, l.seat_id, l.seller_id, l.highest_bid, l.highest_bidder_id,
-           (l.highest_bidder_id is not null
-            and not exists (select 1 from public.seats s
-                             where s.room_id = v_room and s.current_owner_id = l.highest_bidder_id)
-            and coalesce((select w.balance from public.wallets w
-                           where w.player_id = l.highest_bidder_id), 0) >= l.highest_bid
-           ) as wins
+  with expired as materialized (
+    -- as materialized 를 명시한다. 아래 ranked 와 verdict 가 둘 다 이것을
+    -- 참조하므로, FOR UPDATE 가 두 번 평가되는 일을 플래너 판단에 맡기지 않는다.
+    select l.id, l.seat_id, l.seller_id, l.highest_bid, l.highest_bidder_id
       from public.listings l
      where l.room_id = v_room
        and l.status = 'open'
@@ -739,37 +916,98 @@ begin
        and clock_timestamp() >= l.ends_at
        for update
   ),
+  -- 한 사람이 여러 개를 낙찰받을 수 있으므로, '비싼 것부터' 누적해서 잔액이
+  -- 닿는 데까지만 준다. 누적합이 단조증가하니 낙찰은 언제나 '앞쪽 묶음' 이고
+  -- 그 합은 마지막 낙찰의 cum 과 같다 — 그래서 지갑이 음수가 될 수 없다.
+  -- 정렬 키가 전순서(금액 desc, id)라서 같은 입력이면 항상 같은 결과가
+  -- 나온다. 두 매물이 같은 순간 마감되어도 배치 순서에 흔들리지 않는다.
+  ranked as (
+    select e.id,
+           sum(e.highest_bid) over (
+             partition by e.highest_bidder_id
+             order by e.highest_bid desc, e.id
+             rows between unbounded preceding and current row) as cum
+      from expired e
+     where e.highest_bidder_id is not null
+  ),
+  verdict as (
+    select e.id, e.seat_id, e.seller_id, e.highest_bid, e.highest_bidder_id,
+           (e.highest_bidder_id is not null
+            -- 쫓겨난 학생에게 좌석을 주지 않는다. _auth_player 가 kicked 를
+            -- 막으므로 새 입찰은 못 하지만, 쫓겨나기 '전' 의 선두는 남아 있다.
+            -- 다석 허용으로 선두를 여러 개 들고 있을 수 있어 여파가 커졌다.
+            and exists (select 1 from public.players p
+                         where p.id = e.highest_bidder_id and p.kicked = false)
+            -- 배치 안 내 낙찰액의 '누적합' 기준이다. 좌석 보유 조건은 없다 —
+            -- 좌석이 있어도 살 수 있고 여러 개도 살 수 있다.
+            -- 이 줄은 §약정 규칙이 이미 보장하는 것을 한 번 더 확인하는
+            -- 후위 안전망이다(도달 불가가 정상). 그래도 남기는 이유는 옛
+            -- 주석과 같다 — 이상 상태에서 배치 전체를 롤백하지 않고
+            -- 한 건만 잃기 위해서다.
+            and r.cum <= coalesce((select w.balance from public.wallets w
+                                    where w.player_id = e.highest_bidder_id), 0)
+           ) as wins
+      from expired e
+      left join ranked r on r.id = e.id
+  ),
   closed as (
     update public.listings l
-       set status      = case when e.wins then 'sold' else 'unsold' end,
-           final_price = case when e.wins then e.highest_bid else null end,
+       set status      = case when v.wins then 'sold' else 'unsold' end,
+           final_price = case when v.wins then v.highest_bid else null end,
            settled_at  = clock_timestamp()
-      from expired e
-     where l.id = e.id
+      from verdict v
+     where l.id = v.id
     returning l.id, l.seat_id, l.seller_id, l.final_price, l.highest_bidder_id, l.status
   ),
+  -- 좌석 이동. acquired_via 를 'auction' 으로 바꾸는 것이 예매 1인 1석
+  -- 인덱스에서 이 좌석을 빼내는 유일한 장치다. 이 한 칸을 빠뜨리면 배치
+  -- 전체가 unique_violation 으로 롤백되고 위의 그 재앙이 그대로 재현된다.
+  -- (좌석은 한 낙찰당 한 행이다 — listings.seat_id 가 unique 라서
+  --  다중 매칭이 없다. 합산이 필요한 것은 지갑뿐이다.)
   moved as (
     update public.seats s
        set current_owner_id = c.highest_bidder_id,
-           claimed_at = clock_timestamp()
+           claimed_at       = clock_timestamp(),
+           acquired_via     = 'auction'
       from closed c
      where s.id = c.seat_id and c.status = 'sold'
     returning s.id
   ),
-  paid as (
-    update public.wallets w
-       set balance = w.balance - c.final_price
-      from closed c
-     where w.player_id = c.highest_bidder_id and c.status = 'sold'
-    returning w.player_id
+  -- 돈은 '사람당 한 줄' 로 합쳐서 한 번만 움직인다.
+  --
+  -- 예전에는 paid(산 사람 차감) / got(판 사람 입금) 두 CTE 였다. 다석이
+  -- 되는 순간 그 구조에서 교실에 돈이 창조된다:
+  --   (1) UPDATE ... FROM 은 다중 매칭에서 후보 행 '하나' 만 쓴다. 두 개를
+  --       낙찰받은 학생은 한 개 값만 내고 좌석 두 개를 가져간다.
+  --   (2) 판 사람이 동시에 산 사람이 될 수 있으므로(남의 매물) 두 CTE 가
+  --       같은 지갑 행을 한 문장 안에서 갱신하고, 한쪽이 조용히 사라진다.
+  -- 둘 다 에러도 경고도 없다. 교실에서는 절대 안 보이고, 반이 끝나고
+  -- 결과 숫자가 안 맞을 때야 드러난다. 사람당 순 델타 한 줄로 접으면
+  -- 두 함정이 동시에 사라진다.
+  ledger as (
+    select y.pid, sum(y.delta)::int as delta
+      from (
+        select c.highest_bidder_id as pid, -c.final_price as delta
+          from closed c where c.status = 'sold'
+        union all
+        select c.seller_id as pid,          c.final_price as delta
+          from closed c where c.status = 'sold'
+      ) y
+     group by y.pid
   ),
-  got as (
+  settled_money as (
     update public.wallets w
-       set balance = w.balance + c.final_price
-      from closed c
-     where w.player_id = c.seller_id and c.status = 'sold'
+       set balance = w.balance + g.delta
+      from ledger g
+     where w.player_id = g.pid and g.delta <> 0
     returning w.player_id
   )
+  -- 갱신 순서: closed(매물) -> moved(좌석) -> settled_money(지갑).
+  -- 한 문장 안이라 실제 실행 순서는 미정이지만, 셋 다 같은 스냅샷에서
+  -- closed 의 결과만 읽으므로 서로 간섭하지 않는다. 데이터 변경 CTE 는
+  -- 아래 SELECT 가 참조하지 않아도 반드시 실행된다(원본도 이 성질에
+  -- 의존했다). 멱등성도 그대로다 — 자문 잠금 + 'status=open and
+  -- settled_at is null' 조건부 UPDATE 로 선점하는 구조를 건드리지 않았다.
   select count(*) into v_n from closed;
 
   return jsonb_build_object('ok', true, 'settled', v_n, 'server_now', clock_timestamp());

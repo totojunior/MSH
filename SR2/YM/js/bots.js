@@ -117,11 +117,17 @@
       }
 
       // 경매
-      if (phase === 'auction' && !s.me.my_seat) {
-        if (s.me.leading) { await sleep(p.gap); continue; }
+      // 좌석이 있어도 입찰한다. 한 사람이 여러 개 사는 것이 이 활동의 요점이고,
+      // 봇이 그걸 시도하지 않으면 리허설이 실제 수업과 다른 그림을 보여 준다.
+      if (phase === 'auction') {
+        var myLeads = s.me.leads || (s.me.leading ? [s.me.leading] : []);
+        if (myLeads.length >= 2) { await sleep(p.gap); continue; }
         var open = (s.listings || []).filter(function (l) { return l.status === 'open'; });
         if (!open.length) { await sleep(1500); continue; }
-        var budget = Math.floor(s.me.balance * p.cap);
+        // 서버가 주는 '더 쓸 수 있는 돈' 을 쓴다. 잔액으로 계산하면 다른 매물에
+        // 걸어 둔 돈까지 또 걸려고 해서 전부 거절당한다.
+        var avail = (typeof s.me.available === 'number') ? s.me.available : s.me.balance;
+        var budget = Math.floor(avail * p.cap);
         var afford = open.filter(function (l) { return minBid(l) <= budget; });
         if (!afford.length) { await sleep(2000); continue; }
         var lot = pick(afford);

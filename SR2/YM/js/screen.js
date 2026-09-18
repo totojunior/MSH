@@ -254,6 +254,27 @@
     my_seat: '내 좌석이니까 내 마음', free_trade: '자유로운 거래인데 뭐가 문제죠',
   };
 
+  // 좌석 한 칸을 소리 내 읽으면 이렇게 된다. 칸 안에서는 자리가 없어
+  // 낙찰자 별명은 공개 결과에 없다 — 학생이 읽는 표에 넣으면 'UUID -> 별명'
+  // 사전이 만들어져서 판 사람까지 특정된다. 교탁 TV(tv.html)는 교사 토큰으로
+  // 원본을 받아 YM.tvBuyers 에 좌석->별명 지도를 놓아 준다. 토큰이 없는
+  // screen.html 에서는 이 지도가 비어 있고, 칸에 이름이 그려지지 않는다.
+  function buyerOf(s) {
+    if (s.buyer) return s.buyer;
+    var m = YM.tvBuyers;
+    return (m && m[s.label]) || null;
+  }
+
+  // 별명이 두 줄로 잘리므로, 온전한 문장은 여기에 남긴다.
+  function cellAria(s) {
+    if (s.state === 'sold') {
+      return s.label + ' 좌석, ' + U.won(s.price) + ' 에 팔림'
+           + (buyerOf(s) ? (', 낙찰자 ' + buyerOf(s)) : '');
+    }
+    if (s.state === 'unsold') return s.label + ' 좌석, 올렸지만 팔리지 않음';
+    return s.label + ' 좌석, 팔지 않음, 정가 ' + U.won(s.price);
+  }
+
   function paintResults() {
     var r = room.results;
     if (!r) { show('budget'); return; }
@@ -268,11 +289,43 @@
         var c = el('div', 'ym-hcell is-' + heatClass(s.price, face, max));
         c.appendChild(el('span', 'ym-hcell__l', s.label));
         c.appendChild(el('span', 'ym-hcell__p', U.wonShort(s.price)));
-        if (s.state === 'unsold') c.appendChild(el('span', 'ym-hcell__n', 'UNSOLD'));
+        // 낙찰자 별명. '산 사람' 만 적는다 — 판 사람 이름을 같이 띄우면
+        // 익명으로 설계한 '왜 팔았나' 벽에서 그 사람이 특정되고, 교실에
+        // 남는 것은 제도에 대한 질문이 아니라 한 학생에 대한 비난이 된다.
+        // 같은 별명이 두 칸에 나오는 것이 이 수업이 보여 주려는 그림이다.
+        if (s.state === 'sold' && buyerOf(s)) {
+          c.appendChild(el('span', 'ym-hcell__w', buyerOf(s)));
+        } else if (s.state === 'unsold') {
+          c.appendChild(el('span', 'ym-hcell__n', 'UNSOLD'));
+        } else if (s.state === 'kept') {
+          c.appendChild(el('span', 'ym-hcell__n is-ko', '안 팔았음'));
+        }
+        c.setAttribute('aria-label', cellAria(s));
         rowEl.appendChild(c);
       });
       host.appendChild(rowEl);
     });
+
+    // 칸 안의 이름이 무엇인지, 그리고 좌석이 몇 명에게 갔는지.
+    // 이름만 크게 뜨면 논점이 제도에서 사람으로 옮겨간다 — 예산이 추첨이었다는
+    // 사실을 늘 같이 둔다. 두 문장을 두 줄로 쌓지 않는 이유는 세로 공간이다:
+    // 1024x768 에서 한 줄을 늘리면 아래 통계 칸과 이유 벽이 잘려 나간다.
+    // 낙찰자가 하나도 없으면(옛 결과 페이로드) 앞 문장은 띄우지 않는다.
+    var anyBuyer = (r.seats || []).some(function (s) { return s.state === 'sold' && buyerOf(s); });
+    if (anyBuyer || r.holders) {
+      var note = el('p', 'ym-heatnote');
+      if (anyBuyer) {
+        note.appendChild(el('span', null,
+          '칸 안의 이름은 그 좌석을 낙찰받은 사람입니다 · 예산은 추첨으로 정해졌습니다'));
+      }
+      // 13석이 9명에게 갔다 — 이 한 줄이 다석 허용의 논점 전부다.
+      if (r.holders) {
+        var sweep = '좌석 ' + r.seat_count + '개가 ' + r.holders + '명에게 갔습니다';
+        if (r.max_seats_one_buyer > 1) sweep += ' — 한 사람이 최대 ' + r.max_seats_one_buyer + '개';
+        note.appendChild(el('span', 'ym-heatnote__hot', sweep));
+      }
+      host.appendChild(note);
+    }
 
     $('#rSold').textContent = r.sold + ' / ' + r.seat_count;
     $('#rRecv').textContent = U.won(r.received);

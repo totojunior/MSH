@@ -2,6 +2,17 @@
  *
  * 규칙 하나: 이 파일은 아무것도 판정하지 않는다. 버튼을 눌러 서버에 묻고,
  * 서버가 돌려준 상태를 그린다. 개발자도구로 여기를 고쳐도 게임은 안 바뀐다.
+ *
+ * 좌석은 복수다. 예매는 한 사람 한 자리지만 경매에서는 돈이 있는 만큼
+ * 몇 개든 살 수 있다. 그래서 '내 좌석'·'내가 1등' 은 전부 배열로 다룬다
+ * (me.my_seats / me.leads). 단수 키(my_seat / leading / my_listing)는
+ * 서버가 호환용으로 남겨 둔 첫 항목일 뿐이고, 여기서는 옛 서버를 만났을
+ * 때의 안전망으로만 쓴다.
+ *
+ * 돈은 세 개다. 입찰해도 잔액은 줄지 않고 정산에서 빠지므로, '가진 돈'
+ * 하나만 보여 주면 학생은 돈이 그대로 보이는데 버튼이 죽은 이유를 영영
+ * 모른다. balance(가진 돈) · committed(걸어 둔 돈) · available(더 쓸 수
+ * 있는 돈) 셋 다 서버가 계산해서 준다 — 여기서 다시 계산하지 않는다.
  */
 (function () {
   'use strict';
@@ -29,6 +40,52 @@
   var chosenPrice = null, chosenReason = null;
   var seatButtons = {};       // seat_id -> button
   var votedThis = {};
+
+  // -------------------------------------------------------------------
+  // 서버가 준 것을 그대로 읽는 도구 — 복수 좌석 · 복수 선두 · 세 가지 돈
+  // -------------------------------------------------------------------
+  // 단수 키로 되돌리는 갈래를 둔 이유: SQL 을 먼저 배포하고 HTML/JS 를
+  // 나중에 배포하는 순서가 정석인데, GitHub Pages 캐시 때문에 그 반대가
+  // 잠깐 일어날 수 있다. 그때도 화면이 죽지 않게 한다.
+  function mySeats(me) {
+    if (me && me.my_seats) return me.my_seats;
+    return (me && me.my_seat) ? [me.my_seat] : [];
+  }
+
+  function myLeads(me) {
+    if (me && me.leads) return me.leads;
+    return (me && me.leading) ? [me.leading] : [];
+  }
+
+  function myListings(me) {
+    if (me && me.my_listings) return me.my_listings;
+    return (me && me.my_listing) ? [me.my_listing] : [];
+  }
+
+  // 약정과 가용액은 서버가 계산한다. 여기서 balance - sum(leads) 로 다시
+  // 구하면, 정산이 방금 돈 순간 화면의 판정과 서버의 판정이 갈린다.
+  // 옛 서버(약정 개념 이전)에는 이 키가 없다 — 그 서버에서는 선두가
+  // 하나뿐이라 가용액이 잔액과 같으므로 잔액을 그대로 쓴다.
+  function money(me) {
+    var bal = (me && me.balance) || 0;
+    return {
+      bal: bal,
+      cmt: (me && typeof me.committed === 'number') ? me.committed : 0,
+      av:  (me && typeof me.available === 'number') ? me.available : bal,
+    };
+  }
+
+  // 좌석표를 여러 개 나열한다. 한 줄 텍스트로 이어 붙이면 세 개째부터
+  // 옆 화면으로 넘쳐서 어느 좌석인지 안 읽힌다.
+  function seatChips(labels) {
+    var box = el('span', 'ym-banner__seats');
+    labels.forEach(function (lb) { box.appendChild(el('span', 'ym-seatchip', lb)); });
+    return box;
+  }
+
+  function labelsOf(seats) {
+    return seats.map(function (x) { return x.label || x.seat_label; });
+  }
 
   // -------------------------------------------------------------------
   // 화면 전환
@@ -327,91 +384,137 @@
   }
   function stepAt(v) { return v < 50000 ? 10000 : v < 100000 ? 20000 : 50000; }
 
+  // 옆 정보판의 돈 세 줄. 서버가 준 숫자를 그대로 옮긴다.
+  function drawMoney(me) {
+    var m = money(me);
+    var leads = myLeads(me);
+
+    $('#aucAvail').textContent = U.won(m.av);
+    $('#aucBal').textContent = U.won(m.bal);
+    $('#aucCommitted').textContent = U.won(m.cmt);
+
+    // 어디에 얼마가 걸려 있는지까지 적는다. 합계 하나로는 '어느 좌석'을
+    // 말하지 못하고, 그러면 학생은 어느 입찰을 포기해야 할지 모른다.
+    var cs = $('#aucCommittedSeats');
+    if (leads.length) {
+      cs.hidden = false;
+      cs.textContent = leads.map(function (x) {
+        return x.seat_label + ' ' + U.won(x.amount);
+      }).join(' · ');
+    } else {
+      cs.hidden = true;
+      cs.textContent = '';
+    }
+  }
+
+  // 배너. 판단하지 않는다 — 지금 무엇을 가졌고 어디서 1등인지만 적는다.
+  // 예전에는 좌석 보유자에게 '살 수 있는 것: 없음' 을 띄워 시장을 닫았다.
+  // 그 한 줄이 (가) 를 막던 화면 쪽 당사자였다.
+  function drawBanner(me) {
+    var banner = $('#aucBanner');
+    var seats = mySeats(me), leads = myLeads(me);
+    U.clear(banner);
+    banner.className = 'ym-banner';
+    banner.hidden = !(seats.length || leads.length);
+    if (banner.hidden) return;
+
+    // 두 줄이 동시에 뜰 수 있다. 좌석을 가진 채 다른 좌석에서 1등인 학생이
+    // 바로 이 활동의 주인공이므로, 둘 중 하나만 보여 주면 안 된다.
+    if (seats.length) {
+      var r1 = el('span', 'ym-banner__row is-mine');
+      r1.appendChild(el('span', 'ym-banner__k',
+        seats.length > 1 ? ('가진 좌석 ' + seats.length + '개') : '가진 좌석'));
+      r1.appendChild(seatChips(labelsOf(seats)));
+      // 쓸 수 있는 돈이 0 이면 '더 살 수도 있습니다' 는 거짓말이다.
+      if (money(me).av > 0) r1.appendChild(el('span', 'ym-banner__note', '더 살 수도 있습니다.'));
+      banner.appendChild(r1);
+    }
+    if (leads.length) {
+      var r2 = el('span', 'ym-banner__row is-lead');
+      r2.appendChild(el('span', 'ym-banner__k',
+        leads.length > 1 ? ('지금 1등 ' + leads.length + '곳') : '지금 1등'));
+      r2.appendChild(seatChips(leads.map(function (x) { return x.seat_label; })));
+      banner.appendChild(r2);
+    }
+  }
+
   function drawAuction(s) {
     var host = $('#listings');
     var open = s.listings.filter(function (l) { return l.status === 'open'; });
     $('#auctionEmpty').hidden = open.length > 0;
-    $('#aucBal').textContent = U.won(s.me.balance);
 
-    var iHaveSeat = !!s.me.my_seat;
-    var leading = s.me.leading;
-    var banner = $('#aucBanner');
-    if (iHaveSeat) {
-      banner.hidden = false;
-      banner.className = 'ym-banner is-quiet';
-      banner.textContent = '살 수 있는 것: 없음 — 이미 좌석이 있습니다.';
-    } else if (leading) {
-      banner.hidden = false;
-      banner.className = 'ym-banner is-lead';
-      banner.textContent = '지금 ' + leading.seat_label + ' 에서 당신이 1등입니다.';
-    } else {
-      banner.hidden = true;
-    }
+    drawMoney(s.me);
+    drawBanner(s.me);
 
     // 카드를 매번 지웠다 새로 만들지 않는다. 입찰이 초당 몇 건씩 들어오면
     // 120ms 마다 화면이 통째로 새로 그려지고, 학생이 막 누르려던 버튼이
     // 손가락 밑에서 사라진다. 탭은 조용히 허공으로 간다.
     // 매물 구성이 달라졌을 때만 다시 만들고, 평소에는 숫자만 고쳐 넣는다.
+    //
+    // sig 에 '내 상태' 를 섞지 않는다. 예전에는 좌석 보유 여부와 선두
+    // 매물을 sig 에 넣었는데, 카드 구조가 더 이상 그것들에 따라 달라지지
+    // 않게 고친 지금 그 값을 넣으면 '남에게 밀린 순간' 마다 카드가 전부
+    // 다시 만들어진다 — 되지르려고 손을 뻗은 바로 그 순간이다.
+    // 잠금과 해제는 아래 updateLot 이 disabled 만 바꿔서 처리한다.
     open.sort(function (a, b) { return a.seat_label < b.seat_label ? -1 : 1; });
-    var sig = open.map(function (l) { return l.id; }).join(',') + '|' + iHaveSeat + '|' + (leading ? leading.listing_id : '');
+    var sig = open.map(function (l) { return l.id; }).join(',');
     if (host.dataset.sig === sig) {
-      open.forEach(function (l) { updateLot(host, l, s, leading, iHaveSeat); });
+      open.forEach(function (l) { updateLot(host, l, s); });
       return;
     }
     host.dataset.sig = sig;
-    U.clear(host);
+    // 통째로 지우고 다시 만들지 않는다.
+    //
+    // 마감된 매물이 정산되면 open 목록에서 하나씩 빠진다. 그때 U.clear 로
+    // 전부 날리면 남아 있는 카드까지 새 노드가 되고, 마지막 10초에 되지르려고
+    // 손을 뻗은 학생의 탭이 그대로 사라진다. 없어진 것만 지우고 새로 생긴
+    // 것만 붙인다.
+    var keep = {};
+    open.forEach(function (l) { keep[l.id] = true; });
+    Array.prototype.slice.call(host.querySelectorAll('[data-lot]')).forEach(function (n) {
+      if (!keep[n.dataset.lot]) n.remove();
+    });
     open.forEach(function (l) {
-      var card = el('div', 'ym-lot' + (l.leading ? ' is-lead' : '') + (l.mine ? ' is-mine' : ''));
+      if (host.querySelector('[data-lot="' + l.id + '"]')) { updateLot(host, l, s); return; }
+      var card = el('div', 'ym-lot');
       card.dataset.lot = l.id;
       card.appendChild(el('p', 'ym-lot__seat', l.seat_label));
+      card.appendChild(el('p', 'ym-lot__price'));
+      card.appendChild(el('p', 'ym-lot__label'));
+      card.appendChild(el('p', 'ym-lot__time'));
+      card.appendChild(el('p', 'ym-lot__note'));
 
-      var cur = el('p', 'ym-lot__price');
-      cur.textContent = l.highest_bid ? U.won(l.highest_bid) : U.won(l.opening_bid);
-      card.appendChild(cur);
-      card.appendChild(el('p', 'ym-lot__label', l.highest_bid ? '현재가' : '시작가'));
-
-      var t = el('p', 'ym-lot__time');
-      t.dataset.ends = l.ends_at || '';
-      t.textContent = U.secs(db.msUntil(l.ends_at));
-      card.appendChild(t);
-
-      if (l.mine) {
-        card.appendChild(el('p', 'ym-lot__note', '내가 올린 좌석'));
-      } else if (iHaveSeat) {
-        card.appendChild(el('p', 'ym-lot__note', '—'));
-      } else if (l.leading) {
-        card.appendChild(el('p', 'ym-lot__note', '내가 1등'));
-      } else {
-        var base = minBidFor(l);
-        var opts = [base, base + stepAt(base), base + stepAt(base) + stepAt(base + stepAt(base))];
+      // 입찰 버튼 행은 조건 없이 만든다. 예전에는 좌석 보유자에게 이 행을
+      // 아예 만들지 않았고, updateLot 은 버튼이 없으면 그냥 돌아 나갔다 —
+      // 상태가 바뀌어도 버튼이 영영 생기지 않는 구조적 버그였다.
+      // 내가 올린 좌석만 예외다(자기 매물 입찰은 계속 막힌다).
+      if (!l.mine) {
         var row = el('div', 'ym-lot__bids');
-        opts.forEach(function (amt, idx) {
-          var b = el('button', 'ym-bid', U.won(amt));
+        for (var i = 0; i < 3; i++) {
+          var b = el('button', 'ym-bid');
           b.type = 'button';
-          var afford = amt <= s.me.balance;
-          var blocked = !!leading;
-          b.disabled = !afford || blocked;
-          if (!afford) b.title = '가진 금액을 넘습니다';
-          if (blocked) b.title = '다른 좌석에서 1등입니다';
-          b.dataset.amt = amt;
+          if (i === 0) b.classList.add('is-min');
           b.addEventListener('click', function () {
-            // 화면이 갱신됐을 수 있으니 항상 현재 표시 금액을 쓴다
-            bid(l.id, parseInt(b.dataset.amt, 10));
+            // 화면이 갱신됐을 수 있으니 항상 지금 적혀 있는 금액을 쓴다
+            var amt = parseInt(this.dataset.amt, 10);
+            if (amt) bid(l.id, amt);
           });
-          if (idx === 0) b.classList.add('is-min');
           row.appendChild(b);
-        });
+        }
         card.appendChild(row);
       }
       host.appendChild(card);
+      updateLot(host, l, s);
     });
   }
 
   // 카드를 다시 만들지 않고 값만 바꾼다. 버튼 요소가 그대로 살아 있으므로
   // 누르는 중이던 탭이 사라지지 않는다.
-  function updateLot(host, l, s, leading, iHaveSeat) {
+  function updateLot(host, l, s) {
     var card = host.querySelector('[data-lot="' + l.id + '"]');
     if (!card) return;
+    var m = money(s.me);
+
     card.className = 'ym-lot' + (l.leading ? ' is-lead' : '') + (l.mine ? ' is-mine' : '');
     var price = card.querySelector('.ym-lot__price');
     var label = card.querySelector('.ym-lot__label');
@@ -420,19 +523,52 @@
     var t = card.querySelector('.ym-lot__time');
     if (t) { t.dataset.ends = l.ends_at || ''; t.textContent = U.secs(db.msUntil(l.ends_at)); }
 
-    var btns = card.querySelectorAll('.ym-bid');
-    if (!btns.length) return;
     var base = minBidFor(l);
     var opts = [base, base + stepAt(base), base + stepAt(base) + stepAt(base + stepAt(base))];
+
+    // 비활성은 흐릿함(색)으로만 나타난다 — 그것만으로는 규칙 위반이다.
+    // 잠긴 이유를 카드 안에 글자로 같이 적는다.
+    var note = card.querySelector('.ym-lot__note');
+    if (note) {
+      note.textContent = l.mine ? '내가 올린 좌석'
+                       : l.leading ? '내가 1등'
+                       : base > m.av ? '더 쓸 수 있는 돈으로는 모자랍니다'
+                       : '';
+    }
+
+    // 이 좌석에서 내가 이미 1등이면 버튼을 감춘다 — 지울 수는 없다.
+    // 요소를 지우면 밀려난 순간 되지를 버튼이 없고, 죽은 버튼 세 개를
+    // 그대로 두면 이기고 있는 좌석이 잠긴 것처럼 보인다. 감추기만 한다.
+    var row = card.querySelector('.ym-lot__bids');
+    if (row) row.hidden = !!l.leading;
+
+    var btns = card.querySelectorAll('.ym-bid');
+    if (!btns.length) return;             // 내가 올린 좌석 — 입찰 행이 없다
     for (var i = 0; i < btns.length && i < opts.length; i++) {
       var amt = opts[i];
       btns[i].textContent = U.won(amt);
       btns[i].dataset.amt = amt;
-      var afford = amt <= s.me.balance;
-      var blocked = !!leading || iHaveSeat;
-      btns[i].disabled = !afford || blocked;
-      btns[i].title = !afford ? '가진 금액을 넘습니다' : blocked ? '다른 좌석에서 1등입니다' : '';
+      // 여기서 새로 판정하는 것은 없다. 서버가 준 사실 두 개만 옮긴다 —
+      // '이 좌석에서 내가 이미 1등'(l.leading)과 '서버가 알려 준 가용액'.
+      // 좌석을 가졌는지, 다른 좌석에서 1등인지는 더 이상 보지 않는다.
+      var over = amt > m.av;
+      btns[i].disabled = over || !!l.leading;
+      btns[i].title = l.leading ? '이미 이 좌석에서 1등입니다'
+                    : over ? ('더 쓸 수 있는 돈 ' + U.won(m.av) + ' 을 넘습니다')
+                    : '';
     }
+  }
+
+  // 서버가 거절할 때 숫자까지 같이 준다(balance / committed / available).
+  // 문장만 띄우면 학생은 '그럼 얼마까지 되는데?' 를 모른 채 같은 버튼을
+  // 다시 누른다. 60초 안에 그건 그냥 잃은 시간이다.
+  function bidWhy(r) {
+    var msg = db.say(r && r.error);
+    if (r && typeof r.available === 'number') {
+      msg += ' 지금 쓸 수 있는 돈은 ' + U.won(r.available) + ' 입니다';
+      msg += r.committed ? (' (걸어 둔 돈 ' + U.won(r.committed) + ').') : '.';
+    }
+    return msg;
   }
 
   var bidding = false;
@@ -444,7 +580,7 @@
       if (r && r.ok) {
         U.SFX.bid();
       } else {
-        U.toast(db.say(r && r.error), 'warn');
+        U.toast(bidWhy(r), 'warn');
       }
       await store.refresh();
     } catch (e) {
@@ -470,36 +606,110 @@
   // -------------------------------------------------------------------
   // 결과 — 학생 기기는 자기 것만 조용히 보여 준다
   // -------------------------------------------------------------------
-  function drawMyResult(s) {
-    var seat = s.me.my_seat, lst = s.me.my_listing, face = s.room.face_value;
-    var k = $('#resKicker'), big = $('#resSeat'), line = $('#resLine'), sub = $('#resSub');
+  // 내역 한 줄. 좌석표 + 무슨 일이 있었나 + 금액.
+  function resRow(host, label, what, detail) {
+    var li = el('li', 'ym-reslist__row');
+    li.appendChild(el('span', 'ym-reslist__seat', label));
+    var box = el('span', 'ym-reslist__body');
+    box.appendChild(el('span', 'ym-reslist__what', what));
+    if (detail) box.appendChild(el('span', 'ym-reslist__detail', detail));
+    li.appendChild(box);
+    host.appendChild(li);
+  }
 
-    if (lst && lst.status === 'sold') {
-      k.textContent = 'SOLD';
-      big.textContent = lst.seat_label;
-      line.textContent = '받은 금액 ' + U.won(lst.final_price);
-      sub.textContent = '정가 ' + U.won(face);
-    } else if (seat && lst && lst.status === 'unsold') {
-      k.textContent = 'YOUR SEAT';
-      big.textContent = seat.label;
-      line.textContent = '올렸지만 팔리지 않았습니다.';
-      sub.textContent = '좌석은 그대로 당신 것입니다.';
-    } else if (seat) {
-      k.textContent = 'YOUR SEAT';
-      big.textContent = seat.label;
-      line.textContent = '정가 ' + U.won(face);
-      sub.textContent = '';
-      // 안 판 학생에게도 시장이 얼마였는지 보여 준다. 판단은 하지 않는다.
-      var res = s.room.results;
-      if (res && res.avg_price) {
-        sub.textContent = '오늘 팔린 좌석의 평균 가격 ' + U.won(res.avg_price);
-      }
-    } else {
-      k.textContent = 'NO SEAT';
-      big.textContent = '—';
-      line.textContent = '남은 예산 ' + U.won(s.me.balance);
-      sub.textContent = '';
+  // 한 문장 요약. "1개 팔고 2개를 ₩210,000 에 샀습니다" 처럼
+  // 팔기와 사기가 한 학생에게 동시에 일어날 수 있다는 것을 문장이 말한다.
+  function resultSummary(soldN, boughtN, spent, keptN, unsoldN, face) {
+    var buy = boughtN
+      ? (boughtN + '개를 ' + (spent !== null ? U.won(spent) + ' 에 ' : '') + '샀습니다')
+      : '';
+    if (soldN && boughtN) return soldN + '개 팔고 ' + buy + '.';
+    if (buy) return buy + '.';
+    if (soldN) return soldN + '개 팔았습니다.';
+    // 올렸는데 안 팔린 것과 아예 안 올린 것을 구분한다. 한 문장으로 뭉치면
+    // '팔지 않고' 가 되어, 팔려고 내놓았던 학생에게 거짓말이 된다.
+    if (unsoldN) return '올렸지만 팔리지 않았습니다. 좌석은 그대로입니다.';
+    if (keptN) return '팔지 않고 그대로 가지고 있습니다. 정가 ' + U.won(face) + '.';
+    // 이 문장은 약하게 만들지 않는다. 좌석 없이 끝난 학생이 이 수업의 결론이다.
+    return '끝까지 좌석이 없었습니다.';
+  }
+
+  function drawMyResult(s) {
+    var me = s.me, res = s.room.results || null, face = s.room.face_value;
+    var k = $('#resKicker'), big = $('#resSeat'), line = $('#resLine'),
+        list = $('#resList'), bal = $('#resBal'), sub = $('#resSub');
+
+    var seats = mySeats(me);
+    var lst = myListings(me);
+    var sold   = lst.filter(function (l) { return l.status === 'sold'; });
+    var unsold = lst.filter(function (l) { return l.status === 'unsold'; });
+
+    // 경매로 얻은 좌석과 예매로 지킨 좌석을 나눈다. 서버가 좌석마다
+    // '어떻게 얻었나'(via)를 적어 준다 — 그래야 "2개 샀습니다" 를 말할 수 있다.
+    var bought = seats.filter(function (x) { return x.via === 'auction'; });
+    var kept   = seats.filter(function (x) { return x.via !== 'auction'; });
+
+    // 낸 금액은 공개 결과표에서 좌석표로 찾는다. 교사가 아직 결과를
+    // 계산하지 않았으면 금액 없이 좌석만 보여 준다 — 거짓말을 하지 않는다.
+    var paid = {}, spent = null;
+    if (res && res.seats) {
+      res.seats.forEach(function (x) { paid[x.label] = x.price; });
+      spent = 0;
+      bought.forEach(function (x) { spent += (paid[x.label] || 0); });
+      if (!bought.length) spent = null;
     }
+
+    // 머리글 — 좌석이 여러 개면 좌석표를 나란히 적고 글자를 줄인다.
+    //
+    // 팔고 나간 학생에게 'NO SEAT' 을 띄우지 않는다. 좌석이 없는 것은
+    // 사실이지만, 15만원에 팔아 넘긴 학생과 끝까지 한 자리도 못 잡은
+    // 학생에게 같은 붉은 글씨를 주면 둘 다 틀리게 읽힌다.
+    var labels = labelsOf(seats);
+    if (!labels.length && sold.length) labels = sold.map(function (l) { return l.seat_label; });
+    var soldOnly = !seats.length && sold.length > 0;
+
+    k.textContent = soldOnly ? 'SOLD'
+                  : !labels.length ? 'NO SEAT'
+                  : labels.length > 1 ? 'YOUR SEATS' : 'YOUR SEAT';
+    big.textContent = labels.length ? labels.join(' · ') : '—';
+    big.className = 'ym-seatbig' + (labels.length > 2 ? ' is-many' : labels.length > 1 ? ' is-multi' : '');
+    line.textContent = resultSummary(sold.length, bought.length, spent,
+                                     kept.length, unsold.length, face);
+
+    // 내역 — 해당하는 것을 전부 적는다. 하나를 골라 보여 주지 않는다.
+    U.clear(list);
+    var listed = {};
+    lst.forEach(function (l) { listed[l.seat_label] = true; });
+
+    sold.forEach(function (l) {
+      resRow(list, l.seat_label, '팔았습니다',
+             '받은 금액 ' + U.won(l.final_price) + ' · 정가 ' + U.won(face));
+    });
+    bought.forEach(function (x) {
+      resRow(list, x.label, '샀습니다',
+             paid[x.label] ? ('낸 금액 ' + U.won(paid[x.label])) : '경매에서 낙찰받았습니다');
+    });
+    unsold.forEach(function (l) {
+      resRow(list, l.seat_label, '안 팔렸습니다',
+             '올렸지만 아무도 사지 않았습니다 · 좌석은 그대로입니다');
+    });
+    kept.filter(function (x) { return !listed[x.label]; }).forEach(function (x) {
+      resRow(list, x.label, '가지고 있습니다', '정가 ' + U.won(face));
+    });
+    list.hidden = !list.childElementCount;
+
+    // 남은 돈은 언제나. 세 자리를 산 학생의 0원과 좌석 없는 학생의 남은 돈이
+    // 나란히 놓여야 "돈이 있으면 앉는다" 가 학생 손에서도 읽힌다.
+    bal.textContent = '남은 돈 ' + U.won(me.balance);
+
+    // 시장이 얼마였는지. 판단은 하지 않는다.
+    var notes = [];
+    if (res && res.avg_price) notes.push('오늘 팔린 좌석의 평균 가격 ' + U.won(res.avg_price));
+    if (res && res.max_seats_one_buyer > 1) {
+      notes.push('한 사람이 최대 ' + res.max_seats_one_buyer + '개를 가져갔습니다');
+    }
+    sub.textContent = notes.join(' · ');
+
     screen('results');
   }
 
@@ -533,7 +743,10 @@
     if (p === 'booking') {
       var left = db.msUntil(s.room.booking_opens_at);
       if (left !== null && left > 0) { screen('countdown'); runCountdown(s.room.booking_opens_at); return; }
-      if (me.my_seat) { $('#gotSeat').textContent = me.my_seat.label;
+      // 예매는 한 사람 한 자리다. 그래도 배열의 첫 항목으로 읽는다 —
+      // 좌석이 복수가 된 뒤에도 이 화면이 깨지지 않게.
+      var got = mySeats(me);
+      if (got.length) { $('#gotSeat').textContent = got[0].label;
                         $('#gotFace').textContent = U.won(s.room.face_value); screen('got'); return; }
       var anyLeft = s.seats.some(function (x) { return !x.taken; });
       var timeLeft = db.msUntil(s.room.booking_ends_at);
@@ -551,16 +764,20 @@
     }
 
     if (p === 'decide') {
-      if (!me.my_seat) { screen('waitmarket'); return; }
+      // 이 단계에서는 예매 좌석 하나뿐이다(경매 전이므로). 배열로 읽는 것은
+      // 교사가 경매 뒤 이 단계를 다시 열었을 때(admin_reopen_decide)를 위한 방어다.
+      var own = mySeats(me);
+      if (!own.length) { screen('waitmarket'); return; }
       buildDecideControls();
-      $('#decSeat').textContent = me.my_seat.label;
+      $('#decSeat').textContent = own[0].label;
       $('#decFace').textContent = U.won(s.room.face_value);
       var noSeat = (s.room.player_count || 0) - s.seats.length;
       $('#decDemand').textContent = noSeat > 0 ? (noSeat + '명이 좌석이 없습니다.') : '';
       $('#decTime').textContent = U.secs(db.msUntil(s.room.decide_ends_at));
-      if (me.my_listing && me.my_listing.status === 'pending') {
+      var pend = myListings(me)[0];
+      if (pend && pend.status === 'pending') {
         $('#decDone').hidden = false;
-        $('#decDone').textContent = '올렸습니다 — 시작가 ' + U.won(me.my_listing.opening_bid);
+        $('#decDone').textContent = '올렸습니다 — 시작가 ' + U.won(pend.opening_bid);
       } else {
         $('#decDone').hidden = true;
       }

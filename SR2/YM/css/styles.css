@@ -162,6 +162,10 @@ button { font-family: inherit; }
 .ym-seatbig {
   margin: 0; font-size: clamp(44px, 8vw, 96px); font-weight: 800; letter-spacing: .04em;
 }
+/* 좌석이 여러 개면 좌석표를 나란히 적는다. 크기를 그대로 두면 'J1 · K3 · K7'
+   이 화면 밖으로 나가고, 학생은 자기가 몇 개를 가졌는지 못 읽는다. */
+.ym-seatbig.is-multi { font-size: clamp(30px, 5.4vw, 58px); letter-spacing: .02em; }
+.ym-seatbig.is-many  { font-size: clamp(22px, 4vw, 40px); letter-spacing: 0; line-height: 1.25; }
 
 .ym-q { margin: 0; font-size: clamp(22px, 3.4vw, 40px); font-weight: 700; line-height: 1.25; }
 .ym-q--small { font-size: clamp(16px, 2.2vw, 24px); color: var(--ym-dim); }
@@ -319,12 +323,78 @@ button { font-family: inherit; }
 .ym-bid:hover:not(:disabled) { background: rgba(255,106,26,.12); }
 .ym-bid:disabled { opacity: .3; cursor: not-allowed; }
 
+/* 경매 배너 — 두 줄이 동시에 뜰 수 있다. '가진 좌석' 과 '지금 1등' 은
+   한 학생에게 같이 일어나고, 그 학생이 이 활동의 주인공이다. */
 .ym-banner {
   margin: var(--ym-s3) 0 0; padding: var(--ym-s3);
-  border-radius: var(--ym-radius); font-size: 14px; font-weight: 700; line-height: 1.45;
+  border-radius: var(--ym-radius); background: #1a1a24;
+  font-size: 14px; font-weight: 700; line-height: 1.45;
+  display: flex; flex-direction: column; gap: var(--ym-s2);
 }
-.ym-banner.is-lead  { background: rgba(74,222,128,.14); color: var(--ym-live); }
-.ym-banner.is-quiet { background: #1a1a24; color: var(--ym-dim); }
+.ym-banner__row {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--ym-s1) var(--ym-s2);
+}
+.ym-banner__row.is-mine { color: var(--ym-hot); }
+.ym-banner__row.is-lead { color: var(--ym-live); }
+.ym-banner__k    { font-size: 13px; font-weight: 700; }
+.ym-banner__note { font-size: 12px; font-weight: 600; color: var(--ym-dim); }
+
+/* 좌석표를 칩으로 나열한다. 한 줄 텍스트로 이어 붙이면 세 개째부터
+   옆으로 넘쳐서 어느 좌석인지 안 읽힌다. */
+.ym-banner__seats { display: flex; flex-wrap: wrap; gap: 4px; }
+.ym-seatchip {
+  border: 1px solid currentColor; border-radius: 6px;
+  padding: 1px 7px; font-size: 13px; font-weight: 800;
+  font-variant-numeric: tabular-nums; letter-spacing: .04em;
+}
+
+/* 돈 세 줄 — 큰 숫자는 가용액이고, 나머지 둘은 그 아래에 글자와 함께 둔다.
+   입찰해도 잔액은 줄지 않으므로(정산에서 빠진다) '걸어 둔 돈' 을 글자로
+   적어 주지 않으면 학생은 돈이 사라졌다고 생각한다. */
+.ym-money {
+  margin: var(--ym-s2) 0 0; display: flex; flex-direction: column; gap: 2px;
+}
+.ym-money__row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--ym-s2); border-top: 1px solid var(--ym-line); padding-top: 4px;
+}
+.ym-money__k { margin: 0; font-size: 12px; color: var(--ym-dim); font-weight: 600; }
+.ym-money__v {
+  margin: 0; font-size: 16px; font-weight: 800;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.ym-money__seats {
+  margin: var(--ym-s1) 0 0; font-size: 12px; font-weight: 700;
+  color: var(--ym-live); font-variant-numeric: tabular-nums; line-height: 1.5;
+}
+
+/* ------------------------------------------------------------------ */
+/* 개인 결과 — 팔았다 / 샀다 / 남았다 를 한 화면에 전부                  */
+/* ------------------------------------------------------------------ */
+.ym-reslist {
+  list-style: none; margin: 0; padding: 0; width: 100%;
+  display: flex; flex-direction: column; gap: var(--ym-s2);
+}
+.ym-reslist__row {
+  display: flex; align-items: center; gap: var(--ym-s3);
+  border: 1px solid var(--ym-line); border-radius: var(--ym-radius);
+  background: var(--ym-pitch); padding: var(--ym-s3) var(--ym-s4);
+  text-align: left;
+}
+.ym-reslist__seat {
+  flex: 0 0 auto; min-width: 2.6em; text-align: center;
+  font-size: clamp(20px, 2.6vw, 26px); font-weight: 800;
+  letter-spacing: .04em; font-variant-numeric: tabular-nums;
+}
+.ym-reslist__body   { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ym-reslist__what   { font-size: 15px; font-weight: 700; }
+.ym-reslist__detail { font-size: 13px; color: var(--ym-dim); }
+
+.ym-resbal {
+  margin: 0; font-size: clamp(17px, 2.2vw, 22px); font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ------------------------------------------------------------------ */
 /* 연결 표시 · 토스트                                                   */
@@ -370,6 +440,10 @@ button { font-family: inherit; }
   }
   .ym-side__label { width: auto; }
   .ym-note--rule  { width: 100%; margin-top: var(--ym-s2); }
+  /* 옆 정보판이 가로로 접히는 폭이다. 돈 세 줄과 배너는 한 줄씩 온전히
+     보여야 한다 — 여기서 끼어들어 눌리면 '걸어 둔 돈' 이 먼저 잘린다. */
+  .ym-money, .ym-money__seats, .ym-banner { width: 100%; margin-top: var(--ym-s2); }
+  .ym-reslist__row { gap: var(--ym-s2); padding: var(--ym-s2) var(--ym-s3); }
   .ym-seat  { width: 38px; height: 38px; }       /* 손가락 기준 최소치 */
   .ym-twobtn { grid-template-columns: 1fr; }
   .ym-listings { grid-template-columns: 1fr 1fr; }
