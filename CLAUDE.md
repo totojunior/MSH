@@ -3,7 +3,7 @@
 마석고 2학년 영어 수업에서 **교실 크롬북으로 바로 여는** 웹 자료 모음.
 GitHub Pages 가 `main` 브랜치 루트를 그대로 서빙한다 → **main 에 push 하면 즉시 라이브다.**
 
-> https://totojunior.github.io/MSH/
+> https://totojunior.github.io/MSH/SR2/ (자료마다 자기 폴더 주소로 연다. 루트 `/MSH/` 에는 페이지를 두지 않는다)
 
 학생이 링크 하나로 열고, 인터넷이 끊긴 교실에서는 HTML 파일 하나를 받아 더블클릭한다.
 이 두 가지가 모든 기술 결정의 이유다.
@@ -17,8 +17,7 @@ GitHub Pages 가 `main` 브랜치 루트를 그대로 서빙한다 → **main �
 | `SR2/` | 외부지문 2 · **1차시** 트롤리 문제 (3D) | `src/` 모듈 → `assemble.js` → 단일 `index.html` |
 | `SR2/BL/` | 외부지문 2 · **2차시** 출생 추첨 (롤스) | `src/` + python 빌드 → 단일 `index.html` |
 | `SR2/NZ/` | 외부지문 2 · **3차시** 노직의 철학 법정 | `src/` 모듈 → `assemble.js` → 단일 `index.html` |
-| `self-study.html` + `vocab-data/` | 어휘 자기주도학습 앱 (루트 `index.html` 이 여기로 리다이렉트) | 단일 HTML + 데이터 JS |
-| `Lesson2/`, `review/`, `PNS/`, `hotdog/`, `stress/` | 개별 수업 자료 | 대부분 손으로 쓴 단일 HTML |
+| `review/`, `PNS/` | 개별 수업 자료 | 손으로 쓴 단일 HTML |
 
 `SR2/README.md` 에 외부지문 2 차시별 링크 표가 있다. **새 차시를 추가하면 이 표에 행을 추가한다.**
 
