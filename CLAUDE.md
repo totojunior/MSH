@@ -18,6 +18,7 @@ GitHub Pages 가 `main` 브랜치 루트를 그대로 서빙한다 → **main �
 | `SR2/BL/` | 외부지문 2 · **2차시** 출생 추첨 (롤스) | `src/` + python 빌드 → 단일 `index.html` |
 | `SR2/NZ/` | 외부지문 2 · **3차시** 노직의 철학 법정 | `src/` 모듈 → `assemble.js` → 단일 `index.html` |
 | `review/`, `PNS/` | 개별 수업 자료 | 손으로 쓴 단일 HTML |
+| `Lesson3/` | 영어II Lesson 3 Living With Viruses · 1~4차시 도입(hook), 교사 화면용 | 목록 `index.html`(손으로 씀) + `1/`~`4/index.html`(빌드 산출물 복사본 — 원본 소스는 교사 노트북 `Lesson 3 Hooks` 폴더. 여기서 고치지 않는다) |
 
 `SR2/README.md` 에 외부지문 2 차시별 링크 표가 있다. **새 차시를 추가하면 이 표에 행을 추가한다.**
 

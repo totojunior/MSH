@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3 · Living With Viruses — 마석고 방송실</title>
+<!--
+  영어II Lesson 3 차시별 도입(hook) 목록.
+  각 차시는 ./1/ ~ ./4/ 의 단일 HTML(빌드 산출물)이다. 원본 소스는 교사 노트북의 "Lesson 3 Hooks" 폴더에 있고,
+  여기에는 완성본만 복사해 올린다. 그래서 이 페이지도 외부 파일·웹폰트 없이 혼자 열리게 썼다.
+-->
+<style>
+  :root {
+    --bg: #0b1016; --panel: #141c26; --line: #26323f; --text: #eef3f8; --dim: #9fb0c2;
+    --teal: #2fe6a8; --red: #ff3b3b; --gold: #ffd34d;
+    --ep1: #ff5a5a; --ep2: #2fe6a8; --ep3: #ffc94d; --ep4: #5cc8ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: radial-gradient(1200px 600px at 50% -10%, #1a2a3a 0%, var(--bg) 60%);
+    color: var(--text); font-family: "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 20px 48px; }
+  .bug {
+    display: inline-flex; align-items: center; gap: 10px; padding: 6px 14px; border-radius: 999px;
+    background: #000a; border: 1px solid var(--line); font-weight: 700; font-size: 16px;
+  }
+  .live { background: var(--red); color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 13px; letter-spacing: .06em; }
+  .live::before { content: "●"; margin-right: 5px; }
+  h1 {
+    font-family: Impact, "Arial Black", "Malgun Gothic", sans-serif; font-weight: 400; letter-spacing: .01em;
+    font-size: clamp(40px, 7vw, 84px); line-height: 1; margin: 22px 0 6px;
+  }
+  .sub { font-size: clamp(18px, 2.4vw, 24px); color: var(--dim); margin: 0 0 6px; }
+  .kicker { color: var(--gold); font-weight: 800; letter-spacing: .14em; font-size: 14px; margin-top: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; margin-top: 30px; }
+  .card {
+    position: relative; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line);
+    border-top: 6px solid var(--c); border-radius: 16px; padding: 20px 20px 18px; min-height: 330px;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px #0008, 0 0 0 1px var(--c) inset; }
+  .ep { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 14px; color: var(--dim); }
+  .ep b { background: var(--c); color: #0b1016; border-radius: 6px; padding: 2px 8px; font-size: 14px; }
+  .show { font-family: Impact, "Arial Black", sans-serif; font-size: 30px; line-height: 1.05; margin: 14px 0 4px; }
+  .ko { color: var(--dim); font-size: 17px; margin: 0 0 14px; }
+  .verdict { font-weight: 900; font-size: 20px; color: var(--c); letter-spacing: .02em; }
+  .verdict small { display: block; color: var(--dim); font-weight: 600; font-size: 15px; letter-spacing: 0; }
+  .desc { font-size: 15.5px; line-height: 1.55; color: #cfd9e4; margin: 12px 0 16px; flex: 1; }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chip { font-size: 13px; font-weight: 700; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); }
+  .btns { display: flex; gap: 8px; }
+  .btn {
+    flex: 1; text-align: center; text-decoration: none; font-weight: 800; font-size: 16px; padding: 11px 10px;
+    border-radius: 10px; color: #0b1016; background: var(--c);
+  }
+  .btn.ghost { flex: 0 0 auto; background: transparent; color: var(--dim); border: 1px solid var(--line); font-weight: 700; font-size: 14px; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost:hover { color: var(--text); border-color: var(--dim); }
+  .finale {
+    margin-top: 26px; padding: 16px 20px; border-radius: 14px; border: 1px dashed var(--line); color: var(--dim);
+    font-size: 16px; line-height: 1.6;
+  }
+  .finale strong { color: var(--gold); }
+  .howto { margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .howto div { background: #0f151d; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 15px; line-height: 1.6; color: #cfd9e4; }
+  .howto h2 { font-size: 16px; margin: 0 0 6px; color: var(--teal); }
+  kbd { font-family: Consolas, monospace; background: #26323f; border-radius: 5px; padding: 1px 6px; font-size: 13px; color: var(--text); }
+  footer { margin-top: 30px; color: #6f8193; font-size: 13px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="bug">마석고 방송실 <span class="live">LIVE</span></span>
+  <div class="kicker">영어II · LESSON 3 · 차시별 도입(HOOK)</div>
+  <h1>LIVING WITH VIRUSES</h1>
+  <p class="sub">바이러스와 함께 살아가기 — THE VIRUS FILES 시리즈 4편</p>
+
+  <div class="grid">
+    <article class="card" style="--c: var(--ep1)">
+      <div class="ep"><b>EP.1</b> 1차시 · p.73</div>
+      <div class="show">VIRUS TOP 10</div>
+      <p class="ko">바이러스 TOP 10</p>
+      <div class="verdict">KILLERS?<small>킬러?</small></div>
+      <p class="desc">레트로 TV 순위 프로그램으로 역사상 가장 많은 목숨을 앗아 간 바이러스를 10위부터 1위까지 세어 내려가요. 마지막 질문: 바이러스는 정말 해롭기만 할까?</p>
+      <div class="meta"><span class="chip">약 6~7분</span><span class="chip">3D 지구본</span></div>
+      <div class="btns"><a class="btn" href="1/">열기</a><a class="btn ghost" href="1/index.html" download="L3_1_virus_top10.html" title="인터넷이 없는 교실용 — 받은 파일을 더블클릭">파일 받기</a></div>
+    </article>
+
+    <article class="card" style="--c: var(--ep2)">
+      <div class="ep"><b>EP.2</b> 2차시 · p.75–76</div>
+      <div class="show">DELETE ALL VIRUSES?</div>
+      <p class="ko">바이러스를 모두 지운다면?</p>
+      <div class="verdict">KEEPERS OF THE EARTH<small>지구의 지킴이</small></div>
+      <p class="desc">반 투표로 '바이러스 삭제' 버튼을 누르면 세균 폭증 → 플랑크톤 감소 → 산소 절반이 사라지는 연쇄가 마석고 위에서 벌어져요.</p>
+      <div class="meta"><span class="chip">약 6~7분</span><span class="chip">투표 Y/N</span></div>
+      <div class="btns"><a class="btn" href="2/">열기</a><a class="btn ghost" href="2/index.html" download="L3_2_delete_all_viruses.html" title="인터넷이 없는 교실용 — 받은 파일을 더블클릭">파일 받기</a></div>
+    </article>
+
+    <article class="card" style="--c: var(--ep3)">
+      <div class="ep"><b>EP.3</b> 3차시 · p.77</div>
+      <div class="show">BORN OR HATCHED?</div>
+      <p class="ko">태어났을까, 부화했을까?</p>
+      <div class="verdict">HELPERS OF EVOLUTION<small>진화의 도우미</small></div>
+      <p class="desc">사람 DNA의 약 8%는 옛 바이러스의 흔적. 옛 바이러스의 유전자가 태반을 만드는 데 한몫했어요. 바이러스 없이 진화를 다시 돌리면… 마석고 부화장?</p>
+      <div class="meta"><span class="chip">약 7~8분</span><span class="chip">예측 투표</span></div>
+      <div class="btns"><a class="btn" href="3/">열기</a><a class="btn ghost" href="3/index.html" download="L3_3_born_or_hatched.html" title="인터넷이 없는 교실용 — 받은 파일을 더블클릭">파일 받기</a></div>
+    </article>
+
+    <article class="card" style="--c: var(--ep4)">
+      <div class="ep"><b>EP.4</b> 4차시 · p.78–79 · FINAL</div>
+      <div class="show">CAN A VIRUS SAVE MASEOK?</div>
+      <p class="ko">바이러스가 마석이를 구할 수 있을까?</p>
+      <div class="verdict">MEANS FOR CURES<small>치료의 수단</small></div>
+      <p class="desc">암에 걸린 만화 학생 마석이에게 특별히 변형한 바이러스를 보내요. 이야기 뒤에는 '아직 초기 단계'라는 현실 확인까지.</p>
+      <div class="meta"><span class="chip">약 7분</span><span class="chip">아픈 장면 있음</span></div>
+      <div class="btns"><a class="btn" href="4/">열기</a><a class="btn ghost" href="4/index.html" download="L3_4_can_a_virus_save_maseok.html" title="인터넷이 없는 교실용 — 받은 파일을 더블클릭">파일 받기</a></div>
+    </article>
+  </div>
+
+  <div class="finale">
+    네 편을 다 보면 시리즈 보드가 완성돼요: <strong>KILLERS? + KEEPERS + HELPERS + MEANS FOR CURES</strong> — 넷 다 동시에 맞는 이야기예요.
+  </div>
+
+  <section class="howto">
+    <div>
+      <h2>진행 (교사용 화면)</h2>
+      열고 <kbd>F</kbd>로 전체화면 → <kbd>→</kbd> · <kbd>Space</kbd> · 클릭으로 다음. <kbd>←</kbd> 이전, <kbd>Home</kbd> 처음부터(다음 반).
+      프레젠터 리모컨으로도 넘어가요.
+    </div>
+    <div>
+      <h2>도움 키</h2>
+      <kbd>T</kbd> 교사 대본 · <kbd>A</kbd> 미션 정답 · <kbd>S</kbd> 출처 · <kbd>M</kbd> 소리 끄기 · <kbd>L</kbd> 가벼운 모드(느릴 때) · <kbd>H</kbd> 도움말
+    </div>
+    <div>
+      <h2>인터넷이 없을 때</h2>
+      '파일 받기'로 미리 내려받아 두면 파일 하나를 더블클릭해서 그대로 쓸 수 있어요. 사진·소리가 모두 파일 안에 들어 있어요.
+    </div>
+  </section>
+
+  <footer>
+    교실 화면에 띄우는 교사용 자료입니다(학생 개인정보를 수집·저장하지 않음). 소리는 첫 클릭 뒤에 나와요.<br>
+    학교 사진: 디지털남양주문화대전(한국학중앙연구원·남양주시) · 그 밖의 사진·소리 출처는 각 차시에서 <kbd>S</kbd>.
+  </footer>
+</div>
+</body>
+</html>
