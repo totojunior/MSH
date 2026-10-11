@@ -1,0 +1,41 @@
+{
+  "builtAt": "2026-10-11T00:53:09.401076+00:00",
+  "basePath": "/MSH/SR3/",
+  "lessons": [
+    {
+      "lesson": 1,
+      "title": "우리 집 강아지가 기계라고?",
+      "path": "1/index.html",
+      "bytes": 15070703,
+      "sha256": "de41284e3fa3e2f2b1b908ed292e8590f8d3a0a7806574240bee08600bcd8979",
+      "sourceCommit": "c06a37a1d540c78e8b4372e37eb736986bc924c5"
+    },
+    {
+      "lesson": 2,
+      "title": "마석이, 너 혹시 로봇이야?",
+      "path": "2/index.html",
+      "bytes": 17212905,
+      "sha256": "28cf7e44d37572923ec5abfd78aad70219a4eb849ab9f9254002f9e0daa8dd47",
+      "sourceCommit": "ada6ae4ab6e2ec66d20c98d022f94f84f6ca7271"
+    },
+    {
+      "lesson": 3,
+      "title": "행복목장 견학일지",
+      "path": "3/index.html",
+      "bytes": 19307314,
+      "sha256": "6d2eddc90c93418be37484f2eefbebd10371fe192a6a89dee3c94f5b8cbc7de2",
+      "sourceCommit": "986916a78971305c129704bf41d5f5fb50252601"
+    },
+    {
+      "lesson": 4,
+      "title": "한 입 먹었는데, 회의가 열렸다",
+      "path": "4/index.html",
+      "bytes": 26897884,
+      "sha256": "2e9561b389c9df1db9f626a8aee36a5e437d26fe04ffd4d0b149b882d20c92d9",
+      "sourceCommit": "963ae9d9a011d0146ccdd5d44329bf4bdd5797ea"
+    }
+  ],
+  "hubSha256": "44a7ddf9cb891e96f6eb0a4dcbfa9aafc15c164a8cfd34f6ea058213f2c23ede",
+  "musicTracksPerLesson": 7,
+  "lunchClockLesson4": "12:50"
+}
