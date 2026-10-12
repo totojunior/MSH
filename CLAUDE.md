@@ -19,6 +19,7 @@ GitHub Pages 가 `main` 브랜치 루트를 그대로 서빙한다 → **main �
 | `SR2/NZ/` | 외부지문 2 · **3차시** 노직의 철학 법정 | `src/` 모듈 → `assemble.js` → 단일 `index.html` |
 | `review/`, `PNS/` | 개별 수업 자료 | 손으로 쓴 단일 HTML |
 | `SR3/` | 외부지문 3 · 1~4차시 토토·마석이 Hook, 교사 화면용 | 단일 HTML 목록 + `1/`~`4/index.html` 완성본 복사. 원본은 `외부지문 3 Hook` 작업 폴더에서 관리하며 SR2 조립기/CI와 분리한다. |
+| `SR4/` | 외부지문 4 · 지문 1~3 김종달·이애매·오밤중 Hook(잠 시리즈), 교사 화면용 | 목록 `index.html`(손으로 씀) + `1/`~`3/index.html` 완성본 복사. 원본 소스·교사용 대본은 교사 노트북 `외부지문 4 Hook` 작업 폴더(`build/`~`build3/`)에 있다. 여기서 고치지 않는다 |
 | `Lesson3/` | 영어II Lesson 3 Living With Viruses · 1~4차시 도입(hook), 교사 화면용 | 목록 `index.html`(손으로 씀) + `1/`~`4/index.html`(빌드 산출물 복사본 — 원본 소스는 교사 노트북 `Lesson 3 Hooks` 폴더. 여기서 고치지 않는다) |
 
 `SR2/README.md` 에 외부지문 2 차시별 링크 표가 있다. **새 차시를 추가하면 이 표에 행을 추가한다.**

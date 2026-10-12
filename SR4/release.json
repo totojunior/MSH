@@ -1,0 +1,34 @@
+{
+  "builtAt": "2026-10-12T23:50:32.054753+00:00",
+  "basePath": "/MSH/SR4/",
+  "lessons": [
+    {
+      "lesson": 1,
+      "passage": "지문 1",
+      "title": "마석고 2학년 교실의 생태계",
+      "path": "1/index.html",
+      "bytes": 1816506,
+      "sha256": "9078dfb64c9472d76f8ea4cabc913251dae3d3b8ec83c8eb0ad8120879f89eef",
+      "source": "외부지문 4 Hook/build/hook.test.html"
+    },
+    {
+      "lesson": 2,
+      "passage": "지문 2",
+      "title": "마석고 시에스타 사건",
+      "path": "2/index.html",
+      "bytes": 1109758,
+      "sha256": "9a7f3f96aafeaad006bc7262ee61c3234616e3b933b3bb0d3e340eb86ee0dcb5",
+      "source": "외부지문 4 Hook/build2/hook.test.html"
+    },
+    {
+      "lesson": 3,
+      "passage": "지문 3",
+      "title": "마석고 감정 블랙박스",
+      "path": "3/index.html",
+      "bytes": 1297289,
+      "sha256": "f35c6661db47f00e48974cc2b508ba802d92fdc7c9ccfa480d742608bd758809",
+      "source": "외부지문 4 Hook/build3/hook.test.html"
+    }
+  ],
+  "hubSha256": "0351149000a766bbf53950dbf116a4b587ae70f73af728862ef771899be40746"
+}
