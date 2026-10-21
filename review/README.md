@@ -7,7 +7,7 @@ https://totojunior.github.io/MSH/review/
 
 ## 이 폴더는 빌드 산출물이다
 
-- 소스는 교사 노트북의 `AI Paraphrasing and Making Questions/app/web` (Vite + React) 이고, 서버는 Supabase 프로젝트다.
+- 소스는 교사 노트북의 `AI Paraphrasing and Making Questions/app/web` (Vite + React)이고, GitHub `totojunior/msh-english-ai`(비공개)에도 올라가 있다. 서버는 Supabase 프로젝트다.
 - 여기 파일을 직접 고치지 마라. 소스에서 `npm run build` 한 `dist/` 를 통째로 복사해 덮어쓴다.
 - 해시 라우터(`#/login` …)와 상대 경로 빌드라서 `/MSH/review/` 아래에서 그대로 돈다.
 

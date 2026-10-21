@@ -17,7 +17,7 @@ GitHub Pages 가 `main` 브랜치 루트를 그대로 서빙한다 → **main �
 | `SR2/` | 외부지문 2 · **1차시** 트롤리 문제 (3D) | `src/` 모듈 → `assemble.js` → 단일 `index.html` |
 | `SR2/BL/` | 외부지문 2 · **2차시** 출생 추첨 (롤스) | `src/` + python 빌드 → 단일 `index.html` |
 | `SR2/NZ/` | 외부지문 2 · **3차시** 노직의 철학 법정 | `src/` 모듈 → `assemble.js` → 단일 `index.html` |
-| `review/` | **AI 영어 학습 도우미(2학기 복습 웹앱)** — 문항 생성·시험지 풀이·오답노트·패러프레이즈·해석 점검, 교사 화면 | Vite+React **빌드 산출물 복사본**(원본 소스는 교사 노트북 `AI Paraphrasing and Making Questions/app/web`, 서버는 Supabase). 여기서 고치지 않는다. 사용법은 `review/README.md` |
+| `review/` | **AI 영어 학습 도우미(2학기 복습 웹앱)** — 문항 생성·시험지 풀이·오답노트·패러프레이즈·해석 점검, 교사 화면 | Vite+React **빌드 산출물 복사본**(원본 소스는 교사 노트북 `AI Paraphrasing and Making Questions/app/web` = GitHub `totojunior/msh-english-ai` 비공개, 서버는 Supabase). 여기서 고치지 않는다. 사용법은 `review/README.md` |
 | `PNS/` | 개별 수업 자료 | 손으로 쓴 단일 HTML |
 | `SR3/` | 외부지문 3 · 1~4차시 토토·마석이 Hook, 교사 화면용 | 단일 HTML 목록 + `1/`~`4/index.html` 완성본 복사. 원본은 `외부지문 3 Hook` 작업 폴더에서 관리하며 SR2 조립기/CI와 분리한다. |
 | `SR4/` | 외부지문 4 · 지문 1~3 김종달·이애매·오밤중 Hook(잠 시리즈), 교사 화면용 | 목록 `index.html`(손으로 씀) + `1/`~`3/index.html` 완성본 복사. 원본 소스·교사용 대본은 교사 노트북 `외부지문 4 Hook` 작업 폴더(`build/`~`build3/`)에 있다. 여기서 고치지 않는다 |
